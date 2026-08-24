@@ -28,6 +28,39 @@ function Invoke-Checked {
   }
 }
 
+function Test-BuildxBuilderArtifactsAbsent {
+  param([string] $Name)
+
+  $containerName = "buildx_buildkit_${Name}0"
+  $volumeName = "${containerName}_state"
+  & docker buildx inspect $Name *> $null
+  $builderExists = $LASTEXITCODE -eq 0
+  & docker container inspect $containerName *> $null
+  $containerExists = $LASTEXITCODE -eq 0
+  & docker volume inspect $volumeName *> $null
+  $volumeExists = $LASTEXITCODE -eq 0
+  return -not ($builderExists -or $containerExists -or $volumeExists)
+}
+
+function Remove-BuildxBuilder {
+  param([string] $Name)
+
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    & docker buildx rm $Name
+    $removeExitCode = $LASTEXITCODE
+    for ($check = 1; $check -le 15; $check++) {
+      if (Test-BuildxBuilderArtifactsAbsent $Name) {
+        if ($removeExitCode -ne 0) {
+          Write-Warning "Docker reported a builder-removal error, but all exact builder artifacts are absent."
+        }
+        return
+      }
+      Start-Sleep -Seconds 2
+    }
+  }
+  throw "Unable to remove disposable Buildx builder '$Name' and its exact state artifacts."
+}
+
 function Get-FreePort {
   $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
   try {
@@ -271,7 +304,7 @@ finally {
         if ($builderName -notmatch '^queueforge-clean-[a-f0-9]{10}-builder$') {
           throw "Refusing cleanup for unexpected builder '$builderName'."
         }
-        Invoke-Checked docker @('buildx', 'rm', $builderName)
+        Remove-BuildxBuilder $builderName
       }
       catch {
         if ($null -eq $failureRecord) {
