@@ -1,0 +1,14 @@
+node_modules
+dist
+.next
+out
+coverage
+storybook-static
+playwright-report
+test-results
+output
+artifacts/verification
+pnpm-lock.yaml
+apps/web/next-env.d.ts
+.env*
+*.ps1

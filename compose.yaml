@@ -1,0 +1,291 @@
+name: queueforge
+
+services:
+  postgres:
+    image: postgres:17.11-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-queueforge}
+      POSTGRES_USER: ${POSTGRES_OWNER_USER:-queueforge_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD:?Generate .env with pnpm env:generate}
+      POSTGRES_APP_USER: queueforge_app
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Generate .env with pnpm env:generate}
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - queueforge_postgres:/var/lib/postgresql/data
+      - ./docker/postgres/001-create-runtime-role.sh:/docker-entrypoint-initdb.d/001-create-runtime-role.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 150
+    security_opt:
+      - no-new-privileges:true
+    networks: [backend]
+
+  redis:
+    image: redis:8.6.5-alpine
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - 'yes'
+      - --appendfsync
+      - everysec
+      - --requirepass
+      - ${REDIS_PASSWORD:?Generate .env with pnpm env:generate}
+      - --maxmemory
+      - 96mb
+      - --maxmemory-policy
+      - noeviction
+    ports:
+      - '127.0.0.1:${REDIS_PORT:-6379}:6379'
+    volumes:
+      - queueforge_redis:/data
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a $$REDIS_PASSWORD ping | grep PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Generate .env with pnpm env:generate}
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 100
+    security_opt:
+      - no-new-privileges:true
+    networks: [backend]
+
+  migrate:
+    profiles: [full]
+    image: ${QUEUEFORGE_PERSISTENCE_IMAGE:-queueforge-persistence:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node
+      args:
+        PACKAGE_FILTER: '@queueforge/persistence'
+    command: ['node', 'dist/cli.js', 'migrate']
+    environment:
+      DATABASE_URL: postgresql://queueforge_app:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB:-queueforge}
+      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_OWNER_USER:-queueforge_owner}:${POSTGRES_OWNER_PASSWORD}@postgres:5432/${POSTGRES_DB:-queueforge}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: 'no'
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.75
+    pids_limit: 100
+    networks: [backend]
+
+  seed:
+    profiles: [full]
+    image: ${QUEUEFORGE_PERSISTENCE_IMAGE:-queueforge-persistence:local}
+    command: ['node', 'dist/cli.js', 'seed']
+    environment:
+      DATABASE_URL: postgresql://queueforge_app:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB:-queueforge}
+      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_OWNER_USER:-queueforge_owner}:${POSTGRES_OWNER_PASSWORD}@postgres:5432/${POSTGRES_DB:-queueforge}
+      WEBHOOK_MASTER_KEY: ${WEBHOOK_MASTER_KEY:?Generate .env with pnpm env:generate}
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@queueforge.test}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?Generate .env with pnpm env:generate}
+      BOOTSTRAP_TENANT_SLUG: ${BOOTSTRAP_TENANT_SLUG:-acme-demo}
+      DEMO_WEBHOOK_TARGET_URL: http://webhook-sink:3300/webhooks
+      SINK_SECRET: ${SINK_SECRET:?Generate .env with pnpm env:generate}
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      webhook-sink: { condition: service_healthy }
+    restart: 'no'
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.75
+    pids_limit: 100
+    networks: [backend]
+
+  api:
+    profiles: [full]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node
+      args:
+        PACKAGE_FILTER: '@queueforge/api'
+    init: true
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      APP_MODE: ${APP_MODE:-local}
+      API_HOST: 0.0.0.0
+      API_PORT: 3001
+      WEB_ORIGIN: http://127.0.0.1:${WEB_PORT:-3100}
+      DATABASE_URL: postgresql://queueforge_app:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB:-queueforge}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Generate .env with pnpm env:generate}
+      JWT_ISSUER: ${JWT_ISSUER:-queueforge-local}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-queueforge-api}
+      ACCESS_TOKEN_TTL_SECONDS: ${ACCESS_TOKEN_TTL_SECONDS:-600}
+      REFRESH_TOKEN_TTL_SECONDS: ${REFRESH_TOKEN_TTL_SECONDS:-604800}
+      REFRESH_FAMILY_TTL_SECONDS: ${REFRESH_FAMILY_TTL_SECONDS:-2592000}
+      REFRESH_TOKEN_PEPPER: ${REFRESH_TOKEN_PEPPER:?Generate .env with pnpm env:generate}
+      WEBHOOK_MASTER_KEY: ${WEBHOOK_MASTER_KEY:?Generate .env with pnpm env:generate}
+      REFRESH_COOKIE_NAME: ${REFRESH_COOKIE_NAME:-qf_refresh}
+      CSRF_COOKIE_NAME: ${CSRF_COOKIE_NAME:-qf_csrf}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      METRICS_TOKEN: ${METRICS_TOKEN:?Generate .env with pnpm env:generate}
+      WEBHOOK_CLOCK_SKEW_SECONDS: ${WEBHOOK_CLOCK_SKEW_SECONDS:-300}
+    ports:
+      - '127.0.0.1:${API_PORT:-3001}:3001'
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      seed: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/api/v1/health/live').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.5
+    pids_limit: 150
+    networks: [backend]
+
+  worker:
+    profiles: [full]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node
+      args:
+        PACKAGE_FILTER: '@queueforge/worker'
+    init: true
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://queueforge_app:${POSTGRES_APP_PASSWORD}@postgres:5432/${POSTGRES_DB:-queueforge}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      WEBHOOK_MASTER_KEY: ${WEBHOOK_MASTER_KEY:?Generate .env with pnpm env:generate}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      OUTBOUND_ALLOWED_HOSTS: webhook-sink
+      OUTBOUND_ALLOW_PRIVATE_NETWORKS: 'true'
+      OUTBOX_POLL_INTERVAL_MS: ${OUTBOX_POLL_INTERVAL_MS:-1000}
+      OUTBOX_LEASE_SECONDS: ${OUTBOX_LEASE_SECONDS:-30}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+      WORKER_HEARTBEAT_SECONDS: ${WORKER_HEARTBEAT_SECONDS:-10}
+      REQUEST_JOB_TIMEOUT_MS: ${REQUEST_JOB_TIMEOUT_MS:-30000}
+      WEBHOOK_TIMEOUT_MS: ${WEBHOOK_TIMEOUT_MS:-5000}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      webhook-sink: { condition: service_healthy }
+      seed: { condition: service_completed_successfully }
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    cpus: 1.5
+    pids_limit: 150
+    networks: [backend]
+
+  webhook-sink:
+    profiles: [full]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.node
+      args:
+        PACKAGE_FILTER: '@queueforge/webhook-sink'
+    init: true
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      SINK_HOST: 0.0.0.0
+      SINK_PORT: 3300
+      SINK_SECRET: ${SINK_SECRET:?Generate .env with pnpm env:generate}
+      SINK_KEY_ID: ${SINK_KEY_ID:-local-v1}
+      SINK_CLOCK_SKEW_SECONDS: ${SINK_CLOCK_SKEW_SECONDS:-300}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - '127.0.0.1:${SINK_PORT:-3300}:3300'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3300/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 75
+    networks: [backend]
+
+  web:
+    profiles: [full]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: http://127.0.0.1:${API_PORT:-3001}
+        NEXT_PUBLIC_GRAPHQL_URL: http://127.0.0.1:${API_PORT:-3001}/graphql
+        NEXT_PUBLIC_CSRF_COOKIE_NAME: ${CSRF_COOKIE_NAME:-qf_csrf}
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:${WEB_PORT:-3100}:8080'
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '-', 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    read_only: true
+    tmpfs: [/tmp, /var/cache/nginx, /var/run]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 96m
+    cpus: 0.5
+    pids_limit: 75
+    networks: [backend]
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  queueforge_postgres:
+  queueforge_redis:

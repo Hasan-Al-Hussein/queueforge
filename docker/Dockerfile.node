@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1.7
+ARG NODE_VERSION=24.19.0
+
+FROM node:${NODE_VERSION}-bookworm-slim AS toolchain
+ENV PNPM_HOME=/pnpm
+ENV PATH=${PNPM_HOME}:${PATH}
+RUN corepack enable && corepack prepare pnpm@11.23.0 --activate
+WORKDIR /workspace
+
+FROM toolchain AS dependencies
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/worker/package.json apps/worker/package.json
+COPY apps/web/package.json apps/web/package.json
+COPY apps/webhook-sink/package.json apps/webhook-sink/package.json
+COPY packages/application/package.json packages/application/package.json
+COPY packages/config/package.json packages/config/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+COPY packages/domain/package.json packages/domain/package.json
+COPY packages/observability/package.json packages/observability/package.json
+COPY packages/persistence/package.json packages/persistence/package.json
+COPY packages/testkit/package.json packages/testkit/package.json
+COPY packages/ui/package.json packages/ui/package.json
+RUN --mount=type=cache,id=queueforge-pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
+
+FROM dependencies AS build
+COPY . .
+ARG PACKAGE_FILTER
+RUN test -n "$PACKAGE_FILTER"
+RUN pnpm --filter "${PACKAGE_FILTER}..." build
+RUN pnpm --filter "$PACKAGE_FILTER" deploy --prod --legacy /deployed
+
+FROM node:${NODE_VERSION}-bookworm-slim AS runtime
+ENV NODE_ENV=production
+WORKDIR /app
+RUN groupadd --system --gid 10001 queueforge \
+    && useradd --system --uid 10001 --gid queueforge --home-dir /app queueforge
+COPY --from=build --chown=queueforge:queueforge /deployed/ ./
+USER queueforge
+CMD ["node", "dist/main.js"]

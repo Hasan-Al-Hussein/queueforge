@@ -1,0 +1,9 @@
+{
+  "status": "open",
+  "checkedAt": "2026-08-24",
+  "advisoryId": null,
+  "advisoryUrl": null,
+  "publishedAt": null,
+  "safeVersions": [],
+  "note": "The vendor-announced security release is scheduled for 2026-08-26. QueueForge remains loopback-only until the actual advisory and patched version are recorded and fully regressed."
+}

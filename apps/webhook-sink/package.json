@@ -1,0 +1,19 @@
+{
+  "name": "@queueforge/webhook-sink",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "jest --config ../../jest.config.cjs --rootDir ."
+  },
+  "dependencies": {
+    "@queueforge/config": "workspace:*",
+    "@queueforge/contracts": "workspace:*",
+    "zod": "4.4.3"
+  }
+}

@@ -1,0 +1,60 @@
+name: queueforge-test
+
+services:
+  postgres-test:
+    image: postgres:17.11-alpine
+    environment:
+      POSTGRES_DB: queueforge_test
+      POSTGRES_USER: ${POSTGRES_OWNER_USER:-queueforge_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD:?Generate .env with pnpm env:generate}
+      POSTGRES_APP_USER: queueforge_app
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?Generate .env with pnpm env:generate}
+    ports:
+      - '127.0.0.1:${TEST_POSTGRES_PORT:-55432}:5432'
+    volumes:
+      - queueforge_test_postgres:/var/lib/postgresql/data
+      - ./docker/postgres/001-create-runtime-role.sh:/docker-entrypoint-initdb.d/001-create-runtime-role.sh:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
+      interval: 3s
+      timeout: 3s
+      retries: 15
+      start_period: 8s
+    mem_limit: 384m
+    cpus: 1.0
+    pids_limit: 125
+    security_opt: [no-new-privileges:true]
+
+  redis-test:
+    image: redis:8.6.5-alpine
+    command:
+      - redis-server
+      - --save
+      - ''
+      - --appendonly
+      - 'no'
+      - --requirepass
+      - ${REDIS_PASSWORD:?Generate .env with pnpm env:generate}
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - noeviction
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Generate .env with pnpm env:generate}
+    ports:
+      - '127.0.0.1:${TEST_REDIS_PORT:-56379}:6379'
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli -a $$REDIS_PASSWORD ping | grep PONG']
+      interval: 3s
+      timeout: 3s
+      retries: 15
+    mem_limit: 96m
+    cpus: 0.5
+    pids_limit: 75
+    security_opt: [no-new-privileges:true]
+
+volumes:
+  queueforge_test_postgres:
+    name: queueforge-test-postgres
+    labels:
+      com.queueforge.scope: synthetic-test-only

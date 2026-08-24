@@ -1,0 +1,482 @@
+{
+  "auditWindow": "post-authentication packaged-route traversal",
+  "captureDate": "2026-08-24",
+  "capturedAt": "2026-08-24T16:51:42.596Z",
+  "data": "seeded synthetic demonstration data only",
+  "origins": {
+    "api": "http://127.0.0.1:3001",
+    "sink": "http://127.0.0.1:3300",
+    "web": "http://127.0.0.1:3100"
+  },
+  "profile": "full Docker Compose packaged static web profile on loopback",
+  "screenshots": [
+    {
+      "bytes": 88370,
+      "file": "desktop-overview-1440x900.png",
+      "route": "/",
+      "sha256": "543d6c7fa7d3c22492d5487e4779ec3b4de328acd1c7e6a2695baa39416e482e",
+      "viewport": "1440x900"
+    },
+    {
+      "bytes": 95298,
+      "file": "desktop-request-detail-1440x900.png",
+      "route": "/requests/detail?id=:requestId",
+      "sha256": "45c56a083ca7ef8fa7ef407354a4de019fc75796c39342e08c1f1db8e5eaa47f",
+      "viewport": "1440x900"
+    },
+    {
+      "bytes": 103022,
+      "file": "desktop-operations-1440x900.png",
+      "route": "/operations",
+      "sha256": "d04017bae689b25d40c36a6f17bcbe707cac6127f811f321b25a2474cbcc7da3",
+      "viewport": "1440x900"
+    },
+    {
+      "bytes": 28197,
+      "file": "mobile-overview-390x844.png",
+      "route": "/",
+      "sha256": "bab3ac87c72ddf54531897ed5441db0b968a2d6ab45da510b19159973ee28ec9",
+      "viewport": "390x844"
+    },
+    {
+      "bytes": 36953,
+      "file": "mobile-navigation-390x844.png",
+      "route": "/ (navigation open)",
+      "sha256": "3392c1dcc63345f90889758325e38a9f62cd22a716e4fdbebf5e62f61284bb98",
+      "viewport": "390x844"
+    }
+  ],
+  "status": "passed",
+  "timezone": "Asia/Dubai",
+  "totals": {
+    "consoleErrors": 0,
+    "errorResponses": 0,
+    "failedRequests": 0,
+    "graphqlErrors": 0,
+    "pageErrors": 0,
+    "routeChecks": 20,
+    "sensitiveFindings": 0
+  },
+  "viewports": [
+    {
+      "consoleErrors": [],
+      "errorResponses": [],
+      "failedRequests": [],
+      "graphqlErrors": [],
+      "name": "desktop",
+      "pageErrors": [],
+      "routes": [
+        {
+          "declaredRoute": "/",
+          "finalPath": "/",
+          "navigation": "authenticated landing",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Control overview",
+            "mainCount": 1,
+            "title": "QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/requests",
+          "finalPath": "/requests/",
+          "navigation": "desktop application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Requests",
+            "mainCount": 1,
+            "title": "Requests · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/requests/detail?id=:requestId",
+          "finalPath": "/requests/detail/?id=12c3d7be-fff7-471f-b520-44eefba28b7d",
+          "navigation": "request table detail navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Request detail",
+            "mainCount": 1,
+            "title": "Request detail · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/approvals",
+          "finalPath": "/approvals/",
+          "navigation": "desktop application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Approvals",
+            "mainCount": 1,
+            "title": "Approvals · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/workflows",
+          "finalPath": "/workflows/",
+          "navigation": "desktop application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Workflows",
+            "mainCount": 1,
+            "title": "Workflows · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/webhooks",
+          "finalPath": "/webhooks/",
+          "navigation": "desktop application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Webhooks",
+            "mainCount": 1,
+            "title": "Webhooks · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/operations",
+          "finalPath": "/operations/",
+          "navigation": "desktop application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Queues & dead letters",
+            "mainCount": 1,
+            "title": "Queues & DLQ · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/notifications",
+          "finalPath": "/notifications/",
+          "navigation": "desktop application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Notifications",
+            "mainCount": 1,
+            "title": "Notifications · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/audit",
+          "finalPath": "/audit/",
+          "navigation": "desktop application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Audit trail",
+            "mainCount": 1,
+            "title": "Audit trail · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/team",
+          "finalPath": "/team/",
+          "navigation": "desktop application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Team & RBAC",
+            "mainCount": 1,
+            "title": "Team & access · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        }
+      ],
+      "securityTotals": {
+        "absolutePathMatches": 0,
+        "localStorageSensitiveEntries": 0,
+        "secretValueMatches": 0,
+        "tokenPatternMatches": 0
+      },
+      "viewport": {
+        "height": 900,
+        "width": 1440
+      }
+    },
+    {
+      "consoleErrors": [],
+      "errorResponses": [],
+      "failedRequests": [],
+      "graphqlErrors": [],
+      "name": "mobile",
+      "pageErrors": [],
+      "routes": [
+        {
+          "declaredRoute": "/",
+          "finalPath": "/",
+          "navigation": "authenticated landing",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Control overview",
+            "mainCount": 1,
+            "title": "QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/requests",
+          "finalPath": "/requests/",
+          "navigation": "mobile application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Requests",
+            "mainCount": 1,
+            "title": "Requests · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/requests/detail?id=:requestId",
+          "finalPath": "/requests/detail/?id=12c3d7be-fff7-471f-b520-44eefba28b7d",
+          "navigation": "request table detail navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Request detail",
+            "mainCount": 1,
+            "title": "Request detail · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/approvals",
+          "finalPath": "/approvals/",
+          "navigation": "mobile application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Approvals",
+            "mainCount": 1,
+            "title": "Approvals · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/workflows",
+          "finalPath": "/workflows/",
+          "navigation": "mobile application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Workflows",
+            "mainCount": 1,
+            "title": "Workflows · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/webhooks",
+          "finalPath": "/webhooks/",
+          "navigation": "mobile application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Webhooks",
+            "mainCount": 1,
+            "title": "Webhooks · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/operations",
+          "finalPath": "/operations/",
+          "navigation": "mobile application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Queues & dead letters",
+            "mainCount": 1,
+            "title": "Queues & DLQ · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/notifications",
+          "finalPath": "/notifications/",
+          "navigation": "mobile application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Notifications",
+            "mainCount": 1,
+            "title": "Notifications · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/audit",
+          "finalPath": "/audit/",
+          "navigation": "mobile application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Audit trail",
+            "mainCount": 1,
+            "title": "Audit trail · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        },
+        {
+          "declaredRoute": "/team",
+          "finalPath": "/team/",
+          "navigation": "mobile application navigation",
+          "status": 200,
+          "metrics": {
+            "documentHorizontalOverflow": 0,
+            "h1": "Team & RBAC",
+            "mainCount": 1,
+            "title": "Team & access · QueueForge",
+            "unnamedInteractiveCount": 0
+          },
+          "sensitive": {
+            "absolutePathMatches": 0,
+            "localStorageSensitiveEntries": 0,
+            "secretValueMatches": 0,
+            "tokenPatternMatches": 0
+          }
+        }
+      ],
+      "securityTotals": {
+        "absolutePathMatches": 0,
+        "localStorageSensitiveEntries": 0,
+        "secretValueMatches": 0,
+        "tokenPatternMatches": 0
+      },
+      "viewport": {
+        "height": 844,
+        "width": 390
+      }
+    }
+  ]
+}

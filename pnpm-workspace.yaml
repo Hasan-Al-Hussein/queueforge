@@ -1,0 +1,19 @@
+packages:
+  - apps/*
+  - packages/*
+allowBuilds:
+  '@apollo/protobufjs': false
+  '@scarf/scarf': false
+  argon2: true
+  esbuild: true
+  msgpackr-extract: false
+peerDependencyRules:
+  # Nest's optional, unused Playground plugin still declares Apollo Server 4 only,
+  # while the current Nest Apollo adapter itself requires Apollo Server 5.
+  allowedVersions:
+    '@apollo/server': '>=4 <6'
+minimumReleaseAgeExclude:
+  - '@tanstack/query-core@5.102.2'
+  - '@tanstack/react-query@5.102.2'
+  - '@types/react-dom@19.2.5'
+  - lucide-react@1.34.0

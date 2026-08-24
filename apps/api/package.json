@@ -1,0 +1,48 @@
+{
+  "name": "@queueforge/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "jest --config ../../jest.config.cjs --rootDir ."
+  },
+  "dependencies": {
+    "@apollo/server": "5.5.1",
+    "@graphile/depth-limit": "0.3.1",
+    "@as-integrations/express5": "1.1.2",
+    "@nestjs/apollo": "13.4.5",
+    "@nestjs/common": "11.2.1",
+    "@nestjs/config": "4.0.4",
+    "@nestjs/core": "11.2.1",
+    "@nestjs/graphql": "13.4.5",
+    "@nestjs/platform-express": "11.2.1",
+    "@nestjs/swagger": "11.4.7",
+    "@nestjs/terminus": "11.1.1",
+    "@nestjs/throttler": "6.5.0",
+    "@queueforge/application": "workspace:*",
+    "@queueforge/config": "workspace:*",
+    "@queueforge/contracts": "workspace:*",
+    "@queueforge/domain": "workspace:*",
+    "@queueforge/observability": "workspace:*",
+    "@queueforge/persistence": "workspace:*",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.15.1",
+    "cookie-parser": "1.4.7",
+    "express": "5.2.1",
+    "graphql": "16.14.2",
+    "graphql-query-complexity": "2.0.0",
+    "helmet": "8.3.0",
+    "passport": "0.7.0",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "1.4.10",
+    "@types/express": "5.0.6"
+  }
+}

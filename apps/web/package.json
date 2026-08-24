@@ -1,0 +1,51 @@
+{
+  "name": "@queueforge/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "postbuild": "node scripts/materialize-export-rsc.mjs",
+    "dev": "next dev --hostname 127.0.0.1 --port 3100",
+    "start": "serve out --listen tcp://127.0.0.1:3100",
+    "storybook": "storybook dev -p 6006 --host 127.0.0.1",
+    "build-storybook": "storybook build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:a11y": "vitest run --config vitest.a11y.config.ts"
+  },
+  "dependencies": {
+    "@apollo/client": "4.2.12",
+    "@hookform/resolvers": "5.9.1",
+    "@queueforge/contracts": "workspace:*",
+    "@queueforge/ui": "workspace:*",
+    "@tanstack/react-query": "5.102.2",
+    "@tanstack/react-table": "8.21.3",
+    "graphql": "16.14.2",
+    "next": "16.3.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-hook-form": "7.86.0",
+    "recharts": "3.10.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@storybook/addon-a11y": "10.5.10",
+    "@storybook/addon-vitest": "10.5.10",
+    "@storybook/nextjs-vite": "10.5.10",
+    "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "@vitejs/plugin-react": "6.1.0",
+    "axe-core": "4.10.3",
+    "jsdom": "30.0.1",
+    "serve": "14.2.6",
+    "storybook": "10.5.10",
+    "tailwindcss": "4.3.3",
+    "vite": "8.2.2",
+    "vitest": "4.1.11"
+  }
+}

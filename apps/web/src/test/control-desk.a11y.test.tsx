@@ -1,0 +1,50 @@
+import { render } from '@testing-library/react';
+import axe from 'axe-core';
+import { describe, expect, it } from 'vitest';
+
+import { Button, InputField, Panel, QueueRail, StatusBadge } from '@queueforge/ui';
+
+import { PaginationControls } from '../components/pagination-controls';
+
+describe('Control desk accessibility', () => {
+  it('has no detectable critical component violations', async () => {
+    const { container } = render(
+      <main>
+        <h1>Request detail</h1>
+        <Panel title="Lifecycle">
+          <QueueRail
+            items={[
+              { id: 'one', label: 'Received', state: 'complete' },
+              { id: 'two', label: 'Pending approval', state: 'current' },
+            ]}
+          />
+        </Panel>
+        <form aria-label="Workflow form">
+          <InputField
+            helper="Stable external key."
+            id="workflow-key-a11y"
+            label="Workflow key"
+            required
+          />
+          <StatusBadge status="pending_approval" />
+          <Button type="submit" tone="primary">
+            Save draft
+          </Button>
+        </form>
+        <PaginationControls
+          ariaLabel="Requests"
+          meta={{ page: 2, pageSize: 25, totalItems: 63, totalPages: 3 }}
+          onPageChange={() => undefined}
+          onPageSizeChange={() => undefined}
+          page={2}
+          pageSize={25}
+        />
+      </main>,
+    );
+    const results = await axe.run(container, {
+      rules: { 'color-contrast': { enabled: false } },
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] },
+    });
+    expect(results.violations).toEqual([]);
+  });
+});
