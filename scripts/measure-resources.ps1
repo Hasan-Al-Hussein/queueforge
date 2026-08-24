@@ -156,9 +156,13 @@ foreach ($imageId in $uniqueImageIds) {
 $volumeNames = @(& docker volume ls --filter 'label=com.docker.compose.project=queueforge' --format '{{.Name}}')
 $volumeBytes = [int64]0
 foreach ($volumeName in $volumeNames) {
-  $measured = (& docker run --rm --read-only --network none --cap-drop ALL --security-opt no-new-privileges `
+  $measurementOutput = @(& docker run --rm --read-only --network none --cap-drop ALL --cap-add DAC_READ_SEARCH --security-opt no-new-privileges `
       --mount "type=volume,src=$volumeName,dst=/data,readonly" postgres:17.11-alpine `
-      sh -c 'du -sb /data | cut -f1').Trim()
+      sh -c 'du -sb /data | cut -f1')
+  if ($LASTEXITCODE -ne 0 -or $measurementOutput.Count -ne 1) {
+    throw "Unable to measure QueueForge volume '$volumeName' safely."
+  }
+  $measured = ([string]$measurementOutput[0]).Trim()
   if ($measured -match '^\d+$') {
     $volumeBytes += [int64]$measured
   }
