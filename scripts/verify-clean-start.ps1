@@ -98,7 +98,9 @@ $temporaryRoot = Join-Path $temporaryBase "queueforge-clean-$runId"
 $archivePath = Join-Path $temporaryRoot 'queueforge.zip'
 $archiveWorkspace = Join-Path $temporaryRoot 'workspace'
 $composeProject = "queueforge-clean-$runId"
+$builderName = "$composeProject-builder"
 $started = $false
+$builderCreated = $false
 $success = $false
 $result = $null
 $failureRecord = $null
@@ -153,6 +155,9 @@ try {
     $temporaryEnvironment['E2E_BASE_URL'] = "http://127.0.0.1:$webPort"
     $temporaryEnvironment['E2E_API_URL'] = "http://127.0.0.1:$apiPort"
     $temporaryEnvironment['E2E_SINK_URL'] = "http://127.0.0.1:$sinkPort"
+    if (-not $SkipTopology) {
+      $temporaryEnvironment['BUILDX_BUILDER'] = $builderName
+    }
     foreach ($name in $temporaryEnvironment.Keys) {
       $environmentBackup[$name] = [Environment]::GetEnvironmentVariable($name, 'Process')
       [Environment]::SetEnvironmentVariable($name, $temporaryEnvironment[$name], 'Process')
@@ -168,6 +173,8 @@ try {
         Sort-Object -Unique
     )
     if (-not $SkipTopology) {
+      Invoke-Checked docker @('buildx', 'create', '--name', $builderName, '--driver', 'docker-container')
+      $builderCreated = $true
       $started = $true
       Invoke-Checked docker @(
         'compose', '-p', $composeProject, '--profile', 'full',
@@ -256,6 +263,26 @@ finally {
       }
       else {
         Write-Warning "Clean-start cleanup also failed: $($_.Exception.Message)"
+      }
+    }
+
+    if ($builderCreated) {
+      try {
+        if ($builderName -notmatch '^queueforge-clean-[a-f0-9]{10}-builder$') {
+          throw "Refusing cleanup for unexpected builder '$builderName'."
+        }
+        Invoke-Checked docker @('buildx', 'rm', $builderName)
+      }
+      catch {
+        if ($null -eq $failureRecord) {
+          $failureRecord = $_
+        }
+        else {
+          Write-Warning "Clean-start builder cleanup also failed: $($_.Exception.Message)"
+        }
+      }
+      finally {
+        $builderCreated = $false
       }
     }
 
