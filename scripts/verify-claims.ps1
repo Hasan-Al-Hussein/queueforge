@@ -149,7 +149,7 @@ if ($null -ne $latestK6) {
 $nextGatePath = Join-Path $projectRoot 'scripts\next-security-gate.json'
 $nextGate = Get-Content -LiteralPath $nextGatePath -Raw | ConvertFrom-Json
 $gitCommit = (& git -C $projectRoot rev-parse HEAD).Trim()
-$dirtyEntries = @(& git -C $projectRoot status --porcelain)
+$dirtyEntries = @(& git -C $projectRoot status --porcelain --untracked-files=all)
 $allowedEvidencePatterns = @(
   '^artifacts/verification/(?:claims|clean-start|resources)\.json$',
   '^test-results/k6/[^/]+-(?:summary|context)\.json$'
