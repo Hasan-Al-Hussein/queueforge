@@ -162,6 +162,29 @@ pnpm verify:release
 
 Configured commands are not proof of a passing run. This repository does not claim remote CI success or benchmark results without an attached run artifact. See [testing](docs/testing.md) and [load testing](docs/load-testing.md).
 
+## Local performance evidence
+
+The bounded load result below was measured on **2026-08-24** from committed application revision `f953b2a`, using the full Docker Compose profile on Windows 11 Pro with 12 logical processors and 15.68 GiB RAM. The selected synthetic `acme-demo` tenant began with 3 workflows, 123 requests, and 123 approval tasks. Five scenarios ran at 2 VUs each: 12 submissions, 6 idempotency replays, 36 list reads, 4 concurrent approval races, and 12 signed inbound webhooks.
+
+```powershell
+$env:K6_LOAD_VUS='2'; $env:K6_LOAD_ITERATIONS='12'; pwsh scripts/run-k6.ps1 -Scenario load
+```
+
+The run completed 70/70 iterations and 90 HTTP requests with 232/232 checks, zero HTTP failures, and zero correctness errors across 78 invariants. All configured latency thresholds passed.
+
+| Operation            | p95 latency | Configured limit |
+| -------------------- | ----------: | ---------------: |
+| All HTTP requests    |   448.76 ms |              n/a |
+| Concurrent approvals |   477.45 ms |         2,000 ms |
+| Idempotency replay   |   542.90 ms |         1,500 ms |
+| Request listing      |   139.99 ms |         1,000 ms |
+| Request submission   |   343.39 ms |         1,500 ms |
+| Signed webhook       |   604.33 ms |         2,000 ms |
+
+Concurrent resource sampling observed 417.06 MiB peak QueueForge container memory against the 5 GiB budget. The final installed project plus conservative Docker-system delta was 3.69 GiB against the 4 GiB budget; the calculation separately attributes 506.43 MiB to QueueForge images and volumes. Sanitized revision-bound summaries, workload context, and resource calculations are stored in [benchmark evidence](test-results/k6/) and [resource evidence](artifacts/verification/resources.json).
+
+These are fixed-workload results from one local laptop and synthetic dataset, not capacity guarantees, remote CI evidence, or permission for external exposure.
+
 ## Visual evidence
 
 Captured on **2026-08-24** from the loopback-only **full Docker Compose packaged profile** after API, database, and Redis readiness passed. These screens contain seeded synthetic demonstration data only. The [runtime audit report](artifacts/screenshots/runtime-audit-report.json) records 20 authenticated route checks across 1440×900 desktop and 390×844 mobile viewports; this capture observed zero console or page errors, failed requests, HTTP error responses, GraphQL errors, or sensitive-data findings.
