@@ -181,7 +181,7 @@ The run completed 70/70 iterations and 90 HTTP requests with 232/232 checks, zer
 | Request submission   |   343.39 ms |         1,500 ms |
 | Signed webhook       |   604.33 ms |         2,000 ms |
 
-Concurrent resource sampling observed 417.06 MiB peak QueueForge container memory against the 5 GiB budget. The final installed project plus conservative Docker-system delta was 3.69 GiB against the 4 GiB budget; the calculation separately attributes 506.43 MiB to QueueForge images and volumes. Sanitized revision-bound summaries, workload context, and resource calculations are stored in [benchmark evidence](test-results/k6/) and [resource evidence](artifacts/verification/resources.json).
+The final resource gate samples the full Compose profile during the bounded load workload and enforces less than 5 GiB peak memory and less than 4 GiB added disk use. Exact revision-bound peaks, project/image/volume/cache deltas, workload context, and caveats are preserved in [benchmark evidence](test-results/k6/) and [resource evidence](artifacts/verification/resources.json); the claims checker rejects the evidence if either budget is exceeded.
 
 These are fixed-workload results from one local laptop and synthetic dataset, not capacity guarantees, remote CI evidence, or permission for external exposure.
 

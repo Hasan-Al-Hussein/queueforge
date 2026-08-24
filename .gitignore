@@ -15,6 +15,7 @@ test-results/*
 test-results/k6/*
 !test-results/k6/*-summary.json
 !test-results/k6/*-context.json
+tests/e2e/test-results/
 output/
 artifacts/verification/*
 !artifacts/verification/.gitkeep
