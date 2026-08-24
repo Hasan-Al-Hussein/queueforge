@@ -33,13 +33,13 @@ function ConvertTo-Bytes {
   $number = [double]$match.Groups['number'].Value
   $factor = switch ($match.Groups['unit'].Value.ToUpperInvariant()) {
     'B' { 1 }
-    'KB' { 1KB }
+    'KB' { 1000 }
     'KIB' { 1KB }
-    'MB' { 1MB }
+    'MB' { 1000000 }
     'MIB' { 1MB }
-    'GB' { 1GB }
+    'GB' { 1000000000 }
     'GIB' { 1GB }
-    'TB' { 1TB }
+    'TB' { 1000000000000 }
     'TIB' { 1TB }
     default { throw "Unsupported Docker size unit in '$Value'." }
   }
@@ -86,6 +86,8 @@ if ($LASTEXITCODE -ne 0) {
 $dockerDisk = Get-DockerDiskSnapshot
 if ($CaptureBaseline) {
   $baseline = [ordered]@{
+    formatVersion = 2
+    dockerSizeUnits = 'si-and-iec'
     capturedAt = [DateTimeOffset]::UtcNow.ToString('o')
     docker = $dockerDisk
   }
@@ -102,7 +104,7 @@ if (-not (Test-Path -LiteralPath $baselinePath -PathType Leaf)) {
   throw "Missing resource baseline. Run 'pwsh scripts/measure-resources.ps1 -CaptureBaseline' before building or starting the full profile."
 }
 
-$containerIds = @(& docker compose --profile full ps -q)
+$containerIds = @(& docker compose --profile full ps --all -q)
 if ($containerIds.Count -eq 0) {
   throw "No QueueForge full-profile containers are running. Start them before measuring resources."
 }
@@ -169,9 +171,18 @@ foreach ($volumeName in $volumeNames) {
 }
 
 $baseline = Get-Content -LiteralPath $baselinePath -Raw | ConvertFrom-Json
+if ($baseline.formatVersion -ne 2 -or $baseline.dockerSizeUnits -ne 'si-and-iec') {
+  throw "The resource baseline uses legacy Docker size units. Remove it and run 'pwsh scripts/measure-resources.ps1 -CaptureBaseline' before building or starting the full profile."
+}
 $baselineTotal = Get-SnapshotTotalBytes $baseline.docker
 $currentTotal = Get-SnapshotTotalBytes $dockerDisk
 $dockerDelta = [Math]::Max([int64]0, $currentTotal - $baselineTotal)
+$dockerCategoryDeltas = [ordered]@{}
+foreach ($category in @('Images', 'Containers', 'Local Volumes', 'Build Cache')) {
+  $baselineCategory = $baseline.docker.PSObject.Properties[$category].Value
+  $currentCategory = $dockerDisk[$category]
+  $dockerCategoryDeltas[$category] = [int64]$currentCategory.sizeBytes - [int64]$baselineCategory.sizeBytes
+}
 $attributedDisk = $imageBytes + $volumeBytes
 $gitDirectory = [System.IO.Path]::GetFullPath((Join-Path $projectRoot '.git'))
 $projectBytes = [int64]0
@@ -190,6 +201,11 @@ $result = [ordered]@{
   profile = 'docker-compose-full'
   workload = $WorkloadLabel
   baselineCapturedAt = $baseline.capturedAt
+  baselineFormatVersion = $baseline.formatVersion
+  dockerSizeUnits = $baseline.dockerSizeUnits
+  dockerBaseline = $baseline.docker
+  dockerCurrent = $dockerDisk
+  dockerCategoryDeltaBytes = $dockerCategoryDeltas
   samples = $sampleRows
   peakContainerBytes = $peakContainerBytes
   peakHostProcessBytes = $peakHostBytes
