@@ -20,6 +20,10 @@ import { ToastProvider } from './toast-provider';
 
 const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? 'http://127.0.0.1:3001/graphql';
 
+export function isLoginPath(pathname: string): boolean {
+  return pathname.replace(/\/+$/, '') === '/login';
+}
+
 function createApolloClient(): ApolloClient {
   const httpLink = new HttpLink({
     credentials: 'include',
@@ -82,7 +86,7 @@ function TenantDataBoundary({ children }: { readonly children: ReactNode }): Rea
   const pathname = usePathname();
   if (status === 'bootstrapping') return <SessionRestoring />;
   if (status === 'anonymous') {
-    if (pathname === '/login') return <ToastProvider>{children}</ToastProvider>;
+    if (isLoginPath(pathname)) return <ToastProvider>{children}</ToastProvider>;
     return <SessionRequired error={bootstrapError} />;
   }
   const tenantCacheKey = session?.selectedTenant.tenantId ?? 'anonymous';
