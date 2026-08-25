@@ -49,19 +49,39 @@ describe('AccessTokenGuard', () => {
     expect(verifyAccessToken).not.toHaveBeenCalled();
   });
 
-  it.each([undefined, '', 'Basic abc', 'Bearer   '])(
+  it.each([undefined, '', 'Basic abc', 'Bearer', 'Bearer   ', 'Bearer\tabc', 'Bearer abc def'])(
     'rejects a missing or malformed bearer credential (%s)',
     async (authorization) => {
+      const verifyAccessToken = jest.fn();
+      const verifyApiKey = jest.fn();
       const guard = new AccessTokenGuard(
         { getAllAndOverride: jest.fn().mockReturnValue(false) } as unknown as Reflector,
-        { verifyAccessToken: jest.fn() } as unknown as AuthService,
-        { verify: jest.fn() } as unknown as ApiClientService,
+        { verifyAccessToken } as unknown as AuthService,
+        { verify: verifyApiKey } as unknown as ApiClientService,
       );
       await expect(
         guard.canActivate(executionContext(requestWithAuthorization(authorization))),
       ).rejects.toMatchObject({ code: 'AUTHENTICATION_REQUIRED' });
+      expect(verifyAccessToken).not.toHaveBeenCalled();
+      expect(verifyApiKey).not.toHaveBeenCalled();
     },
   );
+
+  it('rejects an oversized authorization header before invoking either verifier', async () => {
+    const verifyAccessToken = jest.fn();
+    const verifyApiKey = jest.fn();
+    const guard = new AccessTokenGuard(
+      { getAllAndOverride: jest.fn().mockReturnValue(false) } as unknown as Reflector,
+      { verifyAccessToken } as unknown as AuthService,
+      { verify: verifyApiKey } as unknown as ApiClientService,
+    );
+
+    await expect(
+      guard.canActivate(executionContext(requestWithAuthorization(`Bearer ${'a'.repeat(8_192)}`))),
+    ).rejects.toMatchObject({ code: 'AUTHENTICATION_REQUIRED' });
+    expect(verifyAccessToken).not.toHaveBeenCalled();
+    expect(verifyApiKey).not.toHaveBeenCalled();
+  });
 
   it('overwrites any spoofed request tenant with the token-authoritative session context', async () => {
     const request = requestWithAuthorization('Bearer signed-access-token');
@@ -96,6 +116,21 @@ describe('AccessTokenGuard', () => {
     expect(verifyApiKey).toHaveBeenCalledWith('qf_live_credential');
     expect(verifyAccessToken).not.toHaveBeenCalled();
     expect(request.tenantContext).toMatchObject({ principalKind: 'api_client' });
+  });
+
+  it('accepts case-insensitive schemes and bounded spaces without weakening verification', async () => {
+    const request = requestWithAuthorization('bEaReR   signed-access-token');
+    const verifyAccessToken = jest.fn().mockResolvedValue(TENANT_CONTEXT);
+    const verifyApiKey = jest.fn();
+    const guard = new AccessTokenGuard(
+      { getAllAndOverride: jest.fn().mockReturnValue(false) } as unknown as Reflector,
+      { verifyAccessToken } as unknown as AuthService,
+      { verify: verifyApiKey } as unknown as ApiClientService,
+    );
+
+    await expect(guard.canActivate(executionContext(request))).resolves.toBe(true);
+    expect(verifyAccessToken).toHaveBeenCalledWith('signed-access-token');
+    expect(verifyApiKey).not.toHaveBeenCalled();
   });
 });
 

@@ -1,11 +1,10 @@
 import { createHmac } from 'node:crypto';
 
 import type { JwtService } from '@nestjs/jwt';
-import { argon2id, hash } from 'argon2';
+import { argon2id, hash, verify } from 'argon2';
 
 import type { RuntimeEnvironment } from '@queueforge/config';
 import type { TenantContext } from '@queueforge/contracts';
-import { createIdempotencyFingerprint, sha256Hex } from '@queueforge/domain';
 import type {
   AdminStore,
   IdentityStore,
@@ -236,35 +235,21 @@ describe('admin idempotency binding', () => {
     };
 
     await service.createMembership(context, command, 'idempotency-key', 'correlation-id');
+    await service.createMembership(context, command, 'idempotency-key', 'correlation-id');
+    await service.createMembership(
+      context,
+      { ...command, initialPassword: `${command.initialPassword}!` },
+      'idempotency-key',
+      'correlation-id',
+    );
 
-    const keyedBinding = createHmac('sha256', environment.REFRESH_TOKEN_PEPPER)
-      .update(command.initialPassword, 'utf8')
-      .digest('hex');
-    const persisted = createMembership.mock.calls[0]?.[1] as { requestFingerprint: string };
-    expect(persisted.requestFingerprint).toBe(
-      createIdempotencyFingerprint({
-        operation: 'membership.create',
-        principalId: context.principalId,
-        request: {
-          email: command.email,
-          role: command.role,
-          displayName: command.displayName,
-          initialPasswordBinding: keyedBinding,
-        },
-      }),
+    const [first, replay, changed] = createMembership.mock.calls.map(
+      ([, value]) => value as { passwordHash: string; requestFingerprint: string },
     );
-    expect(persisted.requestFingerprint).not.toBe(
-      createIdempotencyFingerprint({
-        operation: 'membership.create',
-        principalId: context.principalId,
-        request: {
-          email: command.email,
-          role: command.role,
-          displayName: command.displayName,
-          initialPasswordHash: sha256Hex(command.initialPassword),
-        },
-      }),
-    );
+    expect(first?.requestFingerprint).toBe(replay?.requestFingerprint);
+    expect(first?.requestFingerprint).not.toBe(changed?.requestFingerprint);
+    expect(first?.requestFingerprint).not.toContain(command.initialPassword);
+    await expect(verify(first?.passwordHash ?? '', command.initialPassword)).resolves.toBe(true);
   });
 });
 

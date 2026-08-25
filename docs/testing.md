@@ -158,9 +158,9 @@ The suite writes its HTML report to `tests/e2e/playwright-report/e2e`, test outp
 
 ## CI status and local evidence
 
-`.github/workflows/ci.yml` declares commit-pinned GitHub Actions jobs for quality/integration, a real loopback browser journey with bounded k6 smoke, the fail-closed vendor security gate, and CodeQL. The configured coverage includes exact dependency install, build-before-analysis, format/lint/typecheck, unit/build, accessibility, Storybook, owner/runtime-role database setup, migration, integration, dependency/secret/evidence scans, Playwright, and a pinned k6 container. The jobs inject disposable database/Redis URLs and ephemeral secrets; `scripts/run-with-env.ps1` accepts that injected CI environment when no local `.env` exists.
+`.github/workflows/ci.yml` declares commit-pinned GitHub Actions jobs for quality/integration and a real loopback browser journey with bounded k6 smoke. `.github/workflows/codeql.yml` owns the standalone JavaScript/TypeScript security scan so unrelated jobs cannot mislabel a successful scan. `.github/workflows/exposure-gate.yml` is callable by a future deployment workflow and runs on pull requests that change the tracked frontend dependency or gate policy. The configured coverage includes exact dependency install, build-before-analysis, format/lint/typecheck, unit/build, accessibility, Storybook, owner/runtime-role database setup, migration, integration, dependency/secret/evidence scans, Playwright, and a pinned k6 container. The jobs inject disposable database/Redis URLs and mask every generated ephemeral secret before later steps receive it; `scripts/run-with-env.ps1` accepts that injected CI environment when no local `.env` exists.
 
-The vendor-security job is intentionally nonzero while `scripts/next-security-gate.json` remains open. That is a release block, not a flaky test to bypass.
+The public-exposure workflow and `verify:release` are intentionally nonzero while `scripts/next-security-gate.json` remains open. That is a deployment block, not a flaky test to bypass; ordinary documentation and loopback engineering checks do not claim exposure readiness.
 
 The existence of that workflow is not a remote-green claim. Until a real GitHub run is linked, say **CI configured; remote status not verified**.
 

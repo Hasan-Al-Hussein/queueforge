@@ -23,6 +23,7 @@ import { WebhookJobHandlerService } from './webhook-job-handler.service.js';
 const RETAIN_COMPLETED_SECONDS = 86_400;
 const RETAIN_FAILED_SECONDS = 604_800;
 const RETAIN_JOB_COUNT = 1_000;
+const STALLED_RECOVERY_CHECK_INTERVAL_MS = 5_000;
 // QueueForge's database leases and state machines are the terminal authorities.
 // A Bull stalled job must therefore remain recoverable instead of exhausting a
 // small transport-only crash counter and stranding a processing database row.
@@ -118,6 +119,10 @@ export class QueueRuntimeService implements QueuePublisherPort {
               this.configuration.webhookTimeoutMs + 5_000,
             ),
             maxStalledCount: DURABLE_STALL_RECOVERY_LIMIT,
+            // BullMQ first marks an active job as a stall candidate and only moves it
+            // after a later scan observes an expired lock. Keep that second scan well
+            // inside the lock-duration window so a boundary race cannot add 30 seconds.
+            stalledInterval: STALLED_RECOVERY_CHECK_INTERVAL_MS,
             name: this.workerId,
             prefix: 'queueforge',
             removeOnComplete: {

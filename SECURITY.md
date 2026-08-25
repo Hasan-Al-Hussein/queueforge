@@ -46,5 +46,5 @@ The complete trust boundaries, attack paths, controls, and residual risks are do
   documented boundary.
 
 Next.js `16.3.2` remains behind the tracked open advisory gate. The gate is intentionally
-fail-closed; loopback-only use is mandatory until a vendor-fixed version is validated with a full
-regression run.
+fail-closed through `pnpm verify:release` and the dedicated public-exposure workflow; loopback-only
+use is mandatory until a vendor-fixed version is validated with a full regression run.

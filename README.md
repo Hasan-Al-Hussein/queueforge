@@ -10,6 +10,8 @@ Define a versioned request, collect structured input, require an independent hum
 
 [![Demo](https://img.shields.io/badge/DEMO-83_SECONDS-E86F2B?style=for-the-badge)](docs/media/queueforge-pipeline-demo.webm)
 [![Download](https://img.shields.io/badge/DOWNLOAD-WINDOWS_ZIP-64D7C6?style=for-the-badge&logo=windows&logoColor=102A3D)](https://github.com/Hasan-Al-Hussein/queueforge/releases/latest)
+[![Engineering CI](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/codeql.yml/badge.svg)](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/codeql.yml)
 ![Runtime](https://img.shields.io/badge/RUNTIME-LOOPBACK_ONLY-16435F?style=for-the-badge)
 ![PostgreSQL](https://img.shields.io/badge/STATE-POSTGRESQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 [![MIT License](https://img.shields.io/badge/LICENSE-MIT-64D7C6?style=for-the-badge)](LICENSE)
@@ -209,7 +211,7 @@ See the [environment guide](docs/environment.md) for the inspected laptop baseli
 
 ## Verification
 
-The linked [GitHub Actions run](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495) passed quality/build/integration, the real browser journey with bounded k6 smoke, and CodeQL. Its overall conclusion is intentionally non-green because the separate exposure gate correctly rejected the tracked Next.js advisory exception.
+The linked [reference GitHub Actions run](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495) passed quality/build/integration, the real browser journey with bounded k6 smoke, and CodeQL. At that revision, GitHub summarized those successful checks as non-green because the deployment exposure gate shared the same workflow. Continuous engineering CI and CodeQL are now separate from the deployment-only exposure workflow; `pnpm verify:release` and the callable public-exposure workflow still fail closed while the tracked Next.js exception remains open.
 
 | Command                   | Coverage                                                                |
 | ------------------------- | ----------------------------------------------------------------------- |
@@ -296,14 +298,14 @@ docs/               Design, operation, testing, and interview evidence
 tests/integration/  Real PostgreSQL/Redis integration probes
 load-tests/         Bounded loopback-only k6 scenarios
 scripts/            Environment, security-gate, test-service, and k6 helpers
-.github/            Commit-pinned CI, CodeQL, and dependency automation
+.github/            Commit-pinned engineering CI, CodeQL, and exposure-gate automation
 ```
 
 ## Claim boundary
 
 QueueForge demonstrates a transactional outbox, at-least-once processing, and durable deduplication of QueueForge-owned database effects when the relevant tests pass. It does not claim exactly-once queue execution, exactly-once delivery to arbitrary HTTP receivers, PostgreSQL row-level security, cryptographically immutable audit logs, public/cloud readiness, or closed dependency gates that have not been evidenced.
 
-The current Next.js security exception is recorded in `scripts/next-security-gate.json`. `pnpm security:next-gate` is expected to fail while that record remains open; loopback-only use is mandatory.
+The current Next.js security exception is recorded in `scripts/next-security-gate.json`. `pnpm security:next-gate`, `pnpm verify:release`, and the dedicated public-exposure workflow are expected to fail while that record remains open; loopback-only use is mandatory.
 
 ## License
 

@@ -78,10 +78,10 @@ jobs:
         run: >-
           node -e "const c=require('node:crypto'),f=require('node:fs');
           const token=()=>c.randomBytes(48).toString('base64url');
-          f.appendFileSync(process.env.GITHUB_ENV,
-          ['JWT_ACCESS_SECRET='+token(),'REFRESH_TOKEN_PEPPER='+token(),
-          'WEBHOOK_MASTER_KEY='+c.randomBytes(32).toString('base64'),
-          'SINK_SECRET='+token()].join('\n')+'\n')"
+          const entries=[['JWT_ACCESS_SECRET',token()],['REFRESH_TOKEN_PEPPER',token()],
+          ['WEBHOOK_MASTER_KEY',c.randomBytes(32).toString('base64')],['SINK_SECRET',token()]];
+          for(const [,value] of entries)console.log('::add-mask::'+value);
+          f.appendFileSync(process.env.GITHUB_ENV,entries.map(([name,value])=>name+'='+value).join('\n')+'\n')"
 
       - name: Install exact dependencies
         run: pnpm install --frozen-lockfile
@@ -186,10 +186,10 @@ jobs:
         run: >-
           node -e "const c=require('node:crypto'),f=require('node:fs');
           const token=()=>c.randomBytes(48).toString('base64url');
-          f.appendFileSync(process.env.GITHUB_ENV,
-          ['JWT_ACCESS_SECRET='+token(),'REFRESH_TOKEN_PEPPER='+token(),
-          'WEBHOOK_MASTER_KEY='+c.randomBytes(32).toString('base64'),
-          'SINK_SECRET='+token()].join('\n')+'\n')"
+          const entries=[['JWT_ACCESS_SECRET',token()],['REFRESH_TOKEN_PEPPER',token()],
+          ['WEBHOOK_MASTER_KEY',c.randomBytes(32).toString('base64')],['SINK_SECRET',token()]];
+          for(const [,value] of entries)console.log('::add-mask::'+value);
+          f.appendFileSync(process.env.GITHUB_ENV,entries.map(([name,value])=>name+'='+value).join('\n')+'\n')"
 
       - name: Install, build, and prepare the disposable database
         run: |
@@ -255,41 +255,3 @@ jobs:
             test-results/k6
           if-no-files-found: ignore
           retention-days: 7
-
-  vendor-security-gate:
-    name: Exposure security gate
-    runs-on: ubuntu-latest
-    timeout-minutes: 8
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - name: Configure Node.js and pinned pnpm
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: 24.19.0
-
-      - run: corepack enable && corepack prepare pnpm@11.23.0 --activate
-      - run: pnpm install --frozen-lockfile
-      - name: Fail closed while the tracked Next.js advisory gate is open
-        run: pnpm security:next-gate
-
-  codeql:
-    name: CodeQL (JavaScript and TypeScript)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@42947a340483f03ba47bb1a039b2c519aab3df85 # v3.37.8
-        with:
-          languages: javascript-typescript
-          queries: security-extended
-
-      - name: Analyze
-        uses: github/codeql-action/analyze@42947a340483f03ba47bb1a039b2c519aab3df85 # v3.37.8

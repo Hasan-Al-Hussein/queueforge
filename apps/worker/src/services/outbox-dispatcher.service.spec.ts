@@ -157,9 +157,13 @@ describe('OutboxDispatcherService', () => {
       configuration,
       'worker-test',
     );
-    const startedAt = Date.now();
-
-    await dispatcher.dispatchOnce();
+    const startedAt = Date.parse('2026-08-25T00:00:00.000Z');
+    const clock = jest.spyOn(Date, 'now').mockReturnValue(startedAt);
+    try {
+      await dispatcher.dispatchOnce();
+    } finally {
+      clock.mockRestore();
+    }
 
     expect(store.published).toHaveLength(0);
     expect(store.failed).toHaveLength(1);
