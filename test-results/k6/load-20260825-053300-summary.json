@@ -1,0 +1,470 @@
+{
+  "options": {
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "max",
+      "p(90)",
+      "p(95)"
+    ],
+    "summaryTimeUnit": "",
+    "noColor": true
+  },
+  "state": {
+    "isStdOutTTY": false,
+    "isStdErrTTY": false,
+    "testRunDurationMs": 2596.7072
+  },
+  "metrics": {
+    "vus_max": {
+      "type": "gauge",
+      "contains": "default",
+      "values": {
+        "min": 10,
+        "max": 10,
+        "value": 10
+      }
+    },
+    "http_req_failed": {
+      "contains": "default",
+      "values": {
+        "passes": 0,
+        "fails": 90,
+        "rate": 0
+      },
+      "thresholds": {
+        "rate==0": {
+          "ok": true
+        }
+      },
+      "type": "rate"
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.23185111111111117,
+        "min": 0,
+        "med": 0,
+        "max": 2.6786,
+        "p(90)": 1.1484100000000008,
+        "p(95)": 1.4672699999999999
+      }
+    },
+    "vus": {
+      "contains": "default",
+      "values": {
+        "value": 10,
+        "min": 10,
+        "max": 10
+      },
+      "type": "gauge"
+    },
+    "queueforge_approval_duration": {
+      "thresholds": {
+        "p(95)<2000": {
+          "ok": true
+        }
+      },
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 573.55,
+        "avg": 430,
+        "min": 282,
+        "med": 430.5,
+        "max": 577,
+        "p(90)": 570.1
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "rate": 34.65927925951759,
+        "count": 90
+      }
+    },
+    "http_req_waiting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 27.9476,
+        "med": 151.50005,
+        "max": 1092.2672,
+        "p(90)": 518.7963000000001,
+        "p(95)": 618.4449999999998,
+        "avg": 246.26198222222212
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 295.1474257142857,
+        "min": 28.5206,
+        "med": 132.3234,
+        "max": 1209.012,
+        "p(90)": 766.4475600000002,
+        "p(95)": 912.9327
+      }
+    },
+    "queueforge_idempotency_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 750.49115,
+        "p(95)": 751.2547749999999,
+        "avg": 622.9799333333333,
+        "min": 511.8397,
+        "med": 605.2786,
+        "max": 752.0183999999999
+      },
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 0.5719,
+        "p(95)": 0.58739,
+        "avg": 0.11364777777777776,
+        "min": 0,
+        "med": 0,
+        "max": 1.1067
+      }
+    },
+    "http_req_receiving": {
+      "values": {
+        "p(90)": 0.62576,
+        "p(95)": 0.6956849999999999,
+        "avg": 0.2842211111111111,
+        "min": 0,
+        "med": 0,
+        "max": 1.1734
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 69914,
+        "rate": 26924.09833499903
+      }
+    },
+    "queueforge_accepted_submissions": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 12,
+        "rate": 4.621237234602345
+      }
+    },
+    "checks": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 232,
+        "fails": 0
+      },
+      "thresholds": {
+        "rate==1": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 246.6598511111111,
+        "min": 27.9476,
+        "med": 152.0808,
+        "max": 1092.2672,
+        "p(90)": 518.86995,
+        "p(95)": 618.4449999999998
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 1.3676399999999993,
+        "avg": 0.18382333333333334,
+        "min": 0,
+        "med": 0,
+        "max": 2.6786,
+        "p(90)": 0.9423
+      }
+    },
+    "http_req_tls_handshaking": {
+      "contains": "time",
+      "values": {
+        "max": 0,
+        "p(90)": 0,
+        "p(95)": 0,
+        "avg": 0,
+        "min": 0,
+        "med": 0
+      },
+      "type": "trend"
+    },
+    "queueforge_webhook_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "max": 1092.2672,
+        "p(90)": 888.38998,
+        "p(95)": 981.6256799999999,
+        "avg": 390.5331250000001,
+        "min": 72.4783,
+        "med": 250.74275
+      },
+      "thresholds": {
+        "p(95)<2000": {
+          "ok": true
+        }
+      }
+    },
+    "queueforge_correctness_errors": {
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 78
+      },
+      "thresholds": {
+        "rate==0": {
+          "ok": true
+        }
+      },
+      "type": "rate"
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 246.6598511111111,
+        "min": 27.9476,
+        "med": 152.0808,
+        "max": 1092.2672,
+        "p(90)": 518.86995,
+        "p(95)": 618.4449999999998
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 70,
+        "rate": 26.957217201847016
+      }
+    },
+    "queueforge_submission_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "min": 86.2832,
+        "med": 303.2632,
+        "max": 684.3713,
+        "p(90)": 639.92654,
+        "p(95)": 667.3851549999999,
+        "avg": 344.60366666666664
+      },
+      "thresholds": {
+        "p(95)<1500": {
+          "ok": true
+        }
+      }
+    },
+    "queueforge_list_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 99.8872,
+        "max": 202.7531,
+        "p(90)": 177.15224999999998,
+        "p(95)": 189.13575,
+        "avg": 107.85924166666668,
+        "min": 27.9476
+      },
+      "thresholds": {
+        "p(95)<1000": {
+          "ok": true
+        }
+      }
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 810796,
+        "rate": 312240.0554055536
+      }
+    },
+    "queueforge_accepted_webhooks": {
+      "values": {
+        "count": 12,
+        "rate": 4.621237234602345
+      },
+      "type": "counter",
+      "contains": "default"
+    }
+  },
+  "root_group": {
+    "name": "",
+    "path": "",
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [],
+    "checks": [
+        {
+          "name": "submission is created",
+          "path": "::submission is created",
+          "id": "bbe8684395f925e0635ac74fa7aef38b",
+          "passes": 12,
+          "fails": 0
+        },
+        {
+          "name": "submission has a request id",
+          "path": "::submission has a request id",
+          "id": "40f019cd46ad822fe8d5bf585ac1ab0a",
+          "passes": 12,
+          "fails": 0
+        },
+        {
+          "id": "4b9dd707a581b0dd64ed950370bb6cc0",
+          "passes": 12,
+          "fails": 0,
+          "name": "submission awaits approval",
+          "path": "::submission awaits approval"
+        },
+        {
+          "name": "request list succeeds",
+          "path": "::request list succeeds",
+          "id": "5989ea1d626599c5c715521b55d3b287",
+          "passes": 36,
+          "fails": 0
+        },
+        {
+          "name": "request list is paged",
+          "path": "::request list is paged",
+          "id": "7972f31920f7877d51ab003c271b7ca6",
+          "passes": 36,
+          "fails": 0
+        },
+        {
+          "name": "request list respects page size",
+          "path": "::request list respects page size",
+          "id": "9d13fc12561776597afa289a22bcde1a",
+          "passes": 36,
+          "fails": 0
+        },
+        {
+          "name": "signed webhook is accepted",
+          "path": "::signed webhook is accepted",
+          "id": "37f4ae2cb9fa0b3f257a3c9ed05d6965",
+          "passes": 12,
+          "fails": 0
+        },
+        {
+          "path": "::signed webhook retains event id",
+          "id": "732c8d108838b28cbb29cbb9fd925d6e",
+          "passes": 12,
+          "fails": 0,
+          "name": "signed webhook retains event id"
+        },
+        {
+          "passes": 12,
+          "fails": 0,
+          "name": "signed webhook creates one request",
+          "path": "::signed webhook creates one request",
+          "id": "1615705e67bfbedf4128e85b5f63f829"
+        },
+        {
+          "name": "approval fixture is created",
+          "path": "::approval fixture is created",
+          "id": "7f6e7caabf32535cfabe5ac2658cb110",
+          "passes": 4,
+          "fails": 0
+        },
+        {
+          "passes": 4,
+          "fails": 0,
+          "name": "approval fixture has an id",
+          "path": "::approval fixture has an id",
+          "id": "c43c6ae682da843ec98a683f199b3948"
+        },
+        {
+          "name": "approval list succeeds",
+          "path": "::approval list succeeds",
+          "id": "493d6aa6f8f19bc0e422e16f97dee866",
+          "passes": 4,
+          "fails": 0
+        },
+        {
+          "name": "approval fixture is visible",
+          "path": "::approval fixture is visible",
+          "id": "14fad292940fedd68a12783ca63f875c",
+          "passes": 4,
+          "fails": 0
+        },
+        {
+          "name": "idempotency calls both succeed",
+          "path": "::idempotency calls both succeed",
+          "id": "2364f9bf2db71a214ea718c44c34527e",
+          "passes": 6,
+          "fails": 0
+        },
+        {
+          "passes": 6,
+          "fails": 0,
+          "name": "idempotency reuses the request id",
+          "path": "::idempotency reuses the request id",
+          "id": "8f329302c63e2ef91f40122de32ee8d2"
+        },
+        {
+          "name": "first request is not marked replayed",
+          "path": "::first request is not marked replayed",
+          "id": "ae66a4f8b7ad2b62949ce514d98b2f47",
+          "passes": 6,
+          "fails": 0
+        },
+        {
+          "id": "0e1048931d5e4e3e6e6e66fdc6220c12",
+          "passes": 6,
+          "fails": 0,
+          "name": "second request is marked replayed",
+          "path": "::second request is marked replayed"
+        },
+        {
+          "fails": 0,
+          "name": "concurrent approvals both succeed",
+          "path": "::concurrent approvals both succeed",
+          "id": "e5cefdec1b3ab240d140f3ed2b0b0603",
+          "passes": 4
+        },
+        {
+          "path": "::concurrent approvals bind one request",
+          "id": "1b9c886ce51dad56d15b31611547b983",
+          "passes": 4,
+          "fails": 0,
+          "name": "concurrent approvals bind one request"
+        },
+        {
+          "fails": 0,
+          "name": "concurrent approval has one commit and one replay",
+          "path": "::concurrent approval has one commit and one replay",
+          "id": "8a80450ffecb73e9e5a9188b5bc46f26",
+          "passes": 4
+        }
+      ]
+  }
+}

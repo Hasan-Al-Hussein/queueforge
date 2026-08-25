@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-08-25T01:33:05.4787001+00:00",
+  "commit": "a6cbfa679ba824454c2c3a96b592a1593f487f8f",
+  "scenario": "load",
+  "command": "$env:K6_LOAD_VUS='2'; $env:K6_LOAD_ITERATIONS='12'; pwsh scripts/run-k6.ps1 -Scenario load",
+  "apiTarget": "http://127.0.0.1:3001",
+  "webTarget": "http://127.0.0.1:3100",
+  "hardware": {
+    "operatingSystem": "Microsoft Windows 11 Pro",
+    "logicalProcessors": 12.0,
+    "memoryBytes": 16835276800
+  },
+  "workload": {
+    "scenarios": 5,
+    "vusPerScenario": 2,
+    "iterations": {
+      "requestSubmission": 12,
+      "idempotencyReplay": 6,
+      "requestListing": 36,
+      "concurrentApprovals": 4,
+      "inboundWebhooks": 12
+    }
+  },
+  "datasetBefore": {
+    "tenantSlug": "acme-demo",
+    "workflowCount": 9,
+    "requestCount": 349,
+    "approvalTaskCount": 349
+  },
+  "summary": "load-20260825-053300-summary.json",
+  "exitCode": 0
+}

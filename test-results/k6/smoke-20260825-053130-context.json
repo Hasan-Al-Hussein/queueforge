@@ -1,0 +1,32 @@
+{
+  "recordedAt": "2026-08-25T01:31:37.4160855+00:00",
+  "commit": "a6cbfa679ba824454c2c3a96b592a1593f487f8f",
+  "scenario": "smoke",
+  "command": "pwsh scripts/run-k6.ps1 -Scenario smoke",
+  "apiTarget": "http://127.0.0.1:3001",
+  "webTarget": "http://127.0.0.1:3100",
+  "hardware": {
+    "operatingSystem": "Microsoft Windows 11 Pro",
+    "logicalProcessors": 12.0,
+    "memoryBytes": 16835276800
+  },
+  "workload": {
+    "scenarios": 5,
+    "vusPerScenario": 1,
+    "iterations": {
+      "requestSubmission": 1,
+      "idempotencyReplay": 1,
+      "requestListing": 1,
+      "concurrentApprovals": 1,
+      "inboundWebhooks": 1
+    }
+  },
+  "datasetBefore": {
+    "tenantSlug": "acme-demo",
+    "workflowCount": 9,
+    "requestCount": 311,
+    "approvalTaskCount": 311
+  },
+  "summary": "smoke-20260825-053130-summary.json",
+  "exitCode": 0
+}

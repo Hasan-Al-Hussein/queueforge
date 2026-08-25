@@ -1,0 +1,28 @@
+{
+  "verifiedAt": "2026-08-25T01:28:49.2673463+00:00",
+  "commit": "a6cbfa679ba824454c2c3a96b592a1593f487f8f",
+  "frozenInstall": "passed",
+  "workspaceBuild": "passed",
+  "composeConfig": "passed",
+  "topology": "healthy",
+  "representativeJourney": "passed",
+  "composeProject": "queueforge-clean-34afc98213",
+  "buildResourcePolicy": {
+    "builderCpuSet": "0-1",
+    "builderMemoryLimit": "2560m",
+    "builderMemorySwapLimit": "2560m",
+    "composeParallelLimit": 1,
+    "serviceBuildOrder": [
+      "migrate",
+      "api",
+      "worker",
+      "webhook-sink",
+      "web"
+    ]
+  },
+  "origins": {
+    "api": "http://127.0.0.1:20685",
+    "web": "http://127.0.0.1:20686",
+    "sink": "http://127.0.0.1:20687"
+  }
+}

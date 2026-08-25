@@ -1,0 +1,228 @@
+{
+  "measuredAt": "2026-08-25T01:35:14.6934943+00:00",
+  "commit": "a6cbfa679ba824454c2c3a96b592a1593f487f8f",
+  "invocation": "pwsh scripts/measure-resources.ps1 -Samples 30 -IntervalSeconds 2 -WorkloadLabel 'k6-load'",
+  "profile": "docker-compose-full",
+  "workload": "k6-load",
+  "baselineCapturedAt": "2026-08-24T20:05:31.0529377+04:00",
+  "baselineFormatVersion": 2,
+  "dockerSizeUnits": "si-and-iec",
+  "dockerBaseline": {
+    "Images": {
+      "totalCount": 11,
+      "active": 9,
+      "sizeBytes": 24140000000
+    },
+    "Containers": {
+      "totalCount": 13,
+      "active": 9,
+      "sizeBytes": 4673000000
+    },
+    "Local Volumes": {
+      "totalCount": 6,
+      "active": 5,
+      "sizeBytes": 1577000000
+    },
+    "Build Cache": {
+      "totalCount": 54,
+      "active": 0,
+      "sizeBytes": 3724000000
+    }
+  },
+  "dockerCurrent": {
+    "Images": {
+      "totalCount": 17,
+      "active": 14,
+      "sizeBytes": 25220000000
+    },
+    "Containers": {
+      "totalCount": 21,
+      "active": 13,
+      "sizeBytes": 4673000000
+    },
+    "Local Volumes": {
+      "totalCount": 8,
+      "active": 7,
+      "sizeBytes": 1656000000
+    },
+    "Build Cache": {
+      "totalCount": 95,
+      "active": 28,
+      "sizeBytes": 6742000000
+    }
+  },
+  "dockerCategoryDeltaBytes": {
+    "Images": 1080000000,
+    "Containers": 0,
+    "Local Volumes": 79000000,
+    "Build Cache": 3018000000
+  },
+  "samples": [
+    {
+      "at": "2026-08-25T01:33:06.4924995+00:00",
+      "containerBytes": 383633065,
+      "hostProcessBytes": 112222208
+    },
+    {
+      "at": "2026-08-25T01:33:10.5653219+00:00",
+      "containerBytes": 382783717,
+      "hostProcessBytes": 119312384
+    },
+    {
+      "at": "2026-08-25T01:33:15.0632413+00:00",
+      "containerBytes": 382332830,
+      "hostProcessBytes": 121884672
+    },
+    {
+      "at": "2026-08-25T01:33:18.9041738+00:00",
+      "containerBytes": 383007064,
+      "hostProcessBytes": 124809216
+    },
+    {
+      "at": "2026-08-25T01:33:23.3513907+00:00",
+      "containerBytes": 380552347,
+      "hostProcessBytes": 121495552
+    },
+    {
+      "at": "2026-08-25T01:33:27.8133278+00:00",
+      "containerBytes": 382970364,
+      "hostProcessBytes": 120557568
+    },
+    {
+      "at": "2026-08-25T01:33:31.9760796+00:00",
+      "containerBytes": 383741068,
+      "hostProcessBytes": 128163840
+    },
+    {
+      "at": "2026-08-25T01:33:36.4207912+00:00",
+      "containerBytes": 320213091,
+      "hostProcessBytes": 134139904
+    },
+    {
+      "at": "2026-08-25T01:33:40.5100228+00:00",
+      "containerBytes": 321424195,
+      "hostProcessBytes": 133976064
+    },
+    {
+      "at": "2026-08-25T01:33:44.9710802+00:00",
+      "containerBytes": 320758349,
+      "hostProcessBytes": 131395584
+    },
+    {
+      "at": "2026-08-25T01:33:48.9438567+00:00",
+      "containerBytes": 321019446,
+      "hostProcessBytes": 126418944
+    },
+    {
+      "at": "2026-08-25T01:33:53.3535907+00:00",
+      "containerBytes": 322307096,
+      "hostProcessBytes": 125636608
+    },
+    {
+      "at": "2026-08-25T01:33:57.8660015+00:00",
+      "containerBytes": 322999157,
+      "hostProcessBytes": 126029824
+    },
+    {
+      "at": "2026-08-25T01:34:01.9659103+00:00",
+      "containerBytes": 322257814,
+      "hostProcessBytes": 125730816
+    },
+    {
+      "at": "2026-08-25T01:34:06.3708532+00:00",
+      "containerBytes": 320382961,
+      "hostProcessBytes": 125685760
+    },
+    {
+      "at": "2026-08-25T01:34:10.5368803+00:00",
+      "containerBytes": 323083044,
+      "hostProcessBytes": 126472192
+    },
+    {
+      "at": "2026-08-25T01:34:14.9608365+00:00",
+      "containerBytes": 322667807,
+      "hostProcessBytes": 135163904
+    },
+    {
+      "at": "2026-08-25T01:34:18.9530922+00:00",
+      "containerBytes": 322591260,
+      "hostProcessBytes": 125960192
+    },
+    {
+      "at": "2026-08-25T01:34:23.3873445+00:00",
+      "containerBytes": 321108575,
+      "hostProcessBytes": 124719104
+    },
+    {
+      "at": "2026-08-25T01:34:27.9169817+00:00",
+      "containerBytes": 321878229,
+      "hostProcessBytes": 126398464
+    },
+    {
+      "at": "2026-08-25T01:34:31.8789398+00:00",
+      "containerBytes": 322158198,
+      "hostProcessBytes": 125476864
+    },
+    {
+      "at": "2026-08-25T01:34:36.3163217+00:00",
+      "containerBytes": 322471723,
+      "hostProcessBytes": 126267392
+    },
+    {
+      "at": "2026-08-25T01:34:40.4708711+00:00",
+      "containerBytes": 321945338,
+      "hostProcessBytes": 125763584
+    },
+    {
+      "at": "2026-08-25T01:34:44.8800617+00:00",
+      "containerBytes": 321456701,
+      "hostProcessBytes": 128532480
+    },
+    {
+      "at": "2026-08-25T01:34:48.8881841+00:00",
+      "containerBytes": 313853477,
+      "hostProcessBytes": 126312448
+    },
+    {
+      "at": "2026-08-25T01:34:53.3117638+00:00",
+      "containerBytes": 315616133,
+      "hostProcessBytes": 129499136
+    },
+    {
+      "at": "2026-08-25T01:34:57.7754842+00:00",
+      "containerBytes": 316423536,
+      "hostProcessBytes": 128749568
+    },
+    {
+      "at": "2026-08-25T01:35:01.8866809+00:00",
+      "containerBytes": 316324971,
+      "hostProcessBytes": 128757760
+    },
+    {
+      "at": "2026-08-25T01:35:06.3331543+00:00",
+      "containerBytes": 315689533,
+      "hostProcessBytes": 127819776
+    },
+    {
+      "at": "2026-08-25T01:35:10.4524876+00:00",
+      "containerBytes": 314816070,
+      "hostProcessBytes": 131317760
+    }
+  ],
+  "peakContainerBytes": 383741068,
+  "peakHostProcessBytes": 135163904,
+  "peakCombinedBytes": 518904972,
+  "queueforgeImageBytesConservative": 549673938,
+  "queueforgeVolumeBytes": 77394205,
+  "queueforgeAttributedDiskBytesConservative": 627068143,
+  "projectDirectoryBytes": 71733253,
+  "dockerSystemDeltaBytes": 4177000000,
+  "projectPlusDockerDeltaBytes": 4248733253,
+  "budgets": {
+    "memoryBytes": 5368709120,
+    "diskBytes": 4294967296
+  },
+  "withinMemoryBudget": true,
+  "withinDiskBudget": true,
+  "note": "The release budget uses project-directory bytes plus the before/after Docker-system delta. Complete image sizes are also reported conservatively and may double-count shared layers."
+}

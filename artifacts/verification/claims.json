@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-08-25T01:35:29.8311899+00:00",
+  "commit": "a6cbfa679ba824454c2c3a96b592a1593f487f8f",
+  "workingTreeEntries": 8,
+  "nonEvidenceWorkingTreeEntries": 0,
+  "status": "local-evidence-verified-exposure-gate-open",
+  "nextSecurityGate": "open",
+  "evidenceMap": {
+    "transactionalOutbox": [
+      "packages/persistence/src/stores/outbox.store.ts",
+      "tests/integration/database-concurrency.spec.ts"
+    ],
+    "tenantIsolation": [
+      "packages/persistence/src/tenant-scope.ts",
+      "tests/integration/database-schema.spec.ts"
+    ],
+    "refreshRotation": [
+      "packages/persistence/src/stores/identity.store.ts",
+      "tests/integration/database-concurrency.spec.ts"
+    ],
+    "signedWebhooks": [
+      "packages/application/src/inbound-webhook.service.ts",
+      "tests/integration/inbound-webhook-security.spec.ts",
+      "tests/integration/webhook-delivery-security.spec.ts"
+    ],
+    "workerRecovery": [
+      "apps/worker/src/services/queue-runtime.service.ts",
+      "tests/integration/worker-recovery.spec.ts"
+    ],
+    "accessibility": [
+      "apps/web/src/test/control-desk.a11y.test.tsx",
+      "docs/testing.md"
+    ],
+    "threatModel": [
+      "docs/security.md",
+      "docs/threat-model.md"
+    ]
+  },
+  "screenshotCount": 5,
+  "e2eStatus": "passed",
+  "latestK6Summary": "test-results/k6/load-20260825-053300-summary.json",
+  "k6ThresholdsPassed": true,
+  "cleanStartVerified": true,
+  "resourcesVerified": true,
+  "failures": []
+}
