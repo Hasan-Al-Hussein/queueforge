@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 710" role="img" aria-labelledby="title desc">
+  <title id="title">QueueForge complete project pipeline</title>
+  <desc id="desc">Twelve connected stages from role setup and guided request intake through independent approval, durable processing, signed effects, audit evidence, tenant isolation, and recovery.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b2033" />
+      <stop offset="1" stop-color="#102b42" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#06121e" flood-opacity="0.35" />
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#65d9c6" />
+    </marker>
+    <style>
+      .card { fill: #173a57; stroke: #365b76; stroke-width: 1.5; filter: url(#shadow); }
+      .card-proof { fill: #153f3c; stroke: #3f746d; }
+      .card-approval { fill: #3c3555; stroke: #6f638d; }
+      .number { fill: #0b2033; stroke-width: 2; }
+      .number-text { fill: #ffffff; font: 700 18px "Segoe UI", Arial, sans-serif; text-anchor: middle; }
+      .heading { fill: #ffffff; font: 700 22px "Segoe UI", Arial, sans-serif; }
+      .body { fill: #bed0df; font: 400 17px "Segoe UI", Arial, sans-serif; }
+      .arrow { fill: none; stroke: #65d9c6; stroke-width: 4; stroke-linecap: round; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect width="1600" height="710" rx="30" fill="url(#background)" />
+  <path d="M 0 116 H 1600" stroke="#315169" stroke-width="1" />
+  <text x="50" y="56" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="38" font-weight="700">QueueForge · complete request-to-recovery pipeline</text>
+  <text x="50" y="91" fill="#9fb6c8" font-family="Segoe UI, Arial, sans-serif" font-size="19">One evidence-bound journey across people, PostgreSQL, BullMQ workers, signed delivery, and operational proof.</text>
+  <rect x="1300" y="35" width="250" height="42" rx="21" fill="#173f61" stroke="#e86f2b" stroke-width="2" />
+  <circle cx="1327" cy="56" r="6" fill="#e86f2b" />
+  <text x="1345" y="63" fill="#ffffff" font-family="Segoe UI, Arial, sans-serif" font-size="16" font-weight="700">LOCAL · LOOPBACK ONLY</text>
+
+  <!-- Row 1: setup and intake -->
+  <g transform="translate(50 145)">
+    <rect class="card" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#e86f2b" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#e86f2b" />
+    <text class="number-text" x="32" y="41">1</text>
+    <text class="heading" x="62" y="41">Roles &amp; access</text>
+    <text class="body" x="24" y="80">Administrator, operator, approver,</text>
+    <text class="body" x="24" y="106">and viewer boundaries</text>
+  </g>
+  <g transform="translate(425 145)">
+    <rect class="card" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#e86f2b" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#e86f2b" />
+    <text class="number-text" x="32" y="41">2</text>
+    <text class="heading" x="62" y="41">Delivery connection</text>
+    <text class="body" x="24" y="80">Allowlisted receiver with a</text>
+    <text class="body" x="24" y="106">versioned signing secret</text>
+  </g>
+  <g transform="translate(800 145)">
+    <rect class="card" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#e86f2b" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#e86f2b" />
+    <text class="number-text" x="32" y="41">3</text>
+    <text class="heading" x="62" y="41">Immutable request type</text>
+    <text class="body" x="24" y="80">Form, approval policy, retry budget,</text>
+    <text class="body" x="24" y="106">and ordered delivery steps</text>
+  </g>
+  <g transform="translate(1175 145)">
+    <rect class="card" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#32b6a6" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#32b6a6" />
+    <text class="number-text" x="32" y="41">4</text>
+    <text class="heading" x="62" y="41">Guided request</text>
+    <text class="body" x="24" y="80">Operator completes normal fields;</text>
+    <text class="body" x="24" y="106">QueueForge builds the payload</text>
+  </g>
+
+  <!-- Row 2: verification and durable handoff; read right to left -->
+  <g transform="translate(1175 340)">
+    <rect class="card" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#32b6a6" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#32b6a6" />
+    <text class="number-text" x="32" y="41">5</text>
+    <text class="heading" x="62" y="41">Validate &amp; bind</text>
+    <text class="body" x="24" y="80">Strict schema, canonical hash, tenant,</text>
+    <text class="body" x="24" y="106">actor, and exact version</text>
+  </g>
+  <g transform="translate(800 340)">
+    <rect class="card card-approval" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#a895d1" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#a895d1" />
+    <text class="number-text" x="32" y="41">6</text>
+    <text class="heading" x="62" y="41">Independent approval</text>
+    <text class="body" x="24" y="80">A different principal reviews the</text>
+    <text class="body" x="24" y="106">bound request and expected revision</text>
+  </g>
+  <g transform="translate(425 340)">
+    <rect class="card" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#6fa8dc" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#6fa8dc" />
+    <text class="number-text" x="32" y="41">7</text>
+    <text class="heading" x="62" y="41">Atomic approval &amp; outbox</text>
+    <text class="body" x="24" y="80">Decision, transition, audit, and</text>
+    <text class="body" x="24" y="106">next event commit in PostgreSQL</text>
+  </g>
+  <g transform="translate(50 340)">
+    <rect class="card" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#6fa8dc" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#6fa8dc" />
+    <text class="number-text" x="32" y="41">8</text>
+    <text class="heading" x="62" y="41">Durable dispatch</text>
+    <text class="body" x="24" y="80">Leased outbox row becomes a stable</text>
+    <text class="body" x="24" y="106">BullMQ job; replay is expected</text>
+  </g>
+
+  <!-- Row 3: execution, evidence, and recovery -->
+  <g transform="translate(50 535)">
+    <rect class="card card-proof" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#65d9c6" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#65d9c6" />
+    <text class="number-text" x="32" y="41">9</text>
+    <text class="heading" x="62" y="41">Worker execution</text>
+    <text class="body" x="24" y="80">Durable receipts, attempt history,</text>
+    <text class="body" x="24" y="106">bounded retry, and dead letters</text>
+  </g>
+  <g transform="translate(425 535)">
+    <rect class="card card-proof" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#65d9c6" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#65d9c6" />
+    <text class="number-text" x="32" y="41">10</text>
+    <text class="heading" x="62" y="41">Signed effects</text>
+    <text class="body" x="24" y="80">Stable event reaches the receiver;</text>
+    <text class="body" x="24" y="106">requester notification follows</text>
+  </g>
+  <g transform="translate(800 535)">
+    <rect class="card card-proof" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#65d9c6" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#65d9c6" />
+    <text class="number-text" x="32" y="41">11</text>
+    <text class="heading" x="62" y="41">Correlated proof</text>
+    <text class="body" x="24" y="80">Timeline, delivery history, audit,</text>
+    <text class="body" x="24" y="106">and cross-tenant denial</text>
+  </g>
+  <g transform="translate(1175 535)">
+    <rect class="card card-proof" width="330" height="130" rx="18" />
+    <rect width="7" height="130" rx="3.5" fill="#e86f2b" />
+    <circle class="number" cx="32" cy="34" r="19" stroke="#e86f2b" />
+    <text class="number-text" x="32" y="41">12</text>
+    <text class="heading" x="62" y="41">Health &amp; recovery</text>
+    <text class="body" x="24" y="80">Worker freshness, needs-attention,</text>
+    <text class="body" x="24" y="106">and authorized manual retry</text>
+  </g>
+
+  <!-- Directional path -->
+  <path class="arrow" d="M 380 210 H 415" />
+  <path class="arrow" d="M 755 210 H 790" />
+  <path class="arrow" d="M 1130 210 H 1165" />
+  <path class="arrow" d="M 1340 275 V 330" />
+  <path class="arrow" d="M 1175 405 H 1140" />
+  <path class="arrow" d="M 800 405 H 765" />
+  <path class="arrow" d="M 425 405 H 390" />
+  <path class="arrow" d="M 215 470 V 525" />
+  <path class="arrow" d="M 380 600 H 415" />
+  <path class="arrow" d="M 755 600 H 790" />
+  <path class="arrow" d="M 1130 600 H 1165" />
+
+  <text x="800" y="694" text-anchor="middle" fill="#9fb6c8" font-family="Segoe UI, Arial, sans-serif" font-size="15">PostgreSQL is authoritative · Redis/BullMQ coordinates at-least-once work · public exposure remains blocked</text>
+</svg>

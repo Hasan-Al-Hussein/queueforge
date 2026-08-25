@@ -4,7 +4,7 @@ QueueForge is a local-first, multi-tenant workflow automation system that gives 
 
 It is a portfolio and engineering-demonstration system for synthetic data on a developer laptop. It is **not** an internet-facing deployment reference. Next.js 16.3.2 is currently held behind an open upstream security gate, so the web application must remain loopback-only until that gate is closed with vendor evidence and a full regression run.
 
-## Watch the complete pipeline
+## Watch the complete 14-step demo
 
 [![Watch the 83-second QueueForge pipeline demo](artifacts/screenshots/desktop-overview-1440x900.png)](docs/media/queueforge-pipeline-demo.webm)
 
@@ -25,6 +25,12 @@ The silent walkthrough follows the real local UI through all 14 documented steps
 - Raw-body inbound HMAC verification and allowlisted, signed outbound webhooks.
 - Correlated request timelines, audit events, queue health, notifications, and worker heartbeats.
 - Responsive, accessible role-specific workspaces in a static-export Next.js interface.
+
+## Complete project pipeline
+
+[![QueueForge complete request-to-recovery pipeline](docs/media/queueforge-pipeline.svg)](docs/project-handoff/queueforge-pipeline-walkthrough/README.md)
+
+One request moves through explicit role boundaries, immutable configuration, evidence-bound approval, an atomic PostgreSQL outbox, durable BullMQ processing, signed delivery, correlated proof, and operator recovery. Select the diagram for the labeled **14-step real-UI walkthrough**, or [watch the 83-second demo](docs/media/queueforge-pipeline-demo.webm). Both were captured from the local, loopback-only demonstration environment.
 
 ## Architecture at a glance
 
@@ -225,19 +231,27 @@ The committed smoke/load context and summary pair is the authority for the exact
 
 These are fixed-workload results from one local laptop and synthetic dataset, not capacity guarantees, remote CI evidence, or permission for external exposure.
 
-## Visual evidence
+## Product walkthrough
 
 Captured on **2026-08-25** from the loopback-only **full Docker Compose packaged profile** after API, database, Redis, web, and delivery-sink readiness passed. These screens contain seeded synthetic demonstration data only. The [runtime audit report](artifacts/screenshots/runtime-audit-report.json) records 40 role-aware checks across the administrator, operator, and approver workspaces at 1440×900 desktop and 390×844 mobile sizes, including six forbidden-route redirects. This capture observed zero console or page errors, failed requests, HTTP error responses, GraphQL errors, layout findings, navigation mismatches, or sensitive-data findings.
 
 These images are UI and runtime evidence for this bounded local capture only. They are not evidence of remote CI, benchmark performance, or readiness for external exposure. See the [demo script](docs/demo-script.md) for the reproducible walkthrough.
 
-| Administrator workspace                                                                                                                           | Operator request lifecycle                                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| ![QueueForge administrator overview with focused configuration and monitoring navigation](artifacts/screenshots/desktop-overview-1440x900.png)    | ![QueueForge operator request detail with readable progress and approval history](artifacts/screenshots/desktop-request-detail-1440x900.png) |
-| **Operator processing health**                                                                                                                    | **Approver mobile workspace**                                                                                                                |
-| ![QueueForge operator processing-health view with plain-language work and recovery states](artifacts/screenshots/desktop-operations-1440x900.png) | ![QueueForge mobile approval overview with a focused next decision](artifacts/screenshots/mobile-overview-390x844.png)                       |
-| **Operator mobile navigation**                                                                                                                    |                                                                                                                                              |
-| ![QueueForge mobile operator navigation with only daily-work and recovery pages](artifacts/screenshots/mobile-navigation-390x844.png)             |                                                                                                                                              |
+Every preview below uses the same **1440×900 landscape frame**. Select any image to inspect it at full resolution.
+
+| **01 — Role boundaries**                                                                                                                                                                                                                                         | **02 — Signed delivery connection**                                                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![QueueForge people administration showing explicit role boundaries](docs/project-handoff/queueforge-pipeline-walkthrough/step_02_people_and_role_boundaries.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_02_people_and_role_boundaries.png) | [![QueueForge allowlisted delivery connection with signed receiver configuration](docs/project-handoff/queueforge-pipeline-walkthrough/step_03_delivery_connection_ready.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_03_delivery_connection_ready.png) |
+| **03 — Guided request intake**                                                                                                                                                                                                                                   | **04 — Independent approval**                                                                                                                                                                                                                                              |
+| [![QueueForge operator completing a guided request form](docs/project-handoff/queueforge-pipeline-walkthrough/step_05_operator_fills_request_form.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_05_operator_fills_request_form.png)            | [![QueueForge approver reviewing a bound request](docs/project-handoff/queueforge-pipeline-walkthrough/step_07_approver_reviews_request.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_07_approver_reviews_request.png)                                   |
+| **05 — Completed request history**                                                                                                                                                                                                                               | **06 — Result delivery history**                                                                                                                                                                                                                                           |
+| [![QueueForge completed request with readable progress and approval history](artifacts/screenshots/desktop-request-detail-1440x900.png)](artifacts/screenshots/desktop-request-detail-1440x900.png)                                                              | [![QueueForge signed result delivery history](docs/project-handoff/queueforge-pipeline-walkthrough/step_09_result_delivery_history.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_09_result_delivery_history.png)                                         |
+| **07 — Requester notifications**                                                                                                                                                                                                                                 | **08 — Correlated activity proof**                                                                                                                                                                                                                                         |
+| [![QueueForge requester notification for completed work](docs/project-handoff/queueforge-pipeline-walkthrough/step_11_requester_notifications.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_11_requester_notifications.png)                    | [![QueueForge activity log with correlated request events](docs/project-handoff/queueforge-pipeline-walkthrough/step_12_correlated_activity_log.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_12_correlated_activity_log.png)                            |
+| **09 — Cross-tenant denial**                                                                                                                                                                                                                                     | **10 — Processing health and recovery**                                                                                                                                                                                                                                    |
+| [![QueueForge deny-by-default cross-tenant access result](docs/project-handoff/queueforge-pipeline-walkthrough/step_13_cross_tenant_access_blocked.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_13_cross_tenant_access_blocked.png)           | [![QueueForge processing health with operator recovery controls](artifacts/screenshots/desktop-operations-1440x900.png)](artifacts/screenshots/desktop-operations-1440x900.png)                                                                                            |
+
+**[Watch the complete 14-step demo →](docs/media/queueforge-pipeline-demo.webm)** · **[Open the labeled 14-step screenshot walkthrough →](docs/project-handoff/queueforge-pipeline-walkthrough/README.md)**
 
 ## Documentation
 
