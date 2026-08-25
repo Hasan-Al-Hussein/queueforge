@@ -46,7 +46,7 @@ Sign in as `admin@queueforge.test`.
 
 Narration:
 
-> QueueForge gives each role a focused workspace. This administrator configures how work runs and monitors system health, while operators and approvers get separate daily-work screens. PostgreSQL—not Redis—is the authoritative state store.
+> QueueForge gives each role a focused workspace. This administrator configures how work runs and monitors system health, while operators and approvers get separate daily-work screens. PostgreSQL is authoritative; Redis is not.
 
 Show:
 
@@ -122,7 +122,7 @@ Show:
 
 Narration:
 
-> Each delivery signs the exact immutable event bytes with event ID, timestamp, attempt, and a versioned encrypted secret. Receiver deduplication makes a stable replay safe, but arbitrary HTTP delivery remains at-least-once—not exactly-once.
+> Each delivery signs the exact immutable event bytes with event ID, timestamp, attempt, and a versioned encrypted secret. Receiver deduplication makes a stable replay safe, but arbitrary HTTP delivery remains at-least-once rather than exactly-once.
 
 ## Optional segment: controlled retry (2-3 minutes)
 

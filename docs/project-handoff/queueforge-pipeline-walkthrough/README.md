@@ -40,87 +40,87 @@ flowchart LR
 
 ## Numbered visual walkthrough
 
-### Step 1 — Administrator sees the workspace and system overview
+### Step 1: Administrator sees the workspace and system overview
 
-![Step 1 — Administrator workspace overview](./step_01_admin_workspace_overview.png)
+![Step 1: Administrator workspace overview](./step_01_admin_workspace_overview.png)
 
-The selected workspace is `Acme Operations`, and the orange role badge identifies the Administrator experience. This workspace is for configuration, access management, processing health, and audit visibility—not everyday submission or approval work.
+The selected workspace is `Acme Operations`, and the orange role badge identifies the Administrator experience. This workspace is for configuration, access management, processing health, and audit visibility rather than everyday submission or approval work.
 
-### Step 2 — Responsibilities are separated by role
+### Step 2: Responsibilities are separated by role
 
-![Step 2 — People and role boundaries](./step_02_people_and_role_boundaries.png)
+![Step 2: People and role boundaries](./step_02_people_and_role_boundaries.png)
 
-The demo has distinct administrator, operator, and approver identities. Starter demo roles are locked so the walkthrough stays reliable. In real use, server-side authorization—not just hidden navigation—enforces what each role can do.
+The demo has distinct administrator, operator, and approver identities. Starter demo roles are locked so the walkthrough stays reliable. In real use, server-side authorization enforces what each role can do; hidden navigation alone does not.
 
-### Step 3 — A delivery connection is ready
+### Step 3: A delivery connection is ready
 
-![Step 3 — Delivery connection ready](./step_03_delivery_connection_ready.png)
+![Step 3: Delivery connection ready](./step_03_delivery_connection_ready.png)
 
 The `Local audit sink` is the configured local receiver. QueueForge will sign completed-result deliveries so the receiving system can verify their origin. Signing secrets remain collapsed and are never shown in this folder.
 
-### Step 4 — The administrator publishes an immutable request type
+### Step 4: The administrator publishes an immutable request type
 
-![Step 4 — Published request type](./step_04_published_request_type.png)
+![Step 4: Published request type](./step_04_published_request_type.png)
 
 The `Expense review` request type defines three normal questions, requires a separate approver, prevents self-approval, sets bounded processing attempts, and sends the approved result to the configured receiver. Published versions are read-only so an in-flight request always keeps the rules it started with.
 
-### Step 5 — The operator fills a normal guided form
+### Step 5: The operator fills a normal guided form
 
-![Step 5 — Operator fills request form](./step_05_operator_fills_request_form.png)
+![Step 5: Operator fills request form](./step_05_operator_fills_request_form.png)
 
 Omar chooses the request type and enters ordinary labeled fields. The operator never needs to write JSON; QueueForge creates and validates the structured payload behind the form.
 
-### Step 6 — The accepted request waits for a separate decision
+### Step 6: The accepted request waits for a separate decision
 
-![Step 6 — Request waiting for approval](./step_06_request_waiting_for_approval.png)
+![Step 6: Request waiting for approval](./step_06_request_waiting_for_approval.png)
 
 The request is stored and visible immediately, but processing is blocked at `Waiting for approval`. The page shows who requested the decision and the exact readable values that were submitted.
 
-### Step 7 — Amina reviews and approves the request
+### Step 7: Amina reviews and approves the request
 
-![Step 7 — Approver reviews request](./step_07_approver_reviews_request.png)
+![Step 7: Approver reviews request](./step_07_approver_reviews_request.png)
 
 Amina sees the requester and readable request details before deciding. She is a different authenticated principal from Omar, which demonstrates the separation-of-duties rule.
 
-### Step 8 — Durable dispatch and worker processing complete the request
+### Step 8: Durable dispatch and worker processing complete the request
 
-![Step 8 — Durable processing completed](./step_08_durable_processing_completed.png)
+![Step 8: Durable processing completed](./step_08_durable_processing_completed.png)
 
 The timeline preserves each state: received, waiting, approved, ready, in progress, and completed. Internally, the approval transaction appends an outbox event; the dispatcher publishes a deterministic BullMQ job; and the worker records progress and completion in PostgreSQL.
 
-### Step 9 — QueueForge records the result delivery
+### Step 9: QueueForge records the result delivery
 
-![Step 9 — Result delivery history](./step_09_result_delivery_history.png)
+![Step 9: Result delivery history](./step_09_result_delivery_history.png)
 
 The delivery view is filtered to the walkthrough request. It shows the destination, related request type and reference, one delivery try, and the receiver's HTTP `202` acceptance.
 
-### Step 10 — The separate receiver confirms acceptance
+### Step 10: The separate receiver confirms acceptance
 
-![Step 10 — Receiver accepted result](./step_10_receiver_accepted_result.png)
+![Step 10: Receiver accepted result](./step_10_receiver_accepted_result.png)
 
 The local receiver independently reports `accepted: true`, `duplicate: false`, event type `request.succeeded`, and HTTP status `202`. Match the walkthrough by trace reference `03355893-e8bb-457b-993e-9723ee9731da`; other entries are older synthetic receiver history.
 
-### Step 11 — The requester receives readable updates
+### Step 11: The requester receives readable updates
 
-![Step 11 — Requester notifications](./step_11_requester_notifications.png)
+![Step 11: Requester notifications](./step_11_requester_notifications.png)
 
 Omar receives both the approval and completion updates, each labeled with the request type and compact request reference.
 
-### Step 12 — The administrator can follow the same trace in the activity log
+### Step 12: The administrator can follow the same trace in the activity log
 
-![Step 12 — Correlated activity log](./step_12_correlated_activity_log.png)
+![Step 12: Correlated activity log](./step_12_correlated_activity_log.png)
 
 The readable audit row explains the completion. Opening `View` reveals the stable event code, the same request reference, and trace reference without exposing credentials or payload secrets.
 
-### Step 13 — The same request is not visible in another tenant
+### Step 13: The same request is not visible in another tenant
 
-![Step 13 — Cross-tenant access blocked](./step_13_cross_tenant_access_blocked.png)
+![Step 13: Cross-tenant access blocked](./step_13_cross_tenant_access_blocked.png)
 
 With `Beta Logistics` selected, the Acme request is reported as not found. This deliberately avoids revealing whether another tenant owns the supplied identifier.
 
-### Step 14 — Processing health and recovery remain visible
+### Step 14: Processing health and recovery remain visible
 
-![Step 14 — Processing health and recovery](./step_14_processing_health_and_recovery.png)
+![Step 14: Processing health and recovery](./step_14_processing_health_and_recovery.png)
 
 The processing page separates request, result-delivery, and notification work, shows worker freshness, and exposes the `Needs attention` area used when automatic attempts are exhausted. In this successful capture all queues are clear and nothing needs manual recovery.
 

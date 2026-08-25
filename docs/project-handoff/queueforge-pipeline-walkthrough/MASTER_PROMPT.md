@@ -1,4 +1,4 @@
-# QueueForge — master handoff prompt for the next chat
+# QueueForge: master handoff prompt for the next chat
 
 You are taking over the completed QueueForge local project. Your assignment is to inspect and understand the existing project, its numbered pipeline screenshots, documentation, current Git repository, and revision-matched private ZIP. After you are fully oriented, create a GitHub repository for this complete project using the same normal GitHub-repository workflow you have used for this user’s other repositories.
 
@@ -506,10 +506,10 @@ Loopback-only URLs:
 
 Seeded identities:
 
-- `admin@queueforge.test` — platform administrator; tenant administrator in Acme and Beta.
-- `operator@queueforge.local` — Acme operator.
-- `approver@queueforge.local` — Acme approver.
-- `outsider@queueforge.local` — Beta operator only.
+- `admin@queueforge.test`: platform administrator; tenant administrator in Acme and Beta.
+- `operator@queueforge.local`: Acme operator.
+- `approver@queueforge.local`: Acme approver.
+- `outsider@queueforge.local`: Beta operator only.
 
 They use the locally generated `BOOTSTRAP_ADMIN_PASSWORD`. Never read its value into chat, place it in this prompt, commit it, show it in a screenshot, or upload it. The next operator can obtain it from their own ignored local `.env` only when they are authorized to run the local demo.
 

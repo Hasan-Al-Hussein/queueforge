@@ -159,7 +159,7 @@ Paths in the table are relative to `/api/v1`.
 | `submitWorkflowRequest(workflowKey, payload, idempotencyKey)` mutation                  | Same application submission path as REST                         |
 | `decideApproval(approvalId, decision, expectedRevision, note, idempotencyKey)` mutation | Same approval path as REST                                       |
 
-Application/resolver failures pass through QueueForge's shared exception mapping. An Apollo error-envelope plugin then normalizes every GraphQL failure—including parse, schema-validation, coercion, and query-limit errors—to the bounded public code vocabulary in `extensions` and adds `requestId` and `correlationId`. Stack traces are not returned.
+Application/resolver failures pass through QueueForge's shared exception mapping. An Apollo error-envelope plugin then normalizes every GraphQL failure, including parse, schema-validation, coercion, and query-limit errors, into the bounded public code vocabulary in `extensions` and adds `requestId` and `correlationId`. Stack traces are not returned.
 
 ## Error contract
 

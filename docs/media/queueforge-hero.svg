@@ -17,6 +17,10 @@
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
       <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#020b12" flood-opacity="0.42" />
     </filter>
+    <filter id="flow-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+    </filter>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="strokeWidth">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#64d7c6" />
     </marker>
@@ -25,13 +29,15 @@
       .stage { fill: #143b58; stroke: #39637c; stroke-width: 1.5; }
       .stage-active { fill: #183f3c; stroke: #4b8179; }
       .stage-review { fill: #3b3453; stroke: #756891; }
-      .stage-title { fill: #ffffff; font: 700 18px "Segoe UI", Arial, sans-serif; }
+      .stage-title { fill: #ffffff; font: 700 17px "Segoe UI", Arial, sans-serif; }
+      .stage-title-compact { fill: #ffffff; font: 700 16px "Segoe UI", Arial, sans-serif; }
       .stage-note { fill: #abc1d1; font: 400 14px "Segoe UI", Arial, sans-serif; }
       .step { fill: #0a2337; stroke-width: 2; }
       .step-text { fill: #ffffff; font: 700 14px "Segoe UI", Arial, sans-serif; text-anchor: middle; }
       .flow { fill: none; stroke: #64d7c6; stroke-width: 3.5; stroke-linecap: round; marker-end: url(#arrow); }
       .chip { fill: #102e47; stroke: #3a6079; stroke-width: 1.25; }
       .chip-text { fill: #d7e7f1; font: 700 14px "Segoe UI", Arial, sans-serif; text-anchor: middle; }
+      @media (prefers-reduced-motion: reduce) { .motion-dot { display: none; } }
     </style>
   </defs>
 
@@ -96,17 +102,17 @@
       <text class="stage-note" x="20" y="67">A separate approver checks</text>
       <text class="stage-note" x="20" y="88">the exact bound revision</text>
     </g>
-    <path class="flow" d="M 522 138 H 562" />
-    <g transform="translate(576 86)">
-      <rect class="stage" width="164" height="104" rx="16" />
+    <path class="flow" d="M 522 138 H 542" />
+    <g transform="translate(556 86)">
+      <rect class="stage" width="184" height="104" rx="16" />
       <circle class="step" cx="28" cy="28" r="17" stroke="#e86f2b" />
       <text class="step-text" x="28" y="33">3</text>
-      <text class="stage-title" x="56" y="34">Atomic handoff</text>
-      <text class="stage-note" x="20" y="67">State, audit, and outbox</text>
-      <text class="stage-note" x="20" y="88">commit together</text>
+      <text class="stage-title-compact" x="54" y="34">Atomic handoff</text>
+      <text class="stage-note" x="18" y="67">State, audit, outbox</text>
+      <text class="stage-note" x="18" y="88">commit together</text>
     </g>
 
-    <path class="flow" d="M 658 192 V 238" />
+    <path class="flow" d="M 648 192 V 238" />
 
     <g transform="translate(526 252)">
       <rect class="stage-active" width="214" height="104" rx="16" />
@@ -125,21 +131,44 @@
       <text class="stage-note" x="20" y="67">Allowlisted receiver, stable</text>
       <text class="stage-note" x="20" y="88">event ID, HMAC signature</text>
     </g>
-    <path class="flow" d="M 254 304 H 214" />
+    <path class="flow" d="M 254 304 H 234" />
     <g transform="translate(36 252)">
-      <rect class="stage" width="164" height="104" rx="16" />
+      <rect class="stage" width="184" height="104" rx="16" />
       <circle class="step" cx="28" cy="28" r="17" stroke="#e86f2b" />
       <text class="step-text" x="28" y="33">6</text>
       <text class="stage-title" x="56" y="34">Proof</text>
-      <text class="stage-note" x="20" y="67">Timeline, delivery, audit,</text>
-      <text class="stage-note" x="20" y="88">health, and recovery</text>
+      <text class="stage-note" x="20" y="67">Timeline and audit trail</text>
+      <text class="stage-note" x="20" y="88">health and recovery</text>
+    </g>
+
+    <g class="motion-dot" pointer-events="none" fill="#ffffff" filter="url(#flow-glow)">
+      <circle r="5" opacity="0">
+        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.02;0.12;0.17;1" dur="6s" repeatCount="indefinite" />
+        <animateMotion path="M 252 138 H 292" keyPoints="0;1;1" keyTimes="0;0.15;1" calcMode="linear" dur="6s" repeatCount="indefinite" />
+      </circle>
+      <circle r="5" opacity="0">
+        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.02;0.12;0.17;1" dur="6s" begin="0.9s" repeatCount="indefinite" />
+        <animateMotion path="M 522 138 H 542" keyPoints="0;1;1" keyTimes="0;0.15;1" calcMode="linear" dur="6s" begin="0.9s" repeatCount="indefinite" />
+      </circle>
+      <circle r="5" opacity="0" fill="#e86f2b">
+        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.02;0.12;0.17;1" dur="6s" begin="1.8s" repeatCount="indefinite" />
+        <animateMotion path="M 648 192 V 238" keyPoints="0;1;1" keyTimes="0;0.15;1" calcMode="linear" dur="6s" begin="1.8s" repeatCount="indefinite" />
+      </circle>
+      <circle r="5" opacity="0" fill="#64d7c6">
+        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.02;0.12;0.17;1" dur="6s" begin="2.7s" repeatCount="indefinite" />
+        <animateMotion path="M 524 304 H 484" keyPoints="0;1;1" keyTimes="0;0.15;1" calcMode="linear" dur="6s" begin="2.7s" repeatCount="indefinite" />
+      </circle>
+      <circle r="5" opacity="0" fill="#64d7c6">
+        <animate attributeName="opacity" values="0;1;1;0;0" keyTimes="0;0.02;0.12;0.17;1" dur="6s" begin="3.6s" repeatCount="indefinite" />
+        <animateMotion path="M 254 304 H 234" keyPoints="0;1;1" keyTimes="0;0.15;1" calcMode="linear" dur="6s" begin="3.6s" repeatCount="indefinite" />
+      </circle>
     </g>
 
     <rect x="36" y="408" width="704" height="72" rx="16" fill="#0d2a40" stroke="#2f536b" />
     <circle cx="62" cy="444" r="8" fill="#64d7c6" />
     <text class="sans" x="82" y="439" fill="#ffffff" font-size="16" font-weight="700">PostgreSQL stays authoritative</text>
     <text class="sans" x="82" y="462" fill="#9fb7c8" font-size="14">Redis and BullMQ coordinate replaceable at-least-once work.</text>
-    <rect x="562" y="426" width="150" height="36" rx="9" fill="#173d59" stroke="#4a6d83" />
-    <text class="sans" x="637" y="449" fill="#ffffff" font-size="13" font-weight="700" text-anchor="middle">AUDITABLE BY DESIGN</text>
+    <rect x="544" y="426" width="168" height="36" rx="9" fill="#173d59" stroke="#4a6d83" />
+    <text class="sans" x="628" y="449" fill="#ffffff" font-size="13" font-weight="700" text-anchor="middle">AUDITABLE BY DESIGN</text>
   </g>
 </svg>

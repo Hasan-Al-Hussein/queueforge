@@ -145,4 +145,4 @@ Close the Next.js security gate; define a supported TLS/reverse-proxy deployment
 6. [Testing](testing.md) and [load testing](load-testing.md)
 7. [Live demo script](demo-script.md)
 
-The strongest presentation is a specific invariant, a controlled failure, and the artifact that proves recovery—not a long feature list.
+The strongest presentation uses a specific invariant, a controlled failure, and the artifact that proves recovery instead of a long feature list.

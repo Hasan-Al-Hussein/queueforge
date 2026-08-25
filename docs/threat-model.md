@@ -62,8 +62,8 @@ and migration privileges are separate from the runtime application role.
 ## Security invariants to preserve
 
 1. A tenant-owned row is never selected or mutated without an authenticated tenant scope.
-2. A workflow request points to the immutable version that was active at submission—even if that
-   version is later retired—and executes its single processor target plus processing policy.
+2. A workflow request points to the immutable version that was active at submission (even if that
+   version is later retired) and executes its single processor target plus processing policy.
 3. A processed-event receipt and its terminal business effects commit atomically.
 4. An idempotent replay never creates a second durable effect and never reveals a one-time secret.
 5. Inbound HMAC verification operates on the captured bytes before JSON parsing or durable mutation.
