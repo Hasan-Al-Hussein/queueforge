@@ -11,10 +11,11 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path -LiteralPath (Split-Path -Parent $PSScriptRoot)).Path
 $artifactDirectory = Join-Path $projectRoot 'artifacts\verification'
 $artifactPath = Join-Path $artifactDirectory 'clean-start.json'
-$builderCpuCount = [Math]::Min(4, [Environment]::ProcessorCount)
+$builderCpuCount = [Math]::Min(2, [Environment]::ProcessorCount)
 $builderCpuSet = if ($builderCpuCount -eq 1) { '0' } else { "0-$($builderCpuCount - 1)" }
 $builderMemoryLimit = '2560m'
 $composeParallelLimit = '1'
+$buildServices = @('migrate', 'api', 'worker', 'webhook-sink', 'web')
 [System.IO.Directory]::CreateDirectory($artifactDirectory) | Out-Null
 
 function Invoke-Checked {
@@ -214,15 +215,18 @@ try {
       Invoke-Checked docker @(
         'buildx', 'create', '--name', $builderName, '--driver', 'docker-container',
         '--driver-opt', "cpuset-cpus=$builderCpuSet",
-        '--driver-opt', "memory=$builderMemoryLimit"
+        '--driver-opt', "memory=$builderMemoryLimit",
+        '--driver-opt', "memory-swap=$builderMemoryLimit"
       )
       $builderCreated = $true
       $started = $true
       Invoke-Checked docker @('buildx', 'inspect', $builderName, '--bootstrap')
-      Invoke-Checked docker @(
-        'compose', '-p', $composeProject, '--profile', 'full',
-        'build', '--builder', $builderName
-      )
+      foreach ($service in $buildServices) {
+        Invoke-Checked docker @(
+          'compose', '-p', $composeProject, '--profile', 'full',
+          'build', '--builder', $builderName, $service
+        )
+      }
       foreach ($imageReference in $ownedImageReferences) {
         Invoke-Checked docker @('image', 'inspect', '--format', '{{.Id}}', $imageReference) | Out-Null
       }
@@ -248,7 +252,9 @@ try {
       buildResourcePolicy = [ordered]@{
         builderCpuSet = $builderCpuSet
         builderMemoryLimit = $builderMemoryLimit
+        builderMemorySwapLimit = $builderMemoryLimit
         composeParallelLimit = [int]$composeParallelLimit
+        serviceBuildOrder = $buildServices
       }
       origins = [ordered]@{
         api = "http://127.0.0.1:$apiPort"
