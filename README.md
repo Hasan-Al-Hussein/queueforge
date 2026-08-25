@@ -4,6 +4,14 @@ QueueForge is a local-first, multi-tenant workflow automation system that gives 
 
 It is a portfolio and engineering-demonstration system for synthetic data on a developer laptop. It is **not** an internet-facing deployment reference. Next.js 16.3.2 is currently held behind an open upstream security gate, so the web application must remain loopback-only until that gate is closed with vendor evidence and a full regression run.
 
+## Watch the complete pipeline
+
+[![Watch the 83-second QueueForge pipeline demo](artifacts/screenshots/desktop-overview-1440x900.png)](docs/media/queueforge-pipeline-demo.webm)
+
+**[Watch the 83-second QueueForge pipeline demo →](docs/media/queueforge-pipeline-demo.webm)**
+
+The silent walkthrough follows the real local UI through all 14 documented steps: administration, role boundaries, guided request intake, independent approval, durable processing, signed result delivery, notifications, correlated audit history, tenant isolation, and recovery visibility. It uses synthetic local-demo data and complements the [complete screenshot walkthrough](docs/project-handoff/queueforge-pipeline-walkthrough/README.md); it is not evidence of public deployment.
+
 ## What it demonstrates
 
 - Tenant-scoped REST and GraphQL surfaces backed by one application layer.
