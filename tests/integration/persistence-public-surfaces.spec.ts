@@ -321,6 +321,108 @@ describe('persistence public store integration', () => {
     expect(createdMemberships).toEqual([{ role: 'tenant_admin' }]);
   });
 
+  it('locks protected roles and preserves an active tenant administrator under concurrent changes', async () => {
+    const tenantId = randomUUID();
+    tenantIds.add(tenantId);
+    await insertTenant(runtime.manager, tenantId);
+    const firstAdminId = randomUUID();
+    const secondAdminId = randomUUID();
+    const lockedApproverId = randomUUID();
+    const platformActorId = randomUUID();
+    const fixtureUserIds = [firstAdminId, secondAdminId, lockedApproverId, platformActorId];
+    fixtureUserIds.forEach((userId) => userIds.add(userId));
+    await runtime.query(
+      `INSERT INTO users (id, email, display_name, password_hash, platform_role)
+       VALUES
+         ($1, $5, 'First tenant administrator', 'synthetic-password-hash', NULL),
+         ($2, $6, 'Second tenant administrator', 'synthetic-password-hash', NULL),
+         ($3, $7, 'Locked demo approver', 'synthetic-password-hash', NULL),
+         ($4, $8, 'Platform administrator', 'synthetic-password-hash', 'platform_admin')`,
+      [
+        firstAdminId,
+        secondAdminId,
+        lockedApproverId,
+        platformActorId,
+        `qa-${firstAdminId}@example.test`,
+        `qa-${secondAdminId}@example.test`,
+        `qa-${lockedApproverId}@example.test`,
+        `qa-${platformActorId}@example.test`,
+      ],
+    );
+    await runtime.query(
+      `INSERT INTO memberships (tenant_id, user_id, role, role_locked)
+       VALUES
+         ($1, $2, 'tenant_admin', false),
+         ($1, $3, 'tenant_admin', false),
+         ($1, $4, 'approver', true),
+         ($1, $5, 'viewer', false)`,
+      [tenantId, firstAdminId, secondAdminId, lockedApproverId, platformActorId],
+    );
+    const operations = new OperationsStore(runtime);
+    const readModels = new ReadModelStore(runtime);
+    const firstAdminContext = userContext(tenantId, firstAdminId, 'tenant_admin');
+    const platformContext = userContext(tenantId, platformActorId, 'platform_admin');
+
+    await expect(
+      operations.updateMembershipRole(platformContext, lockedApproverId, 'operator', randomUUID()),
+    ).rejects.toMatchObject({ code: 'CONFLICT', message: 'This membership role is locked' });
+    await expect(
+      operations.updateMembershipRole(firstAdminContext, firstAdminId, 'operator', randomUUID()),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'Your own tenant role cannot be changed',
+    });
+    await expect(
+      operations.updateMembershipRole(platformContext, firstAdminId, 'tenant_admin', randomUUID()),
+    ).rejects.toMatchObject({
+      code: 'CONFLICT',
+      message: 'Membership already has the requested role',
+    });
+
+    const concurrentDemotions = await Promise.allSettled([
+      operations.updateMembershipRole(platformContext, firstAdminId, 'operator', randomUUID()),
+      operations.updateMembershipRole(platformContext, secondAdminId, 'operator', randomUUID()),
+    ]);
+    const fulfilled = concurrentDemotions.filter(
+      (
+        result,
+      ): result is PromiseFulfilledResult<
+        Awaited<ReturnType<typeof operations.updateMembershipRole>>
+      > => result.status === 'fulfilled',
+    );
+    const rejected = concurrentDemotions.filter(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
+    expect(fulfilled).toHaveLength(1);
+    expect(fulfilled[0]?.value).toMatchObject({ role: 'operator', roleLocked: false });
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toMatchObject({
+      code: 'CONFLICT',
+      message: 'The final active tenant administrator cannot be demoted',
+    });
+
+    const activeAdminCounts = (await runtime.query(
+      `SELECT count(*)::integer AS count
+       FROM memberships
+       WHERE tenant_id = $1 AND role = 'tenant_admin' AND is_active`,
+      [tenantId],
+    )) as unknown as Array<{ count: number }>;
+    expect(activeAdminCounts).toEqual([{ count: 1 }]);
+
+    const team = await readModels.listTeam(platformContext, 1, 25);
+    expect(team.items.find((member) => member.id === lockedApproverId)).toMatchObject({
+      role: 'approver',
+      roleLocked: true,
+    });
+    const audit = await readModels.listAudit(platformContext, 1, 25, 'membership.role_changed');
+    expect(audit.totalItems).toBe(1);
+    expect(audit.items[0]).toMatchObject({
+      eventType: 'membership.role_changed',
+      resourceType: 'membership',
+    });
+    expect(audit.items[0]?.summary).toEqual(expect.stringContaining('previousRole'));
+  });
+
   it('cancels and retries requests atomically and idempotently', async () => {
     const tenantId = randomUUID();
     tenantIds.add(tenantId);
@@ -339,9 +441,9 @@ describe('persistence public store integration', () => {
         `INSERT INTO workflow_requests
            (tenant_id, id, workflow_template_id, workflow_version_id, status, source,
             payload, payload_hash, correlation_id, submitted_by_principal_id,
-            submitted_by_principal_kind, attempt_count, max_attempts)
+            submitted_by_principal_kind, attempt_count, attempt_sequence, max_attempts)
          VALUES ($1, $2, $3, $4, $5, 'system', '{}'::jsonb, $6, $7, $8,
-                 'system', $9, 3)`,
+                 'system', $9, $9, 3)`,
         [
           tenantId,
           requestId,
@@ -394,6 +496,7 @@ describe('persistence public store integration', () => {
          (SELECT status FROM workflow_requests WHERE tenant_id = $1 AND id = $2) AS cancel_status,
          (SELECT status FROM workflow_requests WHERE tenant_id = $1 AND id = $3) AS retry_status,
          (SELECT attempt_count FROM workflow_requests WHERE tenant_id = $1 AND id = $3) AS attempts,
+         (SELECT attempt_sequence FROM workflow_requests WHERE tenant_id = $1 AND id = $3) AS attempt_sequence,
          (SELECT status FROM dead_letters
           WHERE tenant_id = $1 AND resource_kind = 'request' AND resource_id = $3) AS dlq_status,
          (SELECT count(*)::integer FROM request_transitions
@@ -403,6 +506,7 @@ describe('persistence public store integration', () => {
       [tenantId, cancelRequestId, retryRequestId],
     )) as unknown as Array<{
       attempts: number;
+      attempt_sequence: number;
       cancel_status: string;
       dlq_status: string;
       retry_events: number;
@@ -411,6 +515,7 @@ describe('persistence public store integration', () => {
     }>;
     expect(state[0]).toEqual({
       attempts: 0,
+      attempt_sequence: 3,
       cancel_status: 'cancelled',
       dlq_status: 'requeued',
       retry_events: 1,
@@ -536,5 +641,54 @@ describe('persistence public store integration', () => {
       expect.any(String),
     );
     expect(secondPage.items.find((item) => item.id === personalNotificationId)?.readAt).toBeNull();
+  });
+
+  it('projects delivered approval notifications as successful in list and read responses', async () => {
+    const tenantId = randomUUID();
+    tenantIds.add(tenantId);
+    await insertTenant(runtime.manager, tenantId);
+    const operatorId = randomUUID();
+    userIds.add(operatorId);
+    await runtime.query(
+      `INSERT INTO users (id, email, display_name, password_hash, platform_role)
+       VALUES ($1, $2, 'Notification operator', 'synthetic-password-hash', NULL)`,
+      [operatorId, `qa-${operatorId}@example.test`],
+    );
+    await runtime.query(
+      `INSERT INTO memberships (tenant_id, user_id, role)
+       VALUES ($1, $2, 'operator')`,
+      [tenantId, operatorId],
+    );
+    const notificationId = randomUUID();
+    await runtime.query(
+      `INSERT INTO notifications
+         (tenant_id, id, recipient_kind, recipient_ref, title, body, status)
+       VALUES
+         ($1, $2, 'role', 'operator', 'Approval decision recorded',
+          'Request approved', 'delivered')`,
+      [tenantId, notificationId],
+    );
+    const context = userContext(tenantId, operatorId, 'operator');
+    const readModels = new ReadModelStore(runtime);
+
+    await expect(readModels.listNotifications(context, 1, 25)).resolves.toMatchObject({
+      items: [
+        {
+          id: notificationId,
+          kind: 'success',
+          requestId: null,
+          workflowName: null,
+        },
+      ],
+    });
+    await expect(
+      new OperationsStore(runtime).markNotificationRead(context, notificationId),
+    ).resolves.toMatchObject({
+      id: notificationId,
+      kind: 'success',
+      readAt: expect.any(String),
+      requestId: null,
+      workflowName: null,
+    });
   });
 });

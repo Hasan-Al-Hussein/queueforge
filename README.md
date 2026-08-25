@@ -1,6 +1,6 @@
 # QueueForge
 
-QueueForge is a local-first, multi-tenant workflow automation system that makes request intake, approvals, durable queue processing, retries, signed webhooks, and audit history visible in one operator dashboard.
+QueueForge is a local-first, multi-tenant workflow automation system that gives administrators, operators, approvers, and viewers a focused workspace for request intake, approvals, durable processing, retries, signed result delivery, and activity history.
 
 It is a portfolio and engineering-demonstration system for synthetic data on a developer laptop. It is **not** an internet-facing deployment reference. Next.js 16.3.2 is currently held behind an open upstream security gate, so the web application must remain loopback-only until that gate is closed with vendor evidence and a full regression run.
 
@@ -16,7 +16,7 @@ It is a portfolio and engineering-demonstration system for synthetic data on a d
 - Durable consumer receipts, bounded retry, lease recovery, and separate dead-letter history.
 - Raw-body inbound HMAC verification and allowlisted, signed outbound webhooks.
 - Correlated request timelines, audit events, queue health, notifications, and worker heartbeats.
-- A responsive, accessible static-export Next.js operator interface.
+- Responsive, accessible role-specific workspaces in a static-export Next.js interface.
 
 ## Architecture at a glance
 
@@ -144,6 +144,17 @@ The seed also activates:
 
 Never replace the generated password with a shared portfolio password. Read it locally from `.env` immediately before the demo.
 
+## Quick role-based demo
+
+The interface deliberately gives each person only the pages needed for that job. Use three separate sign-ins for the clearest demonstration; all three accounts use the same local `BOOTSTRAP_ADMIN_PASSWORD`.
+
+1. Sign in as `admin@queueforge.test`. In the **Admin workspace**, open **Request types** and inspect `Expense review`. Its normal form builder, approval rule, processing settings, and delivery steps are visible without opening the advanced JSON sections. Admins configure and monitor the system; they do not submit or approve daily requests.
+2. Sign out and sign in as `operator@queueforge.local`. In the **Operations workspace**, open **Start & track requests**, choose **Start request**, and select `Expense review`. Fill in **Amount** (`1250`), **Cost center** (`OPS-42`), and **Summary** (`Synthetic incident tooling`), then choose **Start request**. No JSON or workflow key is required.
+3. Sign out and sign in as `approver@queueforge.local`. In the **Approval workspace**, open **Approval inbox**. Find `Expense review`, review the readable request details, choose **Approve**, optionally add a plain-language note, and confirm with **Approve request**. Approvers do not see operator controls.
+4. Return as the operator to follow **Progress history** on the request. Return as the admin to inspect **Delivery connections** → **Delivery history**, **Processing health**, and the plain-language **Activity log**.
+
+For a presentation-ready walkthrough, including safe startup and failure-injection notes, follow the [demo script](docs/demo-script.md).
+
 ## Ports and environment
 
 | Component       | Default | Configuration                                                    |
@@ -208,15 +219,17 @@ These are fixed-workload results from one local laptop and synthetic dataset, no
 
 ## Visual evidence
 
-Captured on **2026-08-24** from the loopback-only **full Docker Compose packaged profile** after API, database, and Redis readiness passed. These screens contain seeded synthetic demonstration data only. The [runtime audit report](artifacts/screenshots/runtime-audit-report.json) records 20 authenticated route checks across 1440×900 desktop and 390×844 mobile viewports; this capture observed zero console or page errors, failed requests, HTTP error responses, GraphQL errors, or sensitive-data findings.
+Captured on **2026-08-25** from the loopback-only **full Docker Compose packaged profile** after API, database, Redis, web, and delivery-sink readiness passed. These screens contain seeded synthetic demonstration data only. The [runtime audit report](artifacts/screenshots/runtime-audit-report.json) records 40 role-aware checks across the administrator, operator, and approver workspaces at 1440×900 desktop and 390×844 mobile sizes, including six forbidden-route redirects. This capture observed zero console or page errors, failed requests, HTTP error responses, GraphQL errors, layout findings, navigation mismatches, or sensitive-data findings.
 
 These images are UI and runtime evidence for this bounded local capture only. They are not evidence of remote CI, benchmark performance, or readiness for external exposure. See the [demo script](docs/demo-script.md) for the reproducible walkthrough.
 
-| Desktop control overview                                                                                                                          | Request lifecycle detail                                                                                                               |
-| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| ![QueueForge desktop control overview with request metrics, throughput, and queue activity](artifacts/screenshots/desktop-overview-1440x900.png)  | ![QueueForge desktop request detail with status, facts, and event timeline](artifacts/screenshots/desktop-request-detail-1440x900.png) |
-| **Queue and worker telemetry**                                                                                                                    | **Mobile navigation**                                                                                                                  |
-| ![QueueForge operations view with queue depth, worker freshness, and dead-letter controls](artifacts/screenshots/desktop-operations-1440x900.png) | ![QueueForge mobile navigation drawer over the responsive control overview](artifacts/screenshots/mobile-navigation-390x844.png)       |
+| Administrator workspace                                                                                                                           | Operator request lifecycle                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![QueueForge administrator overview with focused configuration and monitoring navigation](artifacts/screenshots/desktop-overview-1440x900.png)    | ![QueueForge operator request detail with readable progress and approval history](artifacts/screenshots/desktop-request-detail-1440x900.png) |
+| **Operator processing health**                                                                                                                    | **Approver mobile workspace**                                                                                                                |
+| ![QueueForge operator processing-health view with plain-language work and recovery states](artifacts/screenshots/desktop-operations-1440x900.png) | ![QueueForge mobile approval overview with a focused next decision](artifacts/screenshots/mobile-overview-390x844.png)                       |
+| **Operator mobile navigation**                                                                                                                    |                                                                                                                                              |
+| ![QueueForge mobile operator navigation with only daily-work and recovery pages](artifacts/screenshots/mobile-navigation-390x844.png)             |                                                                                                                                              |
 
 ## Documentation
 

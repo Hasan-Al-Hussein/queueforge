@@ -15,46 +15,89 @@ import { PaginationControls } from '../../components/pagination-controls';
 import { QueryState } from '../../components/query-state';
 import { PagedAuditSchema, type AuditEvent } from '../../domain/models';
 import { pageSearchParams, usePagination } from '../../hooks/use-pagination';
+import { activityPresentation, formattedTechnicalSummary } from './activity-presentation';
+
+const ACTIVITY_FILTERS = [
+  { label: 'All activity', value: '' },
+  { label: 'Requests', value: 'request.' },
+  { label: 'Approvals', value: 'approval.' },
+  { label: 'Recovery actions', value: 'dead_letter.' },
+  { label: 'Integrations', value: 'webhook.' },
+  { label: 'Notifications', value: 'notification.' },
+  { label: 'Request types', value: 'workflow.' },
+  { label: 'Team access', value: 'membership.' },
+  { label: 'Workspace changes', value: 'tenant.' },
+  { label: 'Sign-ins and security', value: 'auth.' },
+  { label: 'API access', value: 'api_client.' },
+] as const;
 
 const columns: readonly ColumnDef<AuditEvent, unknown>[] = [
   {
     accessorKey: 'occurredAt',
-    header: 'Time',
+    header: 'When',
     cell: ({ getValue }) => <DateTime value={String(getValue())} />,
   },
   {
     accessorKey: 'eventType',
-    header: 'Event',
-    cell: ({ getValue }) => <code>{String(getValue())}</code>,
+    header: 'Activity',
+    cell: ({ row }) => {
+      const presentation = activityPresentation(row.original);
+      return (
+        <div>
+          <strong>{presentation.action}</strong>
+          <div className="qf-utility">
+            {presentation.category} · {presentation.resource}
+          </div>
+        </div>
+      );
+    },
   },
   {
     accessorKey: 'actorName',
-    header: 'Actor',
-    cell: ({ getValue }) => (getValue() === null ? 'System' : String(getValue())),
+    header: 'Done by',
+    cell: ({ getValue }) => (getValue() === null ? 'QueueForge automatically' : String(getValue())),
   },
   {
     accessorKey: 'summary',
-    header: 'Summary',
-    cell: ({ getValue }) => <span className="qf-wrap-cell">{String(getValue())}</span>,
-  },
-  {
-    accessorKey: 'resourceType',
-    header: 'Resource',
+    header: 'What happened',
     cell: ({ row }) => (
-      <div>
-        {row.original.resourceType}
-        {row.original.resourceId === null ? null : (
-          <div>
-            <CompactId value={row.original.resourceId} />
-          </div>
-        )}
-      </div>
+      <span className="qf-wrap-cell">{activityPresentation(row.original).summary}</span>
     ),
   },
   {
-    accessorKey: 'correlationId',
-    header: 'Correlation',
-    cell: ({ getValue }) => <CompactId value={String(getValue())} />,
+    id: 'details',
+    header: 'Details',
+    enableSorting: false,
+    cell: ({ row }) => (
+      <details className="qf-advanced-disclosure">
+        <summary>View</summary>
+        <dl className="qf-key-values">
+          <dt>Event code</dt>
+          <dd>
+            <code>{row.original.eventType}</code>
+          </dd>
+          <dt>Resource type</dt>
+          <dd>
+            <code>{row.original.resourceType}</code>
+          </dd>
+          {row.original.resourceId === null ? null : (
+            <>
+              <dt>Resource reference</dt>
+              <dd>
+                <CompactId value={row.original.resourceId} />
+              </dd>
+            </>
+          )}
+          <dt>Trace reference</dt>
+          <dd>
+            <CompactId value={row.original.correlationId} />
+          </dd>
+        </dl>
+        <pre className="qf-code-block qf-code-block--compact">
+          {formattedTechnicalSummary(row.original.summary)}
+        </pre>
+      </details>
+    ),
   },
 ];
 
@@ -88,58 +131,64 @@ export function AuditScreen(): React.JSX.Element {
             Refresh
           </Button>
         }
-        description="See who did what, when it happened, and how each request moved through the system."
-        eyebrow="Complete traceability"
-        title="Activity history"
+        description="See actions taken by people and automatic work completed by QueueForge."
+        eyebrow="A clear record of changes"
+        title="Activity log"
       />
       <div className="qf-inline-alert" role="note">
         <FileLock2 size={18} />
         <p>
-          Runtime database roles cannot update, delete, or truncate audit records. Metadata is
-          bounded and redacted; this is append-only integrity, not cryptographic immutability.
+          This history cannot be edited or deleted during normal operation. Open Details only when
+          you need technical references for support or investigation.
         </p>
       </div>
       <Panel>
         <div className="qf-toolbar">
           <div className="qf-inline-field">
-            <label htmlFor="audit-event-filter">Event type prefix</label>
-            <input
-              className="qf-input"
+            <label htmlFor="audit-event-filter">Show activity for</label>
+            <select
               id="audit-event-filter"
               onChange={(event) => {
                 pagination.resetPage();
                 setEventType(event.currentTarget.value);
               }}
-              placeholder="request. or webhook."
               value={eventType}
-            />
+            >
+              {ACTIVITY_FILTERS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
-          <p className="qf-utility">Filters are validated and allowlisted by the server.</p>
+          <p className="qf-utility">Technical codes stay hidden until you open Details.</p>
         </div>
         <QueryState
           empty={auditQuery.isSuccess && rows.length === 0}
-          emptyDescription="No audit event matches this tenant and event filter."
-          emptyTitle="No matching audit evidence"
+          emptyDescription="No recorded activity matches this category in the current workspace."
+          emptyTitle="No matching activity"
           error={auditQuery.error}
           isLoading={auditQuery.isLoading}
           onRetry={() => void auditQuery.refetch()}
         >
           <DataTable
-            ariaLabel="Tenant audit events"
+            ariaLabel="Workspace activity log"
             columns={columns}
             getRowId={(row) => row.id}
             rows={rows}
             search={{
-              label: 'Search audit trail',
-              placeholder: 'Event, actor, summary, or correlation',
-              text: (row) =>
-                `${row.eventType} ${row.actorName ?? 'system'} ${row.summary} ${row.correlationId}`,
+              label: 'Search activity on this page',
+              placeholder: 'Action, person, or technical reference',
+              text: (row) => {
+                const presentation = activityPresentation(row);
+                return `${presentation.action} ${presentation.summary} ${row.eventType} ${row.actorName ?? 'QueueForge'} ${row.summary} ${row.correlationId}`;
+              },
             }}
           />
         </QueryState>
         {auditQuery.data?.meta === undefined ? null : (
           <PaginationControls
-            ariaLabel="Audit events"
+            ariaLabel="Activity log"
             disabled={auditQuery.isFetching}
             meta={auditQuery.data.meta}
             onPageChange={pagination.setPage}

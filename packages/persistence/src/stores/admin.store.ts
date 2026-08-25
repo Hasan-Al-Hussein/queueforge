@@ -238,6 +238,7 @@ export class AdminStore {
         email: input.email.toLowerCase(),
         displayName: user.display_name,
         role: input.role,
+        roleLocked: false,
         status: membership.is_active ? 'active' : 'disabled',
         joinedAt: membership.created_at.toISOString(),
       };

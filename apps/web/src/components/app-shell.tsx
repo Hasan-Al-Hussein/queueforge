@@ -13,6 +13,7 @@ import {
 import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import type { TenantRole } from '@queueforge/contracts';
 import {
   Activity,
   Bell,
@@ -41,6 +42,7 @@ import { useDirtyNavigation } from '../providers/dirty-navigation-provider';
 import { useTheme } from '../providers/theme-provider';
 import { useToast } from '../providers/toast-provider';
 import { formatProblem } from '../api/client';
+import { effectiveWorkspaceRole, WORKSPACE_ROUTE_ROLES } from './workspace-access';
 
 interface NavItem {
   readonly href: Route;
@@ -53,35 +55,122 @@ interface NavGroup {
   readonly items: readonly NavItem[];
 }
 
-const NAV_GROUPS: readonly NavGroup[] = [
-  {
-    label: 'Everyday work',
-    items: [
-      { href: '/', icon: LayoutDashboard, label: 'Home' },
-      { href: '/requests', icon: Workflow, label: 'Requests' },
-      { href: '/approvals', icon: ClipboardCheck, label: 'Approval inbox' },
+interface WorkspaceConfig {
+  readonly badge: string;
+  readonly groups: readonly NavGroup[];
+  readonly title: string;
+}
+
+const WORKSPACE_CONFIG: Readonly<Record<TenantRole, WorkspaceConfig>> = {
+  tenant_admin: {
+    badge: 'Administrator',
+    title: 'Admin workspace',
+    groups: [
+      {
+        label: 'Workspace',
+        items: [{ href: '/', icon: LayoutDashboard, label: 'Home' }],
+      },
+      {
+        label: 'Configure',
+        items: [
+          { href: '/workflows', icon: GitBranch, label: 'Request types' },
+          { href: '/webhooks', icon: Webhook, label: 'Delivery connections' },
+          { href: '/team', icon: Users, label: 'People & access' },
+        ],
+      },
+      {
+        label: 'Monitor',
+        items: [
+          { href: '/operations', icon: Boxes, label: 'Processing health' },
+          { href: '/audit', icon: FileClock, label: 'Activity log' },
+          { href: '/notifications', icon: Bell, label: 'Notifications' },
+        ],
+      },
     ],
   },
-  {
-    label: 'Set up',
-    items: [
-      { href: '/workflows', icon: GitBranch, label: 'Workflow builder' },
-      { href: '/webhooks', icon: Webhook, label: 'Connections' },
+  operator: {
+    badge: 'Operator',
+    title: 'Operations workspace',
+    groups: [
+      {
+        label: 'Daily work',
+        items: [
+          { href: '/', icon: LayoutDashboard, label: 'Home' },
+          { href: '/requests', icon: Workflow, label: 'Start & track requests' },
+        ],
+      },
+      {
+        label: 'Keep work moving',
+        items: [
+          { href: '/operations', icon: Boxes, label: 'Processing issues' },
+          { href: '/webhooks', icon: Webhook, label: 'Delivery activity' },
+          { href: '/notifications', icon: Bell, label: 'Notifications' },
+        ],
+      },
     ],
   },
-  {
-    label: 'Monitor',
-    items: [
-      { href: '/operations', icon: Boxes, label: 'Processing health' },
-      { href: '/notifications', icon: Bell, label: 'Notifications' },
-      { href: '/audit', icon: FileClock, label: 'Activity history' },
+  approver: {
+    badge: 'Approver',
+    title: 'Approval workspace',
+    groups: [
+      {
+        label: 'Decision work',
+        items: [
+          { href: '/', icon: LayoutDashboard, label: 'Home' },
+          { href: '/approvals', icon: ClipboardCheck, label: 'Approval inbox' },
+        ],
+      },
+      {
+        label: 'Updates',
+        items: [{ href: '/notifications', icon: Bell, label: 'Notifications' }],
+      },
     ],
   },
-  {
-    label: 'Organization',
-    items: [{ href: '/team', icon: Users, label: 'People & access' }],
+  viewer: {
+    badge: 'Viewer · read only',
+    title: 'Read-only workspace',
+    groups: [
+      {
+        label: 'Read only',
+        items: [
+          { href: '/', icon: LayoutDashboard, label: 'Home' },
+          { href: '/requests', icon: Workflow, label: 'Request history' },
+          { href: '/workflows', icon: GitBranch, label: 'Request types' },
+        ],
+      },
+      {
+        label: 'Updates',
+        items: [{ href: '/notifications', icon: Bell, label: 'Notifications' }],
+      },
+    ],
   },
-];
+};
+
+const ROUTE_ROLES: Readonly<Record<string, ReadonlySet<TenantRole>>> = {
+  '/approvals': new Set<TenantRole>(WORKSPACE_ROUTE_ROLES.approvals),
+  '/audit': new Set<TenantRole>(WORKSPACE_ROUTE_ROLES.audit),
+  '/notifications': new Set<TenantRole>(WORKSPACE_ROUTE_ROLES.notifications),
+  '/operations': new Set<TenantRole>(WORKSPACE_ROUTE_ROLES.operations),
+  '/requests': new Set<TenantRole>(WORKSPACE_ROUTE_ROLES.requests),
+  '/team': new Set<TenantRole>(WORKSPACE_ROUTE_ROLES.team),
+  '/webhooks': new Set<TenantRole>(WORKSPACE_ROUTE_ROLES.webhookActivity),
+  '/workflows': new Set<TenantRole>(WORKSPACE_ROUTE_ROLES.workflows),
+};
+
+function routeRoot(pathname: string): string | undefined {
+  return Object.keys(ROUTE_ROLES).find(
+    (candidate) => pathname === candidate || pathname.startsWith(`${candidate}/`),
+  );
+}
+
+function isWorkspaceRouteAllowed(role: TenantRole, pathname: string): boolean {
+  const root = routeRoot(pathname);
+  if (root === undefined) return true;
+
+  // Approval cards and overview rows open the shared read-only request detail.
+  if (root === '/requests' && pathname !== '/requests' && pathname !== '/requests/') return true;
+  return ROUTE_ROLES[root]?.has(role) ?? true;
+}
 
 const DRAWER_FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -128,14 +217,16 @@ function Brand({
 }
 
 function Navigation({
+  groups,
   onNavigate,
 }: {
+  readonly groups: readonly NavGroup[];
   readonly onNavigate: (event: ReactMouseEvent<HTMLAnchorElement>, href: Route) => void;
 }): React.JSX.Element {
   const pathname = usePathname();
   return (
     <nav aria-label="Primary navigation" className="qf-nav">
-      {NAV_GROUPS.map((group) => (
+      {groups.map((group) => (
         <div className="qf-nav__group" key={group.label}>
           <p className="qf-nav__label">{group.label}</p>
           <ul>
@@ -164,18 +255,18 @@ function Navigation({
 }
 
 interface SidebarContentProps {
+  readonly config: WorkspaceConfig;
   readonly online: boolean;
   readonly onClose?: () => void;
   readonly onNavigate: (event: ReactMouseEvent<HTMLAnchorElement>, href: Route) => void;
-  readonly role: string;
   readonly tenantName: string;
 }
 
 function SidebarContent({
+  config,
   online,
   onClose,
   onNavigate,
-  role,
   tenantName,
 }: SidebarContentProps): React.JSX.Element {
   return (
@@ -194,11 +285,11 @@ function SidebarContent({
         ) : null}
       </div>
       <div className="qf-tenant-stamp">
-        <span>Current workspace</span>
+        <span>{config.title}</span>
         <strong>{tenantName}</strong>
-        <small>{role.replaceAll('_', ' ')}</small>
+        <small className="qf-workspace-role">{config.badge}</small>
       </div>
-      <Navigation onNavigate={onNavigate} />
+      <Navigation groups={config.groups} onNavigate={onNavigate} />
       <div className="qf-sidebar__footer">
         <span
           className={cn(
@@ -259,6 +350,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
   const [menuOpen, setMenuOpen] = useState(false);
   const [switchingTenant, setSwitchingTenant] = useState(false);
   const shellVisible = status !== 'bootstrapping' && session !== null;
+  const workspaceRole =
+    session === null
+      ? null
+      : effectiveWorkspaceRole(session.selectedTenant.role, session.user.platformRole);
+  const routeAllowed =
+    workspaceRole === null ? true : isWorkspaceRouteAllowed(workspaceRole, pathname);
 
   const closeMobileNavigation = useCallback((restoreTriggerFocus = true): void => {
     const dialog = dialogRef.current;
@@ -273,6 +370,11 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
   useEffect(() => {
     mainRef.current?.focus();
   }, [pathname]);
+
+  useEffect(() => {
+    if (workspaceRole === null || routeAllowed) return;
+    router.replace('/');
+  }, [routeAllowed, router, workspaceRole]);
 
   useEffect(() => {
     if (!menuOpen || !shellVisible) return;
@@ -307,6 +409,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
   }
 
   if (session === null) return <SessionRequired error={bootstrapError} />;
+
+  const selectedWorkspaceRole = effectiveWorkspaceRole(
+    session.selectedTenant.role,
+    session.user.platformRole,
+  );
+  const workspaceConfig = WORKSPACE_CONFIG[selectedWorkspaceRole];
 
   const handleTenantChange = async (tenantId: string): Promise<void> => {
     if (tenantId === session.selectedTenant.tenantId) return;
@@ -410,16 +518,16 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
   };
 
   return (
-    <div className="qf-shell">
+    <div className="qf-shell" data-workspace-role={selectedWorkspaceRole}>
       <aside
         aria-label="Application sidebar"
         className="qf-sidebar qf-sidebar--desktop"
         inert={menuOpen ? true : undefined}
       >
         <SidebarContent
+          config={workspaceConfig}
           online={online}
           onNavigate={(event, href) => handleAppLinkClick(event, href)}
-          role={session.selectedTenant.role}
           tenantName={session.selectedTenant.tenantName}
         />
       </aside>
@@ -441,10 +549,10 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
           ref={dialogRef}
         >
           <SidebarContent
+            config={workspaceConfig}
             online={online}
             onClose={() => closeMobileNavigation()}
             onNavigate={(event, href) => handleAppLinkClick(event, href, handleDrawerNavigation)}
-            role={session.selectedTenant.role}
             tenantName={session.selectedTenant.tenantName}
           />
         </dialog>
@@ -486,7 +594,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
                     .filter((membership) => !/^E2E Tenant\b/i.test(membership.tenantName))
                     .map((membership) => (
                       <option key={membership.tenantId} value={membership.tenantId}>
-                        {membership.tenantName} · {membership.role.replaceAll('_', ' ')}
+                        {membership.tenantName} ·{' '}
+                        {
+                          WORKSPACE_CONFIG[
+                            effectiveWorkspaceRole(membership.role, session.user.platformRole)
+                          ].badge
+                        }
                       </option>
                     ))}
                 </optgroup>
@@ -498,7 +611,12 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
                       .filter((membership) => /^E2E Tenant\b/i.test(membership.tenantName))
                       .map((membership) => (
                         <option key={membership.tenantId} value={membership.tenantId}>
-                          {membership.tenantName} · {membership.role.replaceAll('_', ' ')}
+                          {membership.tenantName} ·{' '}
+                          {
+                            WORKSPACE_CONFIG[
+                              effectiveWorkspaceRole(membership.role, session.user.platformRole)
+                            ].badge
+                          }
                         </option>
                       ))}
                   </optgroup>
@@ -508,6 +626,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
             </span>
           </div>
           <div className="qf-topbar__actions">
+            <span className="qf-workspace-badge">{workspaceConfig.badge}</span>
             <span className="qf-identity">
               <strong>{session.user.displayName}</strong>
               <small>{session.user.email}</small>
@@ -544,7 +663,15 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
           </div>
         ) : null}
         <main id="main-content" className="qf-main" ref={mainRef} tabIndex={-1}>
-          {children}
+          {routeAllowed ? (
+            children
+          ) : (
+            <StatePanel
+              description={`This page is not part of the ${workspaceConfig.title.toLowerCase()}. Taking you back home.`}
+              kind="loading"
+              title="Opening the right workspace"
+            />
+          )}
         </main>
       </div>
     </div>

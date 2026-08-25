@@ -126,6 +126,8 @@ export const WebhookDeliverySchema = z
     endpointName: z.string(),
     eventType: z.string(),
     eventId: UuidSchema,
+    requestId: UuidSchema.nullable(),
+    workflowName: z.string().nullable(),
     status: z.enum(['pending', 'delivering', 'retry', 'delivered', 'dead']),
     attemptCount: z.number().int().nonnegative(),
     nextAttemptAt: TimestampSchema.nullable(),
@@ -171,6 +173,8 @@ export const NotificationSchema = z
     title: z.string(),
     body: z.string(),
     kind: z.enum(['info', 'success', 'warning', 'error']),
+    requestId: UuidSchema.nullable(),
+    workflowName: z.string().nullable(),
     readAt: TimestampSchema.nullable(),
     createdAt: TimestampSchema,
   })
@@ -195,6 +199,7 @@ export const TeamMemberSchema = MembershipSchema.pick({ role: true }).extend({
   id: UuidSchema,
   displayName: z.string(),
   email: z.string().email(),
+  roleLocked: z.boolean(),
   status: z.enum(['active', 'invited', 'disabled']),
   joinedAt: TimestampSchema,
 });

@@ -75,6 +75,7 @@ describe('RequestJobHandlerService terminal receipts', () => {
     const requests = {
       beginOrRecoverAttempt: jest.fn().mockResolvedValue({
         attemptNo: 5,
+        budgetAttemptNo: 2,
         correlationId: event.correlationId,
         processingConfig: { durationMs: 0, failuresBeforeSuccess: 10 },
         processorConfig: { handler: 'demo' },
@@ -101,6 +102,7 @@ describe('RequestJobHandlerService terminal receipts', () => {
       'queueforge.request-executor.v1',
       expect.objectContaining({ attemptNo: 5, requestId }),
     );
+    expect(executor.execute).toHaveBeenCalledWith(expect.objectContaining({ attemptNo: 2 }));
   });
 
   it('passes the receipt binding into interrupted-attempt recovery', async () => {
@@ -139,6 +141,7 @@ describe('RequestJobHandlerService terminal receipts', () => {
       {
         beginOrRecoverAttempt: jest.fn().mockResolvedValue({
           attemptNo: 11,
+          budgetAttemptNo: 11,
           correlationId: event.correlationId,
           processingConfig: {
             durationMs: 0,
@@ -178,6 +181,7 @@ describe('RequestJobHandlerService terminal receipts', () => {
       {
         beginOrRecoverAttempt: jest.fn().mockResolvedValue({
           attemptNo: 1,
+          budgetAttemptNo: 1,
           correlationId: event.correlationId,
           processingConfig: { durationMs: 0, failuresBeforeSuccess: 0 },
           processorConfig: { handler: 'demo' },
@@ -209,6 +213,7 @@ describe('RequestJobHandlerService terminal receipts', () => {
       {
         beginOrRecoverAttempt: jest.fn().mockResolvedValue({
           attemptNo: 1,
+          budgetAttemptNo: 1,
           correlationId: event.correlationId,
           processingConfig: { durationMs: 0, failuresBeforeSuccess: 0 },
           processorConfig: { handler: 'demo' },

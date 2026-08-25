@@ -45,6 +45,7 @@ interface ClaimedOutboxRow {
   schema_version: number;
   payload: JsonObject;
   attempt_count: number;
+  attempt_sequence: number;
   max_attempts: number;
   lease_owner: string;
   lease_until: Date;
@@ -105,11 +106,12 @@ export class OutboxStore {
              last_error = 'dispatcher lease expired'
          FROM expired
          WHERE event.tenant_id = expired.tenant_id AND event.id = expired.id
-         RETURNING event.tenant_id, event.id, event.attempt_count, event.status
+         RETURNING event.tenant_id, event.id, event.attempt_count,
+                   event.attempt_sequence, event.status
        ), attempts AS (
          INSERT INTO outbox_attempts
            (tenant_id, id, outbox_event_id, attempt_no, outcome, worker_id, error_message)
-         SELECT tenant_id, gen_random_uuid(), id, GREATEST(attempt_count, 1),
+         SELECT tenant_id, gen_random_uuid(), id, GREATEST(attempt_sequence, 1),
                 'lease_expired', 'lease-recovery', 'dispatcher lease expired'
          FROM recovered
          ON CONFLICT DO NOTHING
@@ -141,11 +143,11 @@ export class OutboxStore {
              available_at = clock_timestamp(), updated_at = clock_timestamp(),
              last_error = left($2, 2000)
          WHERE status = 'publishing' AND lease_owner = $1
-         RETURNING tenant_id, id, attempt_count, status
+         RETURNING tenant_id, id, attempt_count, attempt_sequence, status
        ), attempts AS (
          INSERT INTO outbox_attempts
            (tenant_id, id, outbox_event_id, attempt_no, outcome, worker_id, error_message)
-         SELECT tenant_id, gen_random_uuid(), id, GREATEST(attempt_count, 1),
+         SELECT tenant_id, gen_random_uuid(), id, GREATEST(attempt_sequence, 1),
                 'lease_expired', $1, left($2, 2000)
          FROM released
          ON CONFLICT DO NOTHING
@@ -187,6 +189,7 @@ export class OutboxStore {
          SET status = 'publishing', lease_owner = $2,
              lease_until = clock_timestamp() + ($3 * interval '1 second'),
              attempt_count = event.attempt_count + 1,
+             attempt_sequence = event.attempt_sequence + 1,
              updated_at = clock_timestamp(), last_error = NULL
          FROM candidates
          WHERE event.tenant_id = candidates.tenant_id AND event.id = candidates.id
@@ -194,7 +197,7 @@ export class OutboxStore {
        ), attempts AS (
          INSERT INTO outbox_attempts
            (tenant_id, id, outbox_event_id, attempt_no, outcome, worker_id)
-         SELECT tenant_id, gen_random_uuid(), id, attempt_count, 'claimed', $2 FROM claimed
+         SELECT tenant_id, gen_random_uuid(), id, attempt_sequence, 'claimed', $2 FROM claimed
        )
          SELECT * FROM claimed`,
         [boundedLimit, leaseOwner, boundedLease],
@@ -223,13 +226,13 @@ export class OutboxStore {
     leaseOwner: string,
   ): Promise<boolean> {
     return this.dataSource.transaction(async (manager) => {
-      const rows = queryRows<{ attempt_count: number }>(
+      const rows = queryRows<{ attempt_sequence: number }>(
         await manager.query(
           `UPDATE outbox_events
          SET status = 'published', published_at = clock_timestamp(),
              lease_owner = NULL, lease_until = NULL, updated_at = clock_timestamp()
          WHERE tenant_id = $1 AND id = $2 AND status = 'publishing' AND lease_owner = $3
-         RETURNING attempt_count`,
+         RETURNING attempt_sequence`,
           [tenantId, eventId, leaseOwner],
         ),
       );
@@ -241,7 +244,7 @@ export class OutboxStore {
         `INSERT INTO outbox_attempts
            (tenant_id, id, outbox_event_id, attempt_no, outcome, worker_id)
          VALUES ($1, gen_random_uuid(), $2, $3, 'published', $4)`,
-        [tenantId, eventId, attempt.attempt_count, leaseOwner],
+        [tenantId, eventId, attempt.attempt_sequence, leaseOwner],
       );
       return true;
     });
@@ -255,7 +258,11 @@ export class OutboxStore {
     retryAt: Date,
   ): Promise<'retry' | 'dead' | 'stale_lease'> {
     return this.dataSource.transaction(async (manager) => {
-      const rows = queryRows<{ attempt_count: number; status: 'retry' | 'dead' }>(
+      const rows = queryRows<{
+        attempt_count: number;
+        attempt_sequence: number;
+        status: 'retry' | 'dead';
+      }>(
         await manager.query(
           `UPDATE outbox_events
          SET status = CASE WHEN attempt_count >= max_attempts THEN 'dead' ELSE 'retry' END,
@@ -263,7 +270,7 @@ export class OutboxStore {
              lease_owner = NULL, lease_until = NULL, updated_at = clock_timestamp(),
              last_error = left($5, 2000)
          WHERE tenant_id = $1 AND id = $2 AND status = 'publishing' AND lease_owner = $3
-         RETURNING attempt_count, status`,
+         RETURNING attempt_count, attempt_sequence, status`,
           [tenantId, eventId, leaseOwner, retryAt, errorMessage],
         ),
       );
@@ -275,7 +282,7 @@ export class OutboxStore {
         `INSERT INTO outbox_attempts
            (tenant_id, id, outbox_event_id, attempt_no, outcome, worker_id, error_message)
          VALUES ($1, gen_random_uuid(), $2, $3, 'failed', $4, left($5, 2000))`,
-        [tenantId, eventId, event.attempt_count, leaseOwner, errorMessage],
+        [tenantId, eventId, event.attempt_sequence, leaseOwner, errorMessage],
       );
       if (event.status === 'dead') {
         await manager.query(

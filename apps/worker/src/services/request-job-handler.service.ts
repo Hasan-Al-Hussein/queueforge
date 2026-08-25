@@ -53,7 +53,7 @@ export class RequestJobHandlerService {
       await runWithTimeout(
         (signal) =>
           this.executor.execute({
-            attemptNo: attempt.attemptNo,
+            attemptNo: attempt.budgetAttemptNo,
             event,
             processingConfig: attempt.processingConfig,
             processorConfig: attempt.processorConfig,

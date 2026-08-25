@@ -67,6 +67,9 @@ export class MembershipEntity {
   @Column('boolean', { default: true, name: 'is_active' })
   public isActive!: boolean;
 
+  @Column('boolean', { default: false, name: 'role_locked' })
+  public roleLocked!: boolean;
+
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   public createdAt!: Date;
 

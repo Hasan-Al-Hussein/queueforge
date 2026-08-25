@@ -138,11 +138,13 @@ export async function seedQueueForge(
       passwordHash,
     );
     await manager.query(
-      `INSERT INTO memberships (tenant_id, user_id, role) VALUES
-         ($1, $2, 'tenant_admin'), ($1, $3, 'approver'), ($1, $4, 'operator'),
-         ($5, $2, 'tenant_admin'), ($5, $6, 'operator')
+      `INSERT INTO memberships (tenant_id, user_id, role, role_locked) VALUES
+         ($1, $2, 'tenant_admin', true), ($1, $3, 'approver', true),
+         ($1, $4, 'operator', true), ($5, $2, 'tenant_admin', true),
+         ($5, $6, 'operator', true)
        ON CONFLICT (tenant_id, user_id) DO UPDATE
-         SET role = EXCLUDED.role, is_active = true, updated_at = clock_timestamp()`,
+         SET role = EXCLUDED.role, role_locked = EXCLUDED.role_locked,
+             is_active = true, updated_at = clock_timestamp()`,
       [
         DEMO_IDS.acmeTenant,
         DEMO_IDS.adminUser,

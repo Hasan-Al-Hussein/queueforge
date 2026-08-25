@@ -25,19 +25,29 @@ import {
 import { pageSearchParams, usePagination } from '../../hooks/use-pagination';
 import { useAuth } from '../../providers/auth-provider';
 import { useToast } from '../../providers/toast-provider';
+import {
+  automaticTryLabel,
+  failureExplanation,
+  queueDisplayName,
+  requestTypeDisplayName,
+} from './processing-presentation';
 
 function QueueRow({ queue }: { readonly queue: QueueSnapshot }): React.JSX.Element {
   if (!queue.telemetryAvailable) {
     return (
       <div className="qf-queue-row qf-queue-row--tenant">
         <div>
-          <strong>{queue.name}</strong>
-          <span>Tenant outbox lane</span>
+          <strong>{queueDisplayName(queue.name)}</strong>
+          <span>Accepted work</span>
+          <details className="qf-advanced-disclosure">
+            <summary>Technical name</summary>
+            <code>{queue.name}</code>
+          </details>
         </div>
         <div className="qf-queue-row__outbox">
-          <span>Persisted tenant outbox</span>
+          <span>Waiting to start</span>
           <strong>
-            {String(queue.outboxBacklog)} ready · {String(queue.outboxDead)} dead
+            {String(queue.outboxBacklog)} ready · {String(queue.outboxDead)} need help
           </strong>
         </div>
       </div>
@@ -47,32 +57,36 @@ function QueueRow({ queue }: { readonly queue: QueueSnapshot }): React.JSX.Eleme
   const total = queue.waiting + queue.active + queue.delayed + queue.failed;
   const workerLabel =
     queue.workerState === 'offline'
-      ? 'offline'
+      ? 'not responding'
       : queue.workerState === 'draining'
-        ? 'draining'
+        ? 'finishing current work'
         : queue.paused
-          ? 'queue paused'
-          : 'running';
+          ? 'paused'
+          : 'available';
   return (
     <div className="qf-queue-row">
       <div>
-        <strong>{queue.name}</strong>
-        <span>BullMQ queue</span>
+        <strong>{queueDisplayName(queue.name)}</strong>
+        <span>Work type</span>
+        <details className="qf-advanced-disclosure">
+          <summary>Technical name</summary>
+          <code>{queue.name}</code>
+        </details>
       </div>
       <div>
-        <span>Waiting</span>
+        <span>Awaiting start</span>
         <strong>{queue.waiting}</strong>
       </div>
       <div>
-        <span>Active</span>
+        <span>Running now</span>
         <strong>{queue.active}</strong>
       </div>
       <div>
-        <span>Delayed</span>
+        <span>Retrying later</span>
         <strong>{queue.delayed}</strong>
       </div>
       <div>
-        <span>Failed</span>
+        <span>Stopped</span>
         <strong>{queue.failed}</strong>
       </div>
       <StatusBadge
@@ -102,24 +116,24 @@ function QueueRow({ queue }: { readonly queue: QueueSnapshot }): React.JSX.Eleme
         }
       />
       <div className="qf-queue-row__runtime">
-        <span>Worker freshness</span>
+        <span>Background processor</span>
         <strong>
-          {String(queue.workerCount)} worker{queue.workerCount === 1 ? '' : 's'} · {workerLabel}
+          {String(queue.workerCount)} processor{queue.workerCount === 1 ? '' : 's'} · {workerLabel}
         </strong>
         <small>
           {queue.heartbeatAt === null ? (
-            'No heartbeat recorded'
+            'No recent check-in'
           ) : (
             <>
-              Last heartbeat <DateTime value={queue.heartbeatAt} />
+              Last check-in <DateTime value={queue.heartbeatAt} />
             </>
           )}
         </small>
       </div>
       <div className="qf-queue-row__outbox">
-        <span>Persisted tenant outbox</span>
+        <span>Accepted work not yet started</span>
         <strong>
-          {String(queue.outboxBacklog)} ready · {String(queue.outboxDead)} dead
+          {String(queue.outboxBacklog)} ready · {String(queue.outboxDead)} need help
         </strong>
       </div>
     </div>
@@ -152,7 +166,7 @@ export function OperationsScreen(): React.JSX.Element {
         method: 'POST',
       }),
     onSuccess: async () => {
-      notify('Dead-lettered request re-queued.', 'success');
+      notify('The request has been queued for another try.', 'success');
       setRetryItem(null);
       deadLetterPagination.resetPage();
       await Promise.all([
@@ -178,7 +192,7 @@ export function OperationsScreen(): React.JSX.Element {
   const columns: readonly ColumnDef<DeadLetter, unknown>[] = [
     {
       accessorKey: 'workflowName',
-      header: 'Request',
+      header: 'Request type',
       cell: ({ row }) => (
         <div>
           <Link
@@ -186,27 +200,41 @@ export function OperationsScreen(): React.JSX.Element {
             href={`/requests/detail?id=${encodeURIComponent(row.original.requestId)}`}
             prefetch={false}
           >
-            {row.original.workflowName}
+            {requestTypeDisplayName(row.original.workflowName)}
           </Link>
-          <div>
-            <CompactId value={row.original.requestId} />
-          </div>
+          <details className="qf-advanced-disclosure">
+            <summary>Technical details</summary>
+            <div>
+              Stored request type: <code>{row.original.workflowName}</code>
+            </div>
+            <div>
+              Request reference: <CompactId value={row.original.requestId} />
+            </div>
+          </details>
         </div>
       ),
     },
     {
       accessorKey: 'reason',
-      header: 'Failure reason',
-      cell: ({ getValue }) => <span className="qf-wrap-cell">{String(getValue())}</span>,
+      header: 'What happened',
+      cell: ({ getValue }) => (
+        <div className="qf-wrap-cell">
+          <span>{failureExplanation(String(getValue()))}</span>
+          <details className="qf-advanced-disclosure">
+            <summary>Technical reason</summary>
+            <code>{String(getValue())}</code>
+          </details>
+        </div>
+      ),
     },
     {
       accessorKey: 'attemptCount',
-      header: 'Attempts',
-      cell: ({ getValue }) => <span className="qf-mono">{String(getValue())}</span>,
+      header: 'Automatic tries',
+      cell: ({ getValue }) => automaticTryLabel(Number(getValue())),
     },
     {
       accessorKey: 'deadLetteredAt',
-      header: 'Dead-lettered',
+      header: 'Stopped at',
       cell: ({ getValue }) => <DateTime value={String(getValue())} />,
     },
     {
@@ -216,12 +244,13 @@ export function OperationsScreen(): React.JSX.Element {
       cell: ({ row }) => (
         <PermissionGate permission="retry">
           <Button
-            aria-label={`Retry ${row.original.workflowName}`}
             disabled={!online}
             icon={<RotateCcw size={15} />}
             onClick={() => setRetryItem(row.original)}
             tone="quiet"
-          />
+          >
+            Try again
+          </Button>
         </PermissionGate>
       ),
     },
@@ -242,62 +271,66 @@ export function OperationsScreen(): React.JSX.Element {
             Refresh
           </Button>
         }
-        description="See what is running, what is waiting, and which requests need an operator's help."
-        eyebrow="Monitor work safely"
+        description="See what QueueForge is working on and help requests that could not finish automatically."
+        eyebrow="Keep work moving"
         title="Processing health"
       />
       <MetricStrip
         items={
           telemetryAvailable
             ? [
-                { label: 'Waiting', value: totals.waiting, detail: 'Ready for a worker' },
-                { label: 'Active', value: totals.active, detail: 'Currently executing' },
-                { label: 'Delayed', value: totals.delayed, detail: 'Backoff scheduled' },
-                { label: 'Failed jobs', value: totals.failed, detail: 'BullMQ failure count' },
+                { label: 'Waiting to start', value: totals.waiting, detail: 'Ready to process' },
+                { label: 'Running now', value: totals.active, detail: 'Currently processing' },
                 {
-                  label: 'Outbox ready',
+                  label: 'Retrying later',
+                  value: totals.delayed,
+                  detail: 'Automatic retry scheduled',
+                },
+                { label: 'Stopped', value: totals.failed, detail: 'Processing jobs that stopped' },
+                {
+                  label: 'Accepted work',
                   value: totals.outboxBacklog,
-                  detail: 'Persisted tenant events awaiting dispatch',
+                  detail: 'Saved safely and waiting to start',
                 },
                 {
-                  label: 'Outbox dead',
+                  label: 'Handoff problems',
                   value: totals.outboxDead,
-                  detail: 'Persisted tenant dispatch failures',
+                  detail: 'Could not reach a processor',
                 },
               ]
             : [
                 {
-                  label: 'Outbox ready',
+                  label: 'Accepted work',
                   value: totals.outboxBacklog,
-                  detail: 'Tenant-scoped events awaiting dispatch',
+                  detail: 'Saved safely and waiting to start',
                 },
                 {
-                  label: 'Outbox dead',
+                  label: 'Handoff problems',
                   value: totals.outboxDead,
-                  detail: 'Tenant-scoped dispatch failures',
+                  detail: 'Could not reach a processor',
                 },
               ]
         }
       />
       <div className="qf-content-grid">
         <Panel
-          title="Current processing activity"
+          title="What QueueForge is processing"
           description={
             telemetryAvailable
-              ? 'Global BullMQ telemetry and worker freshness auto-refresh every 15 seconds.'
-              : 'Tenant principals see persisted outbox pressure only; global worker telemetry requires platform administration.'
+              ? 'Live processor information refreshes every 15 seconds.'
+              : 'This workspace shows accepted work that is waiting to start. Platform admins can also see live processor details.'
           }
           actions={
             <span className="qf-save-state">
               <Activity size={15} />
-              {telemetryAvailable ? 'Live polling' : 'Tenant scope'}
+              {telemetryAvailable ? 'Updates automatically' : 'This workspace only'}
             </span>
           }
         >
           <QueryState
             empty={queuesQuery.isSuccess && queueRows.length === 0}
-            emptyDescription="The worker has not reported any QueueForge queues."
-            emptyTitle="No queue telemetry"
+            emptyDescription="QueueForge has not reported any processing activity yet."
+            emptyTitle="No processing activity"
             error={queuesQuery.error}
             isLoading={queuesQuery.isLoading}
             onRetry={() => void queuesQuery.refetch()}
@@ -310,32 +343,32 @@ export function OperationsScreen(): React.JSX.Element {
           </QueryState>
         </Panel>
         <Panel
-          title="Requests that need help"
-          description="These requests used every automatic attempt. Review the failure before retrying."
+          title="Needs attention"
+          description="These requests used every automatic try. Review what happened before trying again."
         >
           <QueryState
             empty={deadLettersQuery.isSuccess && deadLetters.length === 0}
-            emptyDescription="No request has exhausted its bounded retry policy."
-            emptyTitle="Dead-letter queue is clear"
+            emptyDescription="Every request has finished or still has an automatic try available."
+            emptyTitle="Nothing needs help"
             error={deadLettersQuery.error}
             isLoading={deadLettersQuery.isLoading}
             onRetry={() => void deadLettersQuery.refetch()}
           >
             <DataTable
-              ariaLabel="Dead-lettered workflow requests"
+              ariaLabel="Requests that need attention"
               columns={columns}
               getRowId={(row) => row.id}
               rows={deadLetters}
               search={{
-                label: 'Search dead letters',
-                placeholder: 'Workflow, request ID, or reason',
+                label: 'Search requests that need attention',
+                placeholder: 'Request type, reference, or reason',
                 text: (row) => `${row.workflowName} ${row.requestId} ${row.reason}`,
               }}
             />
           </QueryState>
           {deadLettersQuery.data?.meta === undefined ? null : (
             <PaginationControls
-              ariaLabel="Dead letters"
+              ariaLabel="Requests that need attention"
               disabled={deadLettersQuery.isFetching}
               meta={deadLettersQuery.data.meta}
               onPageChange={deadLetterPagination.setPage}
@@ -347,36 +380,40 @@ export function OperationsScreen(): React.JSX.Element {
         </Panel>
       </div>
       <Dialog
-        description="The original failure history remains append-only. A new authorized transition returns the request to queued."
+        description="QueueForge will keep the earlier failure history and start a fresh processing try."
         footer={
           <>
             <Button onClick={() => setRetryItem(null)}>Cancel</Button>
             <Button
               disabled={!online}
               loading={retryMutation.isPending}
-              loadingLabel="Re-queueing"
+              loadingLabel="Queueing another try"
               onClick={() => {
                 if (retryItem !== null) retryMutation.mutate(retryItem);
               }}
               tone="primary"
             >
-              Confirm manual retry
+              Try processing again
             </Button>
           </>
         }
         onClose={() => setRetryItem(null)}
         open={retryItem !== null}
-        title="Retry this dead-lettered request?"
+        title="Try processing this request again?"
       >
         {retryMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
             {formatProblem(retryMutation.error)}
           </div>
         ) : null}
-        <p>
-          This command is idempotent and server-authorized. It does not erase the exhausted
-          attempts.
-        </p>
+        <p>Earlier attempts remain visible, so the complete history is never lost.</p>
+        <details className="qf-advanced-disclosure">
+          <summary>Technical behavior</summary>
+          <p>
+            The server authorizes this idempotent command and returns the request to the processing
+            queue without deleting exhausted attempts.
+          </p>
+        </details>
       </Dialog>
     </AppShell>
   );

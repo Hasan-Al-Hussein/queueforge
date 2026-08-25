@@ -35,10 +35,17 @@ import {
   type WebhookDelivery,
   type WebhookEndpoint,
 } from '../../domain/models';
+import { requestTypeLabel } from '../../domain/presentation';
 import { pageSearchParams, usePagination } from '../../hooks/use-pagination';
 import { useIdempotencyKeyLease } from '../../hooks/use-idempotency-key-lease';
 import { useAuth } from '../../providers/auth-provider';
 import { useToast } from '../../providers/toast-provider';
+import {
+  deliveryAttemptLabel,
+  receiverReplyLabel,
+  webhookDeliveryStatusLabel,
+  webhookEventLabel,
+} from './delivery-presentation';
 
 const EndpointFormSchema = z.object({
   keyId: z.string().trim().min(2).max(80),
@@ -62,7 +69,7 @@ interface CreatedEndpointNotice {
 const endpointColumns: readonly ColumnDef<WebhookEndpoint, unknown>[] = [
   {
     accessorKey: 'name',
-    header: 'Endpoint',
+    header: 'Connection',
     cell: ({ row }) => (
       <div>
         <strong>{row.original.name}</strong>
@@ -72,13 +79,25 @@ const endpointColumns: readonly ColumnDef<WebhookEndpoint, unknown>[] = [
   },
   {
     accessorKey: 'active',
-    header: 'State',
-    cell: ({ getValue }) => <StatusBadge status={getValue() === true ? 'active' : 'retired'} />,
+    header: 'Availability',
+    cell: ({ getValue }) => (
+      <StatusBadge
+        status={getValue() === true ? 'active' : 'retired'}
+        label={getValue() === true ? 'Ready to receive' : 'Turned off'}
+      />
+    ),
   },
   {
     accessorKey: 'keyId',
-    header: 'Signing key',
-    cell: ({ getValue }) => <code>{String(getValue())}</code>,
+    header: 'Security',
+    cell: ({ getValue }) => (
+      <details className="qf-advanced-disclosure">
+        <summary>Signing details</summary>
+        <div className="qf-utility">
+          Key reference: <code>{String(getValue())}</code>
+        </div>
+      </details>
+    ),
   },
   {
     accessorKey: 'updatedAt',
@@ -136,7 +155,7 @@ export function WebhooksScreen(): React.JSX.Element {
       }),
     onSuccess: async (result) => {
       endpointCreationKey.clear();
-      notify('Webhook endpoint created.', 'success');
+      notify('Connection created.', 'success');
       setCreatedEndpointNotice({
         endpointName: result.endpoint.name,
         replayed: result.replayed,
@@ -155,7 +174,7 @@ export function WebhooksScreen(): React.JSX.Element {
       }),
     onSuccess: async () => {
       replayKey.clear();
-      notify('Delivery replay queued with a new generation.', 'success');
+      notify('Another delivery try has been queued.', 'success');
       setReplayDelivery(null);
       deliveryPagination.resetPage();
       await queryClient.invalidateQueries({ queryKey: ['webhook-deliveries'] });
@@ -175,44 +194,72 @@ export function WebhooksScreen(): React.JSX.Element {
   const deliveries = deliveryQuery.data?.items ?? [];
   const deliveryColumns: readonly ColumnDef<WebhookDelivery, unknown>[] = [
     {
-      accessorKey: 'eventType',
-      header: 'Event',
+      accessorKey: 'endpointName',
+      header: 'Destination',
       cell: ({ row }) => (
         <div>
-          <strong>{row.original.eventType}</strong>
-          <div>
-            <CompactId value={row.original.eventId} />
-          </div>
+          <strong>{row.original.endpointName}</strong>
+          <div className="qf-utility">{webhookEventLabel(row.original.eventType)}</div>
+          <details className="qf-advanced-disclosure">
+            <summary>Technical details</summary>
+            <div className="qf-utility">
+              Event code: <code>{row.original.eventType}</code>
+            </div>
+            <div>
+              Event reference: <CompactId value={row.original.eventId} />
+            </div>
+          </details>
         </div>
       ),
     },
-    { accessorKey: 'endpointName', header: 'Endpoint' },
     {
       accessorKey: 'status',
-      header: 'State',
-      cell: ({ getValue }) => <StatusBadge status={String(getValue())} />,
-    },
-    {
-      accessorKey: 'attemptCount',
-      header: 'Attempts',
-      cell: ({ getValue }) => <span className="qf-mono">{String(getValue())}</span>,
-    },
-    {
-      accessorKey: 'lastStatusCode',
-      header: 'HTTP',
-      cell: ({ getValue }) => (
-        <span className="qf-mono">{getValue() === null ? '—' : String(getValue())}</span>
+      header: 'Delivery status',
+      cell: ({ row }) => (
+        <div>
+          <StatusBadge
+            status={row.original.status}
+            label={webhookDeliveryStatusLabel(row.original.status)}
+          />
+          {row.original.nextAttemptAt === null ? null : (
+            <div className="qf-utility">
+              Next try <DateTime value={row.original.nextAttemptAt} />
+            </div>
+          )}
+        </div>
       ),
     },
     {
-      accessorKey: 'nextAttemptAt',
-      header: 'Next attempt',
-      cell: ({ getValue }) =>
-        getValue() === null ? (
-          <span aria-label="Not scheduled">—</span>
+      id: 'request',
+      header: 'Related request',
+      enableSorting: false,
+      cell: ({ row }) =>
+        row.original.requestId === null && row.original.workflowName === null ? (
+          <span className="qf-utility">System update · no request linked</span>
         ) : (
-          <DateTime value={String(getValue())} />
+          <div>
+            <strong>
+              {row.original.workflowName === null
+                ? 'Request'
+                : requestTypeLabel(row.original.workflowName)}
+            </strong>
+            {row.original.requestId === null ? null : (
+              <div>
+                Reference: <CompactId value={row.original.requestId} />
+              </div>
+            )}
+          </div>
         ),
+    },
+    {
+      accessorKey: 'attemptCount',
+      header: 'Tries',
+      cell: ({ getValue }) => deliveryAttemptLabel(Number(getValue())),
+    },
+    {
+      accessorKey: 'lastStatusCode',
+      header: 'Receiver reply',
+      cell: ({ getValue }) => receiverReplyLabel(getValue() === null ? null : Number(getValue())),
     },
     {
       accessorKey: 'updatedAt',
@@ -226,12 +273,13 @@ export function WebhooksScreen(): React.JSX.Element {
       cell: ({ row }) => (
         <PermissionGate permission="replay">
           <Button
-            aria-label={`Replay delivery ${row.original.eventId}`}
             disabled={!online}
             icon={<RotateCcw size={15} />}
             onClick={() => setReplayDelivery(row.original)}
             tone="quiet"
-          />
+          >
+            Try again
+          </Button>
         </PermissionGate>
       ),
     },
@@ -259,24 +307,24 @@ export function WebhooksScreen(): React.JSX.Element {
                 onClick={() => setCreateOpen(true)}
                 tone="primary"
               >
-                Add endpoint
+                Add connection
               </Button>
             </PermissionGate>
           </>
         }
-        description="Connect approved systems and follow every signed delivery attempt in one place."
-        eyebrow="Send results securely"
-        title="Connections"
+        description="Choose where completed results are sent and see whether each destination received them."
+        eyebrow="Send results to other systems"
+        title="Integrations"
       />
       <div className="qf-inline-alert" role="note">
         <ShieldCheck size={18} />
         <p>
-          Redirects are disabled. The worker resolves and rechecks the exact local allowlist before
-          every attempt; signing secrets are shown once at creation and encrypted at rest.
+          QueueForge sends results only to approved local addresses. New connections use a secret so
+          the receiving system can verify that each result really came from QueueForge.
         </p>
       </div>
       <Panel>
-        <div className="qf-segmented" role="tablist" aria-label="Webhook surfaces">
+        <div className="qf-segmented" role="tablist" aria-label="Integration sections">
           <button
             aria-controls="webhook-deliveries-panel"
             aria-selected={tab === 'deliveries'}
@@ -285,7 +333,7 @@ export function WebhooksScreen(): React.JSX.Element {
             role="tab"
             type="button"
           >
-            Deliveries
+            Delivery history
           </button>
           <button
             aria-controls="webhook-endpoints-panel"
@@ -295,7 +343,7 @@ export function WebhooksScreen(): React.JSX.Element {
             role="tab"
             type="button"
           >
-            Endpoints
+            Connections
           </button>
         </div>
         {tab === 'deliveries' ? (
@@ -306,28 +354,28 @@ export function WebhooksScreen(): React.JSX.Element {
           >
             <QueryState
               empty={deliveryQuery.isSuccess && deliveries.length === 0}
-              emptyDescription="No outbound event has created a delivery record for this tenant."
-              emptyTitle="No deliveries yet"
+              emptyDescription="Completed requests will appear here after QueueForge sends their results to a connected system."
+              emptyTitle="Nothing has been sent yet"
               error={deliveryQuery.error}
               isLoading={deliveryQuery.isLoading}
               onRetry={() => void deliveryQuery.refetch()}
             >
               <DataTable
-                ariaLabel="Outbound webhook deliveries"
+                ariaLabel="Result delivery history"
                 columns={deliveryColumns}
                 getRowId={(row) => row.id}
                 rows={deliveries}
                 search={{
-                  label: 'Search deliveries',
-                  placeholder: 'Event, endpoint, or state',
+                  label: 'Search delivery history',
+                  placeholder: 'Destination, update, or status',
                   text: (row) =>
-                    `${row.eventType} ${row.eventId} ${row.endpointName} ${row.status}`,
+                    `${webhookEventLabel(row.eventType)} ${row.eventType} ${row.eventId} ${row.endpointName} ${row.workflowName ?? ''} ${row.requestId ?? ''} ${webhookDeliveryStatusLabel(row.status)}`,
                 }}
               />
             </QueryState>
             {deliveryQuery.data?.meta === undefined ? null : (
               <PaginationControls
-                ariaLabel="Webhook deliveries"
+                ariaLabel="Result deliveries"
                 disabled={deliveryQuery.isFetching}
                 meta={deliveryQuery.data.meta}
                 onPageChange={deliveryPagination.setPage}
@@ -341,20 +389,20 @@ export function WebhooksScreen(): React.JSX.Element {
           <div aria-labelledby="webhook-endpoints-tab" id="webhook-endpoints-panel" role="tabpanel">
             <QueryState
               empty={endpointQuery.isSuccess && endpointQuery.data.length === 0}
-              emptyDescription="Add an allowlisted local receiver before activating workflows that emit outbound webhooks."
-              emptyTitle="No webhook endpoints"
+              emptyDescription="Add the local system that should receive completed results."
+              emptyTitle="No connections yet"
               error={endpointQuery.error}
               isLoading={endpointQuery.isLoading}
               onRetry={() => void endpointQuery.refetch()}
             >
               <DataTable
-                ariaLabel="Webhook endpoints"
+                ariaLabel="Integration connections"
                 columns={endpointColumns}
                 getRowId={(row) => row.id}
                 rows={endpointQuery.data ?? []}
                 search={{
-                  label: 'Search endpoints',
-                  placeholder: 'Name, URL, or key ID',
+                  label: 'Search connections',
+                  placeholder: 'Connection name or address',
                   text: (row) => `${row.name} ${row.url} ${row.keyId}`,
                 }}
               />
@@ -364,7 +412,7 @@ export function WebhooksScreen(): React.JSX.Element {
       </Panel>
 
       <Dialog
-        description="The server validates protocol, resolves the hostname, and enforces the configured local allowlist."
+        description="Enter the approved local address that should receive completed results."
         footer={
           <>
             <Button onClick={cancelEndpointCreation}>Cancel</Button>
@@ -375,13 +423,13 @@ export function WebhooksScreen(): React.JSX.Element {
               onClick={() => void submitEndpoint()}
               tone="primary"
             >
-              Create endpoint
+              Create connection
             </Button>
           </>
         }
         onClose={cancelEndpointCreation}
         open={createOpen}
-        title="Add webhook endpoint"
+        title="Add a connection"
       >
         {createMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
@@ -392,24 +440,24 @@ export function WebhooksScreen(): React.JSX.Element {
           <InputField
             error={errors.name?.message}
             id="endpoint-name"
-            label="Endpoint name"
+            label="Connection name"
             required
             {...register('name')}
           />
           <InputField
             error={errors.url?.message}
-            helper="Host-first: http://127.0.0.1:3300/webhooks. Full Compose: http://webhook-sink:3300/webhooks."
+            helper="For the bundled demo, use http://127.0.0.1:3300/webhooks. Docker installations can use http://webhook-sink:3300/webhooks."
             id="endpoint-url"
-            label="Target URL"
+            label="Receiving address"
             required
             type="url"
             {...register('url')}
           />
           <InputField
             error={errors.keyId?.message}
-            helper="Version identifier only; secret material is managed server-side."
+            helper="A short name for this connection's security key, such as local-v1."
             id="endpoint-key-id"
-            label="Signing key ID"
+            label="Security key name"
             required
             {...register('keyId')}
           />
@@ -419,8 +467,8 @@ export function WebhooksScreen(): React.JSX.Element {
       <Dialog
         description={
           createdEndpointNotice?.signingSecret === null
-            ? 'The retained idempotency key recovered the committed endpoint, but one-time secret material cannot be replayed.'
-            : 'Copy this secret now. QueueForge will not reveal it again, including on an idempotent replay.'
+            ? 'This connection already exists, but its one-time secret was shown earlier and cannot be shown again.'
+            : 'Copy this secret now. QueueForge will not reveal it again.'
         }
         footer={
           <Button onClick={() => setCreatedEndpointNotice(null)} tone="primary">
@@ -431,19 +479,19 @@ export function WebhooksScreen(): React.JSX.Element {
         open={createdEndpointNotice !== null}
         title={
           createdEndpointNotice?.signingSecret === null
-            ? 'Signing secret cannot be recovered'
-            : 'Webhook signing secret'
+            ? 'Connection secret is unavailable'
+            : 'Connection signing secret'
         }
       >
         {createdEndpointNotice?.signingSecret === null ? (
           <div className="qf-inline-alert" role="alert">
             <ShieldCheck size={18} />
             <p>
-              The endpoint <strong>{createdEndpointNotice.endpointName}</strong> was committed, but
-              its one-time secret was returned to an earlier response that did not reach this tab
-              {createdEndpointNotice.replayed ? ' and this was an idempotent recovery.' : '.'}{' '}
-              Create a replacement signing endpoint before using it; QueueForge will never reveal
-              the committed secret again.
+              The connection <strong>{createdEndpointNotice.endpointName}</strong> was created, but
+              its one-time secret was returned to an earlier response that did not reach this tab.
+              {createdEndpointNotice.replayed ? ' This tab recovered the earlier action.' : ''}{' '}
+              Create a replacement connection before using it; QueueForge will never reveal the
+              committed secret again.
             </p>
           </div>
         ) : (
@@ -453,45 +501,49 @@ export function WebhooksScreen(): React.JSX.Element {
               <code className="qf-break-all">{createdEndpointNotice?.signingSecret}</code>
             </div>
             <p>
-              Configure the receiver with this secret before activating a workflow that targets it.
-              The bundled demo sink is preconfigured only for the seeded endpoint; it does not
-              automatically register newly generated secrets.
+              Configure the receiving system with this secret before activating a request type that
+              sends results to it. The bundled demo receiver is preconfigured only for the seeded
+              connection; it does not automatically register newly generated secrets.
             </p>
           </div>
         )}
       </Dialog>
 
       <Dialog
-        description="Replay creates a new delivery generation while preserving the original attempt history."
+        description="QueueForge will make a new delivery attempt and keep the earlier history."
         footer={
           <>
             <Button onClick={cancelReplay}>Cancel</Button>
             <Button
               disabled={!online}
               loading={replayMutation.isPending}
-              loadingLabel="Queueing replay"
+              loadingLabel="Queueing another try"
               onClick={() => {
                 if (replayDelivery !== null) replayMutation.mutate(replayDelivery);
               }}
               tone="primary"
             >
-              Queue replay
+              Try delivery again
             </Button>
           </>
         }
         onClose={cancelReplay}
         open={replayDelivery !== null}
-        title="Replay this webhook delivery?"
+        title="Try this delivery again?"
       >
         {replayMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
             {formatProblem(replayMutation.error)}
           </div>
         ) : null}
-        <p>
-          The stable event ID remains visible to the receiver so it can apply its own idempotency
-          policy.
-        </p>
+        <p>The receiving system will see the same event reference so it can avoid duplicates.</p>
+        <details className="qf-advanced-disclosure">
+          <summary>Technical behavior</summary>
+          <p>
+            QueueForge creates a new delivery generation while preserving the original attempt
+            history and stable event ID.
+          </p>
+        </details>
       </Dialog>
     </AppShell>
   );

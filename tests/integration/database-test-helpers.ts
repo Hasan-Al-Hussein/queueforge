@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 
 import { createQueueForgeDataSource } from '../../packages/persistence/src/index.js';
 
+export { cleanupTenant, cleanupUser } from '../database-cleanup.js';
+
 export type TestDataSource = ReturnType<typeof createQueueForgeDataSource>;
 
 export interface SqlExecutor {
@@ -122,42 +124,6 @@ export async function insertWorkflow(
     );
   }
   return { actorId, processorTargetId, stableKey, templateId, tenantId, versionId };
-}
-
-export async function cleanupTenant(
-  ownerDataSource: TestDataSource,
-  tenantId: string,
-): Promise<void> {
-  await ownerDataSource.transaction(async (manager) => {
-    await manager.query(`SET LOCAL session_replication_role = 'replica'`);
-    const rows = (await manager.query(
-      `SELECT DISTINCT table_name
-       FROM information_schema.columns
-       WHERE table_schema = 'public' AND column_name = 'tenant_id'
-       ORDER BY table_name`,
-    )) as unknown as Array<{ table_name: string }>;
-    for (const row of rows) {
-      if (!/^[a-z][a-z0-9_]*$/.test(row.table_name)) {
-        throw new Error('Unsafe tenant table name returned by PostgreSQL metadata');
-      }
-      await manager.query(`DELETE FROM "${row.table_name}" WHERE tenant_id = $1`, [tenantId]);
-    }
-    await manager.query(`DELETE FROM tenants WHERE id = $1`, [tenantId]);
-  });
-}
-
-export async function cleanupUser(ownerDataSource: TestDataSource, userId: string): Promise<void> {
-  await ownerDataSource.transaction(async (manager) => {
-    await manager.query(`SET LOCAL session_replication_role = 'replica'`);
-    await manager.query(
-      `DELETE FROM refresh_tokens
-       WHERE family_id IN (SELECT id FROM refresh_token_families WHERE user_id = $1)`,
-      [userId],
-    );
-    await manager.query(`DELETE FROM refresh_token_families WHERE user_id = $1`, [userId]);
-    await manager.query(`DELETE FROM security_events WHERE user_id = $1`, [userId]);
-    await manager.query(`DELETE FROM users WHERE id = $1`, [userId]);
-  });
 }
 
 export function postgresErrorCode(error: unknown): string | undefined {

@@ -15,7 +15,7 @@ const meta = {
   component: Panel,
   parameters: { layout: 'padded' },
   tags: ['autodocs'],
-  title: 'QueueForge/Control desk states',
+  title: 'QueueForge/Workspace states',
 } satisfies Meta<typeof Panel>;
 
 export default meta;
@@ -25,21 +25,21 @@ export const OperationalPanel: Story = {
   args: {
     actions: (
       <Button icon={<Plus size={16} />} tone="primary">
-        Submit request
+        Start request
       </Button>
     ),
     children: (
       <QueueRail
         items={[
-          { id: '1', label: 'received', state: 'complete', timestamp: '10:42:11' },
+          { id: '1', label: 'Request received', state: 'complete', timestamp: '10:42:11' },
           {
             id: '2',
-            label: 'pending approval',
+            label: 'Waiting for approval',
             description: 'Decision required from an approver.',
             state: 'current',
             timestamp: '10:42:12',
           },
-          { id: '3', label: 'queued', state: 'pending' },
+          { id: '3', label: 'Ready to start', state: 'pending' },
         ]}
       />
     ),
@@ -66,10 +66,10 @@ export const EmptyState: Story = {
   args: {
     children: (
       <StatePanel
-        action={<Button>Configure workflow</Button>}
-        description="Activate a workflow to accept the first request."
+        action={<Button>Create a request type</Button>}
+        description="Activate a request type before an operator can use it."
         kind="empty"
-        title="No workflow activity yet"
+        title="No request activity yet"
       />
     ),
     title: 'Empty',
@@ -96,7 +96,7 @@ export const FormState: Story = {
       <div className="qf-form-stack">
         <InputField
           id="story-name"
-          label="Workflow name"
+          label="Request type name"
           required
           value="Expense review"
           readOnly
@@ -156,14 +156,14 @@ export const RequestTable: Story = {
   args: {
     children: (
       <div className="qf-table-scroll" role="region" aria-label="Recent requests table">
-        <table aria-label="Recent workflow requests">
+        <table aria-label="Recent requests">
           <thead>
             <tr>
-              <th scope="col">Request</th>
-              <th scope="col">Workflow</th>
-              <th scope="col">State</th>
-              <th scope="col">Source</th>
-              <th scope="col">Received</th>
+              <th scope="col">Reference</th>
+              <th scope="col">Request type</th>
+              <th scope="col">Status</th>
+              <th scope="col">Started from</th>
+              <th scope="col">Submitted</th>
             </tr>
           </thead>
           <tbody>
@@ -173,9 +173,9 @@ export const RequestTable: Story = {
               </td>
               <td>Expense review</td>
               <td>
-                <StatusBadge status="pending_approval" />
+                <StatusBadge status="pending_approval" label="Waiting for approval" />
               </td>
-              <td>API</td>
+              <td>QueueForge form</td>
               <td>
                 <time dateTime="2026-08-24T12:42:11Z">24 Aug, 16:42</time>
               </td>
@@ -186,9 +186,9 @@ export const RequestTable: Story = {
               </td>
               <td>Vendor intake</td>
               <td>
-                <StatusBadge status="succeeded" />
+                <StatusBadge status="succeeded" label="Completed" />
               </td>
-              <td>Webhook</td>
+              <td>External integration</td>
               <td>
                 <time dateTime="2026-08-24T12:39:04Z">24 Aug, 16:39</time>
               </td>
@@ -197,7 +197,7 @@ export const RequestTable: Story = {
         </table>
       </div>
     ),
-    description: 'Dense, sortable production tables retain semantic headers and exact states.',
+    description: 'Readable tables keep technical references available without leading with them.',
     title: 'Recent requests',
   },
 };
@@ -209,31 +209,31 @@ export const AuditTimeline: Story = {
         ariaLabel="Audit history for request 8f0b"
         items={[
           {
-            description: 'Amina Rahman submitted the request from the API.',
+            description: 'Omar Operator started the request from the QueueForge form.',
             id: 'audit-1',
-            label: 'request.created',
+            label: 'Request started',
             state: 'complete',
             timestamp: '16:42:11',
           },
           {
-            description: 'Policy engine created approval task revision 1.',
+            description: 'QueueForge sent the request to an approver.',
             id: 'audit-2',
-            label: 'approval.requested',
+            label: 'Approval requested',
             state: 'complete',
             timestamp: '16:42:12',
           },
           {
-            description: 'Awaiting a decision from the tenant approver role.',
+            description: 'A decision is waiting in the approval workspace.',
             id: 'audit-3',
-            label: 'approval.pending',
+            label: 'Waiting for approval',
             state: 'current',
             timestamp: '16:42:12',
           },
         ]}
       />
     ),
-    description: 'Append-only events preserve actor, action, and request lifecycle order.',
-    title: 'Audit timeline',
+    description: 'Plain-language activity keeps actor, action, and request order understandable.',
+    title: 'Activity log',
   },
 };
 
@@ -243,60 +243,58 @@ export const ApprovalCard: Story = {
       <article aria-labelledby="approval-card-title">
         <div className="qf-notification__title">
           <h3 id="approval-card-title">Expense review · AED 18,750</h3>
-          <StatusBadge status="pending" label="decision required" />
+          <StatusBadge status="pending" label="Waiting for you" />
         </div>
         <dl className="qf-role-list">
           <div>
             <dt>Requested by</dt>
-            <dd>Amina Rahman · Operations</dd>
+            <dd>Omar Operator · Operations</dd>
           </div>
           <div>
-            <dt>Policy evidence</dt>
-            <dd>Version 12 · payload hash 91f2…b704 · approval revision 1</dd>
+            <dt>Request details</dt>
+            <dd>Amount: AED 18,750 · Cost center: OPS-42</dd>
           </div>
         </dl>
         <div className="qf-row-actions" aria-label="Approval actions">
           <Button tone="primary">Approve</Button>
-          <Button tone="danger">Reject</Button>
+          <Button tone="danger">Decline</Button>
         </div>
       </article>
     ),
-    description: 'A decision always exposes the requester and immutable policy evidence.',
-    title: 'Approval task',
+    description: 'A decision shows the requester and important facts in readable language.',
+    title: 'Approval decision',
   },
 };
 
 export const WebhookDeliveryPanel: Story = {
   args: {
-    actions: <Button>Replay delivery</Button>,
+    actions: <Button>Try again</Button>,
     children: (
       <dl className="qf-role-list">
         <div>
-          <dt>Lifecycle</dt>
+          <dt>Delivery status</dt>
           <dd>
-            <StatusBadge status="retry" label="retry scheduled" />
+            <StatusBadge status="retry" label="Another try scheduled" />
           </dd>
         </div>
         <div>
-          <dt>Endpoint</dt>
-          <dd>Local audit sink · event request.approved</dd>
+          <dt>Destination</dt>
+          <dd>Local audit sink · Request approved</dd>
         </div>
         <div>
-          <dt>Latest attempt</dt>
-          <dd>
-            HTTP <span className="qf-mono">503</span> · attempt 3 of 6
-          </dd>
+          <dt>Related request</dt>
+          <dd>Expense review · reference 8f0b…43a2</dd>
         </div>
         <div>
-          <dt>Next attempt</dt>
+          <dt>Next try</dt>
           <dd>
             <time dateTime="2026-08-24T12:47:30Z">24 Aug 2026, 16:47:30</time>
           </dd>
         </div>
       </dl>
     ),
-    description: 'At-least-once delivery state with exact attempt evidence and replay control.',
-    title: 'Webhook delivery · 3f4a…2b70',
+    description: 'Readable result-delivery status with technical evidence available on demand.',
+    title: 'Result delivery',
   },
 };
 

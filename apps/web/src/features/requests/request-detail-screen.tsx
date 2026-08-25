@@ -32,6 +32,13 @@ import { HumanReadablePayload } from '../../components/human-readable-payload';
 import { PageHeader } from '../../components/page-header';
 import { QueryState } from '../../components/query-state';
 import { RequestDetailSchema, type RequestDetail } from '../../domain/models';
+import {
+  requestProgressLabel,
+  requestSourceLabel,
+  requestStatusLabel,
+  requestTransitionReasonLabel,
+  requestTypeLabel,
+} from '../../domain/presentation';
 import { useIdempotencyKeyLease } from '../../hooks/use-idempotency-key-lease';
 import { useStaticSearchParam } from '../../hooks/use-static-search-param';
 import { useAuth } from '../../providers/auth-provider';
@@ -86,7 +93,7 @@ function railItems(detail: RequestDetail): readonly QueueRailItem[] {
     return [
       {
         id: detail.request.id,
-        label: detail.request.status,
+        label: requestStatusLabel(detail.request.status),
         state: 'current',
         timestamp: detail.request.statusChangedAt,
       },
@@ -97,12 +104,15 @@ function railItems(detail: RequestDetail): readonly QueueRailItem[] {
     const failed = ['failed', 'dead_lettered', 'rejected', 'validation_failed'].includes(
       transition.toStatus,
     );
-    const description = [transition.actorName, transition.reason]
+    const description = [
+      transition.actorName,
+      requestTransitionReasonLabel(transition.reason ?? null),
+    ]
       .filter((value) => value !== null && value !== undefined)
       .join(' · ');
     return {
       id: transition.id,
-      label: transition.toStatus,
+      label: requestStatusLabel(transition.toStatus),
       description: description === '' ? undefined : description,
       state: failed ? 'failed' : isLast ? 'current' : 'complete',
       timestamp: new Date(transition.occurredAt).toLocaleString(),
@@ -123,7 +133,7 @@ export function RequestDetailScreen(): React.JSX.Element {
   });
   const [command, setCommand] = useState<Command | null>(null);
   const commandKey = useIdempotencyKeyLease(`${requestId ?? 'no-request'}:${command ?? 'none'}`);
-  const { can, online } = useAuth();
+  const { can, online, session } = useAuth();
   const { notify } = useToast();
   const parsed = useMemo(() => {
     if (detailQuery.data === undefined) return null;
@@ -174,15 +184,29 @@ export function RequestDetailScreen(): React.JSX.Element {
     ['pending_approval', 'queued'].includes(parsed.request.status);
   const canRetry =
     parsed !== null && can('retry') && ['failed', 'dead_lettered'].includes(parsed.request.status);
+  const workspaceRole =
+    session?.user.platformRole === 'platform_admin'
+      ? 'tenant_admin'
+      : (session?.selectedTenant.role ?? 'viewer');
+  const backDestination =
+    workspaceRole === 'approver'
+      ? { href: '/approvals' as const, label: 'Approval inbox' }
+      : workspaceRole === 'operator' || workspaceRole === 'viewer'
+        ? { href: '/requests' as const, label: 'Request history' }
+        : { href: '/' as const, label: 'Admin overview' };
 
   return (
     <AppShell>
       <PageHeader
         actions={
           <>
-            <Link className="qf-button qf-button--quiet" href="/requests" prefetch={false}>
+            <Link
+              className="qf-button qf-button--quiet"
+              href={backDestination.href}
+              prefetch={false}
+            >
               <ArrowLeft size={16} />
-              All requests
+              {backDestination.label}
             </Link>
             <Button
               icon={<RefreshCw size={16} />}
@@ -213,9 +237,9 @@ export function RequestDetailScreen(): React.JSX.Element {
             ) : null}
           </>
         }
-        description="Trace the immutable payload, decision gate, and every durable status transition."
-        eyebrow="Request inspection"
-        title="Request detail"
+        description="See what was requested, where it is now, and what happened along the way."
+        eyebrow="Request details"
+        title={parsed === null ? 'Request' : requestTypeLabel(parsed.request.workflowName)}
       />
 
       {!search.ready ? (
@@ -227,8 +251,12 @@ export function RequestDetailScreen(): React.JSX.Element {
       ) : requestId === null ? (
         <StatePanel
           action={
-            <Link className="qf-button qf-button--secondary" href="/requests" prefetch={false}>
-              Choose a request
+            <Link
+              className="qf-button qf-button--secondary"
+              href={backDestination.href}
+              prefetch={false}
+            >
+              Return to {backDestination.label.toLowerCase()}
             </Link>
           }
           description="This static detail route requires a valid UUID in the id query parameter."
@@ -246,39 +274,40 @@ export function RequestDetailScreen(): React.JSX.Element {
               <div className="qf-detail-banner">
                 <div>
                   <span>Status</span>
-                  <StatusBadge status={parsed.request.status} />
+                  <StatusBadge
+                    status={parsed.request.status}
+                    label={requestStatusLabel(parsed.request.status)}
+                  />
                 </div>
                 <div>
-                  <span>Request ID</span>
-                  <CompactId value={parsed.request.id} />
+                  <span>Request type</span>
+                  <strong>{requestTypeLabel(parsed.request.workflowName)}</strong>
                 </div>
                 <div>
-                  <span>Correlation ID</span>
-                  <CompactId value={parsed.request.correlationId} />
+                  <span>Progress</span>
+                  <strong>{requestProgressLabel(parsed.request)}</strong>
                 </div>
                 <div>
-                  <span>Version</span>
-                  <strong className="qf-mono">v{parsed.request.versionNo}</strong>
+                  <span>Submitted</span>
+                  <DateTime value={parsed.request.submittedAt} />
                 </div>
               </div>
               <div className="qf-content-grid qf-content-grid--detail">
                 <Panel
-                  title="Lifecycle timeline"
-                  description="Append-only transitions ordered by occurrence time."
+                  title="Progress history"
+                  description="A clear, time-ordered record of what happened to this request."
                 >
                   <QueueRail items={railItems(parsed)} ariaLabel="Request status timeline" />
                 </Panel>
                 <div className="qf-content-grid">
-                  <Panel title="Request facts">
+                  <Panel title="Request summary">
                     <dl className="qf-key-values">
-                      <dt>Workflow</dt>
-                      <dd>{parsed.request.workflowName}</dd>
-                      <dt>Source</dt>
-                      <dd>{parsed.request.source.replaceAll('_', ' ')}</dd>
-                      <dt>Attempts</dt>
-                      <dd className="qf-mono">
-                        {parsed.request.attemptCount} / {parsed.request.maxAttempts}
-                      </dd>
+                      <dt>Request type</dt>
+                      <dd>{requestTypeLabel(parsed.request.workflowName)}</dd>
+                      <dt>Started from</dt>
+                      <dd>{requestSourceLabel(parsed.request.source)}</dd>
+                      <dt>Progress</dt>
+                      <dd>{requestProgressLabel(parsed.request)}</dd>
                       <dt>Submitted</dt>
                       <dd>
                         <DateTime value={parsed.request.submittedAt} />
@@ -290,25 +319,32 @@ export function RequestDetailScreen(): React.JSX.Element {
                     </dl>
                   </Panel>
                   <Panel
-                    title="Approval binding"
-                    description="Decision controls remain server-authoritative."
+                    title="Approval"
+                    description="Who requested the decision and what the approver decided."
                   >
                     {parsed.approval === null ? (
                       <p className="qf-chart-summary">
-                        This workflow version did not require approval.
+                        This request type runs without a separate approval.
                       </p>
                     ) : (
                       <dl className="qf-key-values">
                         <dt>Status</dt>
                         <dd>
-                          <StatusBadge status={parsed.approval.status} />
+                          <StatusBadge
+                            status={parsed.approval.status}
+                            label={
+                              parsed.approval.status === 'pending'
+                                ? 'Waiting for approval'
+                                : parsed.approval.status === 'approved'
+                                  ? 'Approved'
+                                  : 'Declined'
+                            }
+                          />
                         </dd>
                         <dt>Requested by</dt>
                         <dd>{parsed.approval.requestedBy}</dd>
                         <dt>Decided by</dt>
                         <dd>{parsed.approval.decidedBy ?? 'Not decided'}</dd>
-                        <dt>Revision</dt>
-                        <dd className="qf-mono">{parsed.approval.revision}</dd>
                         <dt>Note</dt>
                         <dd>{parsed.approval.note ?? 'No note'}</dd>
                       </dl>
@@ -328,16 +364,28 @@ export function RequestDetailScreen(): React.JSX.Element {
                     </pre>
                   </details>
                 </Panel>
-                <Panel className="qf-span-full" title="Authorization note">
-                  <div className="qf-control-note__content">
+                <details className="qf-span-full qf-technical-note">
+                  <summary>
                     <ShieldCheck size={19} aria-hidden="true" />
-                    <p>
-                      Controls are shown only when the current role appears eligible. Every command
-                      is still re-checked against tenant, role, workflow policy, and current
-                      revision by the API.
-                    </p>
-                  </div>
-                </Panel>
+                    Technical record and security details
+                  </summary>
+                  <dl className="qf-key-values">
+                    <dt>Request reference</dt>
+                    <dd>
+                      <CompactId value={parsed.request.id} />
+                    </dd>
+                    <dt>Correlation reference</dt>
+                    <dd>
+                      <CompactId value={parsed.request.correlationId} />
+                    </dd>
+                    <dt>Configuration version</dt>
+                    <dd className="qf-mono">v{parsed.request.versionNo}</dd>
+                  </dl>
+                  <p>
+                    QueueForge checks every command again on the server against the tenant, role,
+                    request policy, and current state.
+                  </p>
+                </details>
               </div>
             </>
           ) : null}
@@ -347,8 +395,8 @@ export function RequestDetailScreen(): React.JSX.Element {
       <Dialog
         description={
           command === 'cancel'
-            ? 'Cancellation is recorded as a durable state transition.'
-            : 'A manual retry preserves the failed attempt history.'
+            ? 'This stops work that has not completed yet and records who stopped it.'
+            : 'QueueForge keeps the earlier attempts and starts another safe try.'
         }
         footer={
           <>
@@ -375,9 +423,7 @@ export function RequestDetailScreen(): React.JSX.Element {
             {formatProblem(commandMutation.error)}
           </div>
         ) : null}
-        <p>
-          The API requires a fresh idempotency key and will reject stale or illegal transitions.
-        </p>
+        <p>Your action is checked again against the request's latest status before it is saved.</p>
       </Dialog>
     </AppShell>
   );

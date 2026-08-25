@@ -31,6 +31,9 @@ export class OutboxEventEntity extends TenantOwnedEntity {
   @Column('integer', { default: 0, name: 'attempt_count' })
   public attemptCount!: number;
 
+  @Column('integer', { default: 0, name: 'attempt_sequence' })
+  public attemptSequence!: number;
+
   @Column('integer', { default: 10, name: 'max_attempts' })
   public maxAttempts!: number;
 
@@ -51,7 +54,7 @@ export class OutboxEventEntity extends TenantOwnedEntity {
 }
 
 @Entity({ name: 'outbox_attempts' })
-@Index(['tenantId', 'outboxEventId', 'attemptNo'], { unique: true })
+@Index(['tenantId', 'outboxEventId', 'attemptNo', 'outcome'], { unique: true })
 export class OutboxAttemptEntity {
   @PrimaryColumn('uuid', { name: 'tenant_id' })
   public tenantId!: string;

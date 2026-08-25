@@ -19,11 +19,11 @@ describe('Control desk accessibility', () => {
             ]}
           />
         </Panel>
-        <form aria-label="Workflow form">
+        <form aria-label="Request type form">
           <InputField
             helper="Stable external key."
             id="workflow-key-a11y"
-            label="Workflow key"
+            label="Request type key"
             required
           />
           <StatusBadge status="pending_approval" />

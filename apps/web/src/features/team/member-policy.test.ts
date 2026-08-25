@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { MemberFormSchema, membershipInputFromForm } from './member-policy';
+import { MemberFormSchema, memberAccessState, membershipInputFromForm } from './member-policy';
 
 describe('add-membership policy', () => {
   it('omits new-user credentials when adding an existing identity', () => {
@@ -42,5 +42,27 @@ describe('add-membership policy', () => {
         role: 'operator',
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('member access policy', () => {
+  const editableMember = { id: 'member-id', roleLocked: false };
+
+  it('keeps team access read-only without team management permission', () => {
+    expect(memberAccessState(false, 'admin-id', editableMember)).toBe('view_only');
+  });
+
+  it('honors a server-backed role lock before offering an edit action', () => {
+    expect(memberAccessState(true, 'admin-id', { id: 'demo-member-id', roleLocked: true })).toBe(
+      'locked',
+    );
+  });
+
+  it('does not offer self-demotion in the team screen', () => {
+    expect(memberAccessState(true, 'member-id', editableMember)).toBe('current_account');
+  });
+
+  it('offers deliberate editing for another unlocked member', () => {
+    expect(memberAccessState(true, 'admin-id', editableMember)).toBe('editable');
   });
 });

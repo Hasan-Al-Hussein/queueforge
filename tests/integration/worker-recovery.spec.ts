@@ -54,10 +54,10 @@ describe('worker terminal recovery and replay invariants', () => {
       `INSERT INTO workflow_requests
          (tenant_id, id, workflow_template_id, workflow_version_id, status, source,
           payload, payload_hash, correlation_id, submitted_by_principal_id,
-          submitted_by_principal_kind, attempt_count, max_attempts, submitted_at,
+          submitted_by_principal_kind, attempt_count, attempt_sequence, max_attempts, submitted_at,
           status_changed_at)
        VALUES ($1, $2, $3, $4, 'processing', 'system', '{}'::jsonb, $5, $6, $7,
-               'system', 3, 3, clock_timestamp() - interval '5 minutes',
+               'system', 3, 3, 3, clock_timestamp() - interval '5 minutes',
                clock_timestamp() - interval '2 minutes')`,
       [
         tenantId,

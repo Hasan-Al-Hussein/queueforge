@@ -7,7 +7,7 @@ import { Button, Check, Panel, RefreshCw, StatusBadge, cn } from '@queueforge/ui
 import { apiRequest, formatProblem } from '../../api/client';
 import { routes } from '../../api/routes';
 import { AppShell } from '../../components/app-shell';
-import { DateTime } from '../../components/format';
+import { CompactId, DateTime } from '../../components/format';
 import { PageHeader } from '../../components/page-header';
 import { PaginationControls } from '../../components/pagination-controls';
 import { QueryState } from '../../components/query-state';
@@ -16,9 +16,11 @@ import {
   PagedNotificationsSchema,
   type Notification,
 } from '../../domain/models';
+import { requestTypeLabel } from '../../domain/presentation';
 import { pageSearchParams, usePagination } from '../../hooks/use-pagination';
 import { useAuth } from '../../providers/auth-provider';
 import { useToast } from '../../providers/toast-provider';
+import { notificationPresentation } from './notification-presentation';
 
 export function NotificationsScreen(): React.JSX.Element {
   const pagination = usePagination();
@@ -43,7 +45,7 @@ export function NotificationsScreen(): React.JSX.Element {
         schema: NotificationSchema,
       }),
     onSuccess: async () => {
-      notify('Notification marked as read.', 'success');
+      notify('Update marked as read.', 'success');
       await queryClient.invalidateQueries({ queryKey: ['notifications'] });
     },
   });
@@ -69,9 +71,9 @@ export function NotificationsScreen(): React.JSX.Element {
             Refresh
           </Button>
         }
-        description="Important updates about approvals, retries, failures, and completed work."
+        description="Clear updates about decisions, completed requests, retries, and problems."
         eyebrow="Stay informed"
-        title="Notifications"
+        title="Updates"
       />
       {markRead.error !== null ? (
         <div className="qf-form-error" role="alert">
@@ -79,10 +81,10 @@ export function NotificationsScreen(): React.JSX.Element {
         </div>
       ) : null}
       <Panel
-        title="Inbox"
-        description={`${String(unreadCount)} unread notification${unreadCount === 1 ? '' : 's'} on this page`}
+        title="Your updates"
+        description={`${String(unreadCount)} unread update${unreadCount === 1 ? '' : 's'} on this page`}
       >
-        <div className="qf-segmented" role="tablist" aria-label="Notification filter">
+        <div className="qf-segmented" role="tablist" aria-label="Update filter">
           <button
             aria-selected={filter === 'all'}
             onClick={() => setFilter('all')}
@@ -104,57 +106,85 @@ export function NotificationsScreen(): React.JSX.Element {
           empty={notificationsQuery.isSuccess && visibleRows.length === 0}
           emptyDescription={
             filter === 'unread'
-              ? 'Every notification on this page has been read. Check another page or return to all notifications.'
-              : 'No operational event has produced an in-app notification.'
+              ? 'Every update on this page has been read. Check another page or return to all updates.'
+              : 'QueueForge has no update to show you yet.'
           }
-          emptyTitle={filter === 'unread' ? 'You are caught up' : 'Inbox is empty'}
+          emptyTitle={filter === 'unread' ? 'You are caught up' : 'No updates yet'}
           error={notificationsQuery.error}
           isLoading={notificationsQuery.isLoading}
           onRetry={() => void notificationsQuery.refetch()}
         >
           <div className="qf-notification-list" role="list">
-            {visibleRows.map((notification) => (
-              <article
-                className={cn(
-                  'qf-notification',
-                  notification.readAt !== null && 'qf-notification--read',
-                )}
-                key={notification.id}
-                role="listitem"
-              >
-                <span className="qf-notification__marker" aria-hidden="true" />
-                <div>
-                  <div className="qf-notification__title">
-                    <h2>{notification.title}</h2>
-                    <StatusBadge
-                      status={notification.kind === 'error' ? 'failed' : notification.kind}
-                      label={notification.kind}
-                    />
+            {visibleRows.map((notification) => {
+              const presentation = notificationPresentation(notification);
+              return (
+                <article
+                  className={cn(
+                    'qf-notification',
+                    notification.readAt !== null && 'qf-notification--read',
+                  )}
+                  key={notification.id}
+                  role="listitem"
+                >
+                  <span className="qf-notification__marker" aria-hidden="true" />
+                  <div>
+                    <div className="qf-notification__title">
+                      <h2>{presentation.heading}</h2>
+                      <StatusBadge status={presentation.status} label={presentation.label} />
+                    </div>
+                    <p>{notification.body}</p>
+                    {notification.requestId === null && notification.workflowName === null ? (
+                      <p className="qf-utility">Workspace update · no request linked</p>
+                    ) : (
+                      <div className="qf-utility">
+                        <strong>
+                          Request type:{' '}
+                          {notification.workflowName === null
+                            ? 'Request'
+                            : requestTypeLabel(notification.workflowName)}
+                        </strong>
+                        {notification.requestId === null ? null : (
+                          <div>
+                            Reference: <CompactId value={notification.requestId} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    <DateTime value={notification.createdAt} />
+                    <details className="qf-advanced-disclosure">
+                      <summary>Update details</summary>
+                      <dl className="qf-key-values">
+                        <dt>Original update</dt>
+                        <dd>{notification.title}</dd>
+                        <dt>Reference</dt>
+                        <dd>
+                          <CompactId value={notification.id} />
+                        </dd>
+                      </dl>
+                    </details>
                   </div>
-                  <p>{notification.body}</p>
-                  <DateTime value={notification.createdAt} />
-                </div>
-                {notification.readAt === null ? (
-                  <Button
-                    aria-label={`Mark ${notification.title} as read`}
-                    disabled={!online}
-                    icon={<Check size={15} />}
-                    loading={markRead.isPending && markRead.variables.id === notification.id}
-                    onClick={() => markRead.mutate(notification)}
-                    tone="quiet"
-                  >
-                    Mark read
-                  </Button>
-                ) : (
-                  <span className="qf-utility">Read</span>
-                )}
-              </article>
-            ))}
+                  {notification.readAt === null ? (
+                    <Button
+                      aria-label={`Mark ${presentation.heading} as read`}
+                      disabled={!online}
+                      icon={<Check size={15} />}
+                      loading={markRead.isPending && markRead.variables.id === notification.id}
+                      onClick={() => markRead.mutate(notification)}
+                      tone="quiet"
+                    >
+                      Mark read
+                    </Button>
+                  ) : (
+                    <span className="qf-utility">Read</span>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </QueryState>
         {notificationsQuery.data?.meta === undefined ? null : (
           <PaginationControls
-            ariaLabel="Notifications"
+            ariaLabel="Updates"
             disabled={notificationsQuery.isFetching}
             meta={notificationsQuery.data.meta}
             onPageChange={pagination.setPage}

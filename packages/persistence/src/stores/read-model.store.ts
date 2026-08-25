@@ -439,11 +439,17 @@ export class ReadModelStore {
     const fromSql = `FROM webhook_deliveries delivery
        JOIN webhook_endpoints endpoint
          ON endpoint.tenant_id = delivery.tenant_id AND endpoint.id = delivery.endpoint_id
+       LEFT JOIN workflow_requests request
+         ON request.tenant_id = delivery.tenant_id
+        AND request.id::text = delivery.payload_snapshot->>'aggregateId'
+       LEFT JOIN workflow_versions version
+         ON version.tenant_id = request.tenant_id AND version.id = request.workflow_version_id
        WHERE delivery.tenant_id = $1`;
     return this.listJsonPage(
       `SELECT delivery.id, endpoint.name AS "endpointName",
               delivery.payload_snapshot->>'eventType' AS "eventType",
               delivery.event_id AS "eventId", delivery.status,
+              request.id AS "requestId", version.name AS "workflowName",
               delivery.attempt_count AS "attemptCount",
               delivery.next_attempt_at AS "nextAttemptAt",
               (SELECT attempt.response_status
@@ -584,15 +590,20 @@ export class ReadModelStore {
          ON receipt.tenant_id = notification.tenant_id
         AND receipt.notification_id = notification.id
         AND receipt.user_id = $2::uuid
+       LEFT JOIN workflow_requests request
+         ON request.tenant_id = notification.tenant_id AND request.id = notification.request_id
+       LEFT JOIN workflow_versions version
+         ON version.tenant_id = request.tenant_id AND version.id = request.workflow_version_id
        WHERE notification.tenant_id = $1
          AND ((notification.recipient_kind = 'user' AND notification.recipient_ref = $2::text)
            OR (notification.recipient_kind = 'role' AND notification.recipient_ref = $3))`;
     return this.listJsonPage(
       `SELECT notification.id, notification.title, notification.body,
+               request.id AS "requestId", version.name AS "workflowName",
                CASE
                  WHEN notification.status = 'failed' THEN 'error'
-                 WHEN lower(notification.title) LIKE '%approval%' THEN 'warning'
                  WHEN notification.status = 'delivered' THEN 'success'
+                 WHEN lower(notification.title) LIKE '%approval%' THEN 'warning'
                  ELSE 'info'
                END AS kind,
                CASE WHEN notification.recipient_kind = 'role'
@@ -617,7 +628,7 @@ export class ReadModelStore {
        WHERE membership.tenant_id = $1`;
     return this.listJsonPage(
       `SELECT app_user.id, app_user.email, app_user.display_name AS "displayName",
-              membership.role,
+              membership.role, membership.role_locked AS "roleLocked",
               CASE WHEN membership.is_active THEN 'active' ELSE 'disabled' END AS status,
               membership.created_at AS "joinedAt"
        ${fromSql}

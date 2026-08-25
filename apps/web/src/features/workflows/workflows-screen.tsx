@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ChangeEvent } from 'react';
+import { useMemo, useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +31,7 @@ import { PageHeader } from '../../components/page-header';
 import { PermissionGate } from '../../components/permission-gate';
 import { QueryState } from '../../components/query-state';
 import { WorkflowDetailSchema, WorkflowListSchema } from '../../domain/models';
+import { isSystemCheckWorkflow, requestTypeLabel } from '../../domain/presentation';
 import { useIdempotencyKeyLease } from '../../hooks/use-idempotency-key-lease';
 import { useAuth } from '../../providers/auth-provider';
 import { useToast } from '../../providers/toast-provider';
@@ -50,7 +51,7 @@ type CreateWorkflow = z.infer<typeof CreateWorkflowSchema>;
 const columns: readonly ColumnDef<WorkflowSummary, unknown>[] = [
   {
     accessorKey: 'name',
-    header: 'Workflow',
+    header: 'Request type',
     cell: ({ row }) => (
       <div>
         <Link
@@ -58,7 +59,7 @@ const columns: readonly ColumnDef<WorkflowSummary, unknown>[] = [
           href={`/workflows/editor?id=${encodeURIComponent(row.original.id)}`}
           prefetch={false}
         >
-          {row.original.name}
+          {requestTypeLabel(row.original.name)}
         </Link>
         <div className="qf-utility">{row.original.description ?? 'No description yet'}</div>
       </div>
@@ -66,21 +67,32 @@ const columns: readonly ColumnDef<WorkflowSummary, unknown>[] = [
   },
   {
     accessorKey: 'versionStatus',
-    header: 'State',
-    cell: ({ getValue }) => <StatusBadge status={String(getValue())} />,
+    header: 'Setup status',
+    cell: ({ row }) => (
+      <StatusBadge
+        status={row.original.versionStatus}
+        label={
+          row.original.versionStatus === 'active'
+            ? 'Live'
+            : row.original.versionStatus === 'draft'
+              ? 'Draft'
+              : 'Archived'
+        }
+      />
+    ),
   },
   {
     accessorKey: 'requiresApproval',
-    header: 'Approval',
-    cell: ({ getValue }) => (getValue() === true ? 'Required' : 'Bypassed'),
+    header: 'Decision step',
+    cell: ({ getValue }) => (getValue() === true ? 'Approval required' : 'Runs automatically'),
   },
   {
     accessorKey: 'isEnabled',
-    header: 'Intake',
+    header: 'Availability',
     cell: ({ getValue }) => (
       <StatusBadge
         status={getValue() === true ? 'active' : 'retired'}
-        label={getValue() === true ? 'enabled' : 'disabled'}
+        label={getValue() === true ? 'Accepting requests' : 'Paused'}
       />
     ),
   },
@@ -93,8 +105,9 @@ const columns: readonly ColumnDef<WorkflowSummary, unknown>[] = [
 
 export function WorkflowsScreen(): React.JSX.Element {
   const [createOpen, setCreateOpen] = useState(false);
+  const [showSystemChecks, setShowSystemChecks] = useState(false);
   const router = useRouter();
-  const { online } = useAuth();
+  const { can, online } = useAuth();
   const { notify } = useToast();
   const queryClient = useQueryClient();
   const workflowsQuery = useQuery({
@@ -138,7 +151,16 @@ export function WorkflowsScreen(): React.JSX.Element {
     createMutation.reset();
     setCreateOpen(false);
   };
-  const rows = workflowsQuery.data ?? [];
+  const allRows = useMemo(() => workflowsQuery.data ?? [], [workflowsQuery.data]);
+  const systemCheckRows = useMemo(
+    () => allRows.filter((workflow) => isSystemCheckWorkflow(workflow)),
+    [allRows],
+  );
+  const businessRows = useMemo(
+    () => allRows.filter((workflow) => !isSystemCheckWorkflow(workflow)),
+    [allRows],
+  );
+  const rows = showSystemChecks ? allRows : businessRows;
 
   return (
     <AppShell>
@@ -159,39 +181,58 @@ export function WorkflowsScreen(): React.JSX.Element {
                 onClick={() => setCreateOpen(true)}
                 tone="primary"
               >
-                New workflow
+                New request type
               </Button>
             </PermissionGate>
           </>
         }
-        description="Create friendly request forms, choose approvals, and decide what happens next."
-        eyebrow="Set up how work flows"
-        title="Workflow builder"
+        description={
+          can('configure_workflows')
+            ? 'Build the simple forms people use, choose who approves them, and decide what happens after approval.'
+            : 'See the request types currently available and how each one moves through approval.'
+        }
+        eyebrow={can('configure_workflows') ? 'Admin workspace' : 'Read-only reference'}
+        title="Request types"
       />
       <Panel>
+        {systemCheckRows.length === 0 ? null : (
+          <div className="qf-catalog-note" role="note">
+            <div>
+              <strong>System-check records are kept separate</strong>
+              <p>
+                {String(systemCheckRows.length)} automated recovery test
+                {systemCheckRows.length === 1 ? '' : 's'} are hidden so the request types your team
+                actually uses stay easy to find.
+              </p>
+            </div>
+            <Button onClick={() => setShowSystemChecks((current) => !current)} tone="quiet">
+              {showSystemChecks ? 'Hide system checks' : 'Show system checks'}
+            </Button>
+          </div>
+        )}
         <QueryState
           empty={workflowsQuery.isSuccess && rows.length === 0}
           emptyAction={
             <PermissionGate permission="configure_workflows">
               <Button icon={<GitBranchPlus size={16} />} onClick={() => setCreateOpen(true)}>
-                Create a draft
+                Create a request type
               </Button>
             </PermissionGate>
           }
-          emptyDescription="Create your first workflow, add the questions people should answer, then turn it on."
-          emptyTitle="No workflows yet"
+          emptyDescription="Create a request type, add the questions people should answer, then make it available."
+          emptyTitle="No request types yet"
           error={workflowsQuery.error}
           isLoading={workflowsQuery.isLoading}
           onRetry={() => void workflowsQuery.refetch()}
         >
           <DataTable
-            ariaLabel="Workflow catalog"
+            ariaLabel="Request types"
             columns={columns}
             getRowId={(row) => row.id}
             rows={rows}
             search={{
-              label: 'Search workflows',
-              placeholder: 'Name, key, or version state',
+              label: 'Search request types',
+              placeholder: 'Name, purpose, or setup status',
               text: (row) => `${row.name} ${row.stableKey} ${row.versionStatus}`,
             }}
           />
@@ -199,7 +240,7 @@ export function WorkflowsScreen(): React.JSX.Element {
       </Panel>
 
       <Dialog
-        description="Give the workflow a clear name. You will build its request form on the next screen."
+        description="Give this request type a clear name. You will choose its questions on the next screen."
         footer={
           <>
             <Button onClick={cancelCreation}>Cancel</Button>
@@ -216,7 +257,7 @@ export function WorkflowsScreen(): React.JSX.Element {
         }
         onClose={cancelCreation}
         open={createOpen}
-        title="Create a new workflow"
+        title="Create a request type"
       >
         {createMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
@@ -227,7 +268,7 @@ export function WorkflowsScreen(): React.JSX.Element {
           <InputField
             error={errors.name?.message}
             id="workflow-name"
-            label="Workflow name"
+            label="Request type name"
             required
             {...register('name', {
               onChange: (event: ChangeEvent<HTMLInputElement>) => {
@@ -243,9 +284,9 @@ export function WorkflowsScreen(): React.JSX.Element {
           />
           <TextareaField
             error={errors.description?.message}
-            helper="Explain when someone should use this workflow."
+            helper="Explain when someone should use this request type."
             id="workflow-description"
-            label="What is this workflow for?"
+            label="When should someone use this?"
             maxLength={2000}
             {...register('description')}
           />

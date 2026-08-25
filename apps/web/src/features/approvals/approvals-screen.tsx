@@ -29,6 +29,7 @@ import { PageHeader } from '../../components/page-header';
 import { PaginationControls } from '../../components/pagination-controls';
 import { QueryState } from '../../components/query-state';
 import { PagedApprovalsSchema, type ApprovalTask } from '../../domain/models';
+import { approvalPayloadPreview, requestTypeLabel } from '../../domain/presentation';
 import { WorkflowRequestViewSchema } from '@queueforge/contracts';
 import { useIdempotencyKeyLease } from '../../hooks/use-idempotency-key-lease';
 import { pageSearchParams, usePagination } from '../../hooks/use-pagination';
@@ -109,8 +110,8 @@ export function ApprovalsScreen(): React.JSX.Element {
       decisionKey.clear();
       notify(
         variables.decision === 'approved'
-          ? 'Approval recorded and request queued.'
-          : 'Rejection recorded.',
+          ? 'Request approved. QueueForge will start the next step.'
+          : 'Request declined. The requester can see your decision.',
         'success',
       );
       setSelected(null);
@@ -135,34 +136,45 @@ export function ApprovalsScreen(): React.JSX.Element {
   const columns: readonly ColumnDef<ApprovalTask, unknown>[] = [
     {
       accessorKey: 'workflowName',
-      header: 'Request',
+      header: 'Request type',
       cell: ({ row }) => (
-        <div>
+        <div className="qf-decision-summary">
           <Link
             className="qf-table-link"
             href={`/requests/detail?id=${encodeURIComponent(row.original.requestId)}`}
             prefetch={false}
           >
-            {row.original.workflowName}
+            {requestTypeLabel(row.original.workflowName)}
           </Link>
-          <div className="qf-utility">{row.original.payloadSummary}</div>
+          <div className="qf-utility">{approvalPayloadPreview(row.original.payloadSummary)}</div>
         </div>
       ),
     },
     { accessorKey: 'requestedByName', header: 'Requested by' },
     {
       accessorKey: 'status',
-      header: 'Decision',
-      cell: ({ getValue }) => <StatusBadge status={String(getValue())} />,
+      header: 'Status',
+      cell: ({ row }) => (
+        <StatusBadge
+          status={row.original.status}
+          label={
+            row.original.status === 'pending'
+              ? 'Waiting for you'
+              : row.original.status === 'approved'
+                ? 'Approved'
+                : 'Declined'
+          }
+        />
+      ),
     },
     {
       accessorKey: 'createdAt',
-      header: 'Created',
+      header: 'Waiting since',
       cell: ({ getValue }) => <DateTime value={String(getValue())} />,
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: 'Your decision',
       enableSorting: false,
       cell: ({ row }) => {
         const selfApproval = session?.user.id === row.original.requestedById;
@@ -170,21 +182,25 @@ export function ApprovalsScreen(): React.JSX.Element {
         return (
           <div className="qf-row-actions">
             <Button
-              aria-label={`Approve ${row.original.workflowName}`}
+              aria-label={`Approve ${requestTypeLabel(row.original.workflowName)}`}
               disabled={!actionable || !online}
               icon={<Check size={15} />}
               onClick={() => setSelected({ decision: 'approved', task: row.original })}
-              tone="quiet"
+              tone="primary"
               title={selfApproval ? 'Self-approval is forbidden by policy.' : undefined}
-            />
+            >
+              Approve
+            </Button>
             <Button
-              aria-label={`Reject ${row.original.workflowName}`}
+              aria-label={`Decline ${requestTypeLabel(row.original.workflowName)}`}
               disabled={!actionable || !online}
               icon={<X size={15} />}
               onClick={() => setSelected({ decision: 'rejected', task: row.original })}
               tone="quiet"
               title={selfApproval ? 'Self-approval is forbidden by policy.' : undefined}
-            />
+            >
+              Decline
+            </Button>
           </div>
         );
       },
@@ -204,24 +220,21 @@ export function ApprovalsScreen(): React.JSX.Element {
             Refresh
           </Button>
         }
-        description="Review the request in plain language, then approve or reject it with confidence."
-        eyebrow="Needs a decision"
-        title="Approval inbox"
+        description="See who is asking, what they need, and the important details before you decide."
+        eyebrow="Your approval workspace"
+        title="Decisions waiting for you"
       />
       {!can('approve') ? (
         <div className="qf-inline-alert" role="note">
           <ShieldAlert size={18} aria-hidden="true" />
-          <p>
-            Your role may inspect approval history but cannot decide. The server independently
-            enforces this permission.
-          </p>
+          <p>This page is read-only for your role. An approver must make the final decision.</p>
         </div>
       ) : null}
       <Panel>
         <QueryState
           empty={approvalsQuery.isSuccess && rows.length === 0}
-          emptyDescription="There are no approval tasks for this tenant. Requests that bypass approval move directly to the queue."
-          emptyTitle="Approval queue is clear"
+          emptyDescription="Nothing needs your decision right now. New requests will appear here when they need approval."
+          emptyTitle="You are all caught up"
           error={approvalsQuery.error}
           isLoading={approvalsQuery.isLoading}
           onRetry={() => void approvalsQuery.refetch()}
@@ -233,7 +246,7 @@ export function ApprovalsScreen(): React.JSX.Element {
             rows={rows}
             search={{
               label: 'Search approvals',
-              placeholder: 'Workflow, requester, or status',
+              placeholder: 'Request type, person, or detail',
               text: (row) =>
                 `${row.workflowName} ${row.requestedByName} ${row.status} ${row.payloadSummary}`,
             }}
@@ -255,7 +268,7 @@ export function ApprovalsScreen(): React.JSX.Element {
         description={
           selected === null
             ? undefined
-            : `${selected.decision === 'approved' ? 'Approve' : 'Reject'} ${selected.task.workflowName}, requested by ${selected.task.requestedByName}.`
+            : `${selected.decision === 'approved' ? 'Approve' : 'Reject'} ${requestTypeLabel(selected.task.workflowName)}, requested by ${selected.task.requestedByName}.`
         }
         footer={
           <>
@@ -267,13 +280,15 @@ export function ApprovalsScreen(): React.JSX.Element {
               onClick={() => void submit()}
               tone={selected?.decision === 'rejected' ? 'danger' : 'primary'}
             >
-              Record {selected?.decision === 'rejected' ? 'rejection' : 'approval'}
+              {selected?.decision === 'rejected' ? 'Decline request' : 'Approve request'}
             </Button>
           </>
         }
         onClose={cancelDecision}
         open={selected !== null}
-        title={selected?.decision === 'rejected' ? 'Reject this request?' : 'Approve this request?'}
+        title={
+          selected?.decision === 'rejected' ? 'Decline this request?' : 'Approve this request?'
+        }
       >
         {decisionMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
@@ -290,7 +305,11 @@ export function ApprovalsScreen(): React.JSX.Element {
           ) : selectedRequestQuery.data === undefined ? null : (
             <HumanReadablePayload
               payload={selectedRequestQuery.data.payload}
-              title={selected?.task.workflowName ?? 'Request information'}
+              title={
+                selected === null
+                  ? 'Request information'
+                  : requestTypeLabel(selected.task.workflowName)
+              }
             />
           )}
           <TextareaField

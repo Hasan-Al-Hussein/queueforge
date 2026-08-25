@@ -298,7 +298,7 @@ export class OperationsStore {
         metadata: {
           resourceKind: deadLetter.resource_kind,
           resourceId: deadLetter.resource_id,
-          attemptBudgetReset: deadLetter.resource_kind === 'request',
+          attemptBudgetReset: true,
         },
       });
       return { resourceKind: deadLetter.resource_kind, resourceId: deadLetter.resource_id };
@@ -315,16 +315,25 @@ export class OperationsStore {
         created_at: Date;
         id: string;
         recipient_kind: 'role' | 'user';
+        requestId: string | null;
         status: 'delivered' | 'failed' | 'pending';
         title: string;
+        workflowName: string | null;
       }>(
         await manager.query(
-          `SELECT id, title, body, status, recipient_kind, created_at
-           FROM notifications
-           WHERE tenant_id = $1 AND id = $2
-             AND ((recipient_kind = 'user' AND recipient_ref = $3)
-               OR (recipient_kind = 'role' AND recipient_ref = $4))
-           FOR UPDATE`,
+          `SELECT notification.id, notification.title, notification.body, notification.status,
+                  notification.recipient_kind, notification.created_at,
+                  request.id AS "requestId", version.name AS "workflowName"
+           FROM notifications notification
+           LEFT JOIN workflow_requests request
+             ON request.tenant_id = notification.tenant_id
+            AND request.id = notification.request_id
+           LEFT JOIN workflow_versions version
+             ON version.tenant_id = request.tenant_id AND version.id = request.workflow_version_id
+           WHERE notification.tenant_id = $1 AND notification.id = $2
+             AND ((notification.recipient_kind = 'user' AND notification.recipient_ref = $3)
+               OR (notification.recipient_kind = 'role' AND notification.recipient_ref = $4))
+           FOR UPDATE OF notification`,
           [context.tenantId, notificationId, context.principalId, context.role],
         ),
       );
@@ -364,13 +373,15 @@ export class OperationsStore {
         kind:
           notification.status === 'failed'
             ? 'error'
-            : notification.title.toLowerCase().includes('approval')
-              ? 'warning'
-              : notification.status === 'delivered'
-                ? 'success'
+            : notification.status === 'delivered'
+              ? 'success'
+              : notification.title.toLowerCase().includes('approval')
+                ? 'warning'
                 : 'info',
         readAt: readAt.toISOString(),
+        requestId: notification.requestId,
         title: notification.title,
+        workflowName: notification.workflowName,
       };
     });
   }
@@ -388,16 +399,56 @@ export class OperationsStore {
       );
     }
     return this.dataSource.transaction(async (manager) => {
-      const rows = queryRows<{ user_id: string }>(
+      // Serialize all role changes for a tenant so two concurrent demotions cannot remove
+      // the final active administrator after both observe the same pre-change count.
+      await manager.query(`SELECT id FROM tenants WHERE id = $1 FOR UPDATE`, [context.tenantId]);
+      const rows = queryRows<{
+        isActive: boolean;
+        role: TenantRole;
+        roleLocked: boolean;
+      }>(
         await manager.query(
-          `UPDATE memberships SET role = $3, updated_at = clock_timestamp()
-         WHERE tenant_id = $1 AND user_id = $2 RETURNING user_id`,
-          [context.tenantId, userId, role],
+          `SELECT role, is_active AS "isActive", role_locked AS "roleLocked"
+           FROM memberships
+           WHERE tenant_id = $1 AND user_id = $2
+           FOR UPDATE`,
+          [context.tenantId, userId],
         ),
       );
-      if (rows.length === 0) {
+      const membership = rows[0];
+      if (membership === undefined) {
         throw new PersistenceNotFoundError('membership');
       }
+      if (context.principalKind === 'user' && context.principalId === userId) {
+        throw new PersistenceConflictError('CONFLICT', 'Your own tenant role cannot be changed');
+      }
+      if (membership.roleLocked) {
+        throw new PersistenceConflictError('CONFLICT', 'This membership role is locked');
+      }
+      if (membership.role === role) {
+        throw new PersistenceConflictError('CONFLICT', 'Membership already has the requested role');
+      }
+      if (membership.isActive && membership.role === 'tenant_admin' && role !== 'tenant_admin') {
+        const adminCounts = queryRows<{ count: number }>(
+          await manager.query(
+            `SELECT count(*)::integer AS count
+             FROM memberships
+             WHERE tenant_id = $1 AND role = 'tenant_admin' AND is_active`,
+            [context.tenantId],
+          ),
+        );
+        if ((adminCounts[0]?.count ?? 0) <= 1) {
+          throw new PersistenceConflictError(
+            'CONFLICT',
+            'The final active tenant administrator cannot be demoted',
+          );
+        }
+      }
+      await manager.query(
+        `UPDATE memberships SET role = $3, updated_at = clock_timestamp()
+         WHERE tenant_id = $1 AND user_id = $2`,
+        [context.tenantId, userId, role],
+      );
       await appendAuditEvent(manager, context, {
         eventType: 'membership.role_changed',
         actorPrincipalId: context.principalId,
@@ -405,11 +456,11 @@ export class OperationsStore {
         resourceType: 'membership',
         resourceId: userId,
         correlationId,
-        metadata: { role },
+        metadata: { previousRole: membership.role, role },
       });
       const members = (await manager.query(
         `SELECT app_user.id, app_user.email, app_user.display_name AS "displayName",
-                membership.role,
+                membership.role, membership.role_locked AS "roleLocked",
                 CASE WHEN membership.is_active THEN 'active' ELSE 'disabled' END AS status,
                 membership.created_at AS "joinedAt"
          FROM memberships membership

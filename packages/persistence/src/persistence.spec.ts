@@ -38,6 +38,7 @@ describe('request execution configuration', () => {
             id: '80000000-0000-4000-8000-000000000001',
             status: 'queued',
             attempt_count: 0,
+            attempt_sequence: 0,
             max_attempts: 5,
             correlation_id: '90000000-0000-4000-8000-000000000001',
             status_changed_at: new Date('2026-08-24T00:00:00.000Z'),
@@ -62,7 +63,12 @@ describe('request execution configuration', () => {
         '80000000-0000-4000-8000-000000000001',
         'worker-test',
       ),
-    ).resolves.toMatchObject({ attemptNo: 1, processingConfig, processorConfig });
+    ).resolves.toMatchObject({
+      attemptNo: 1,
+      budgetAttemptNo: 1,
+      processingConfig,
+      processorConfig,
+    });
     expect(query.mock.calls[0]?.[0]).toContain('version.processing_config');
     expect(query.mock.calls[0]?.[0]).toContain("target.target_kind = 'processor'");
     expect(query.mock.calls[0]?.[0]).toContain('FOR UPDATE OF request');
@@ -79,6 +85,7 @@ describe('request execution configuration', () => {
             id: '80000000-0000-4000-8000-000000000001',
             status: 'cancelled',
             attempt_count: 0,
+            attempt_sequence: 0,
             max_attempts: 5,
             correlation_id: '90000000-0000-4000-8000-000000000001',
             status_changed_at: new Date('2026-08-24T00:00:00.000Z'),

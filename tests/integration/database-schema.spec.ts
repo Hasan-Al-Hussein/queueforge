@@ -56,14 +56,74 @@ describe('PostgreSQL migration and isolation invariants', () => {
       `SELECT indexname FROM pg_indexes
        WHERE schemaname = 'public' AND indexname = 'security_events_correlation_idx'`,
     )) as unknown as Array<{ indexname: string }>;
+    const membershipRoleLock = (await owner.query(
+      `SELECT column_name, column_default, data_type, is_nullable
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'memberships'
+         AND column_name = 'role_locked'`,
+    )) as unknown as Array<{
+      column_default: string;
+      column_name: string;
+      data_type: string;
+      is_nullable: string;
+    }>;
+    const requestAttemptSequence = (await owner.query(
+      `SELECT column_name, column_default, data_type, is_nullable
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'workflow_requests'
+         AND column_name = 'attempt_sequence'`,
+    )) as unknown as Array<{
+      column_default: string;
+      column_name: string;
+      data_type: string;
+      is_nullable: string;
+    }>;
+    const outboxAttemptSequence = (await owner.query(
+      `SELECT column_name, column_default, data_type, is_nullable
+       FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'outbox_events'
+         AND column_name = 'attempt_sequence'`,
+    )) as unknown as Array<{
+      column_default: string;
+      column_name: string;
+      data_type: string;
+      is_nullable: string;
+    }>;
 
     expect(owner.options.synchronize).toBe(false);
     await expect(owner.showMigrations()).resolves.toBe(false);
     expect(applied.map((row) => row.name)).toContain('InitialSchema1700000000000');
     expect(applied.map((row) => row.name)).toContain('SecurityEventCorrelation1700000003000');
+    expect(applied.map((row) => row.name)).toContain('MembershipRoleLock1700000005000');
+    expect(applied.map((row) => row.name)).toContain('RequestAttemptSequence1700000006000');
+    expect(applied.map((row) => row.name)).toContain('OutboxAttemptSequence1700000007000');
     expect(extensions).toEqual([{ extname: 'pgcrypto' }]);
     expect(securityCorrelation).toEqual([{ column_name: 'correlation_id', is_nullable: 'NO' }]);
     expect(securityCorrelationIndex).toEqual([{ indexname: 'security_events_correlation_idx' }]);
+    expect(membershipRoleLock).toEqual([
+      {
+        column_default: 'false',
+        column_name: 'role_locked',
+        data_type: 'boolean',
+        is_nullable: 'NO',
+      },
+    ]);
+    expect(requestAttemptSequence).toEqual([
+      {
+        column_default: '0',
+        column_name: 'attempt_sequence',
+        data_type: 'integer',
+        is_nullable: 'NO',
+      },
+    ]);
+    expect(outboxAttemptSequence).toEqual([
+      {
+        column_default: '0',
+        column_name: 'attempt_sequence',
+        data_type: 'integer',
+        is_nullable: 'NO',
+      },
+    ]);
   });
 
   it('rejects a cross-tenant workflow request at the composite foreign key', async () => {

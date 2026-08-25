@@ -17,6 +17,7 @@ interface LockedRequestRow {
   id: string;
   status: WorkflowRequestStatus;
   attempt_count: number;
+  attempt_sequence: number;
   max_attempts: number;
   correlation_id: string;
   status_changed_at: Date;
@@ -27,6 +28,7 @@ interface LockedRequestRow {
 
 export interface BeginRequestAttemptResult {
   readonly attemptNo: number;
+  readonly budgetAttemptNo: number;
   readonly startedAt: Date;
   readonly correlationId: string;
   readonly processingConfig: JsonObject;
@@ -57,7 +59,8 @@ async function lockRequest(
   requestId: string,
 ): Promise<LockedRequestRow> {
   const rows = (await manager.query(
-    `SELECT request.id, request.status, request.attempt_count, request.max_attempts,
+    `SELECT request.id, request.status, request.attempt_count, request.attempt_sequence,
+            request.max_attempts,
             request.correlation_id, request.status_changed_at, request.workflow_version_id,
             version.processing_config,
             processor.config AS processor_config
@@ -121,7 +124,7 @@ async function completeSucceededInTransaction(
   input: CompleteRequestInput,
 ): Promise<void> {
   const request = await lockRequest(manager, tenantId, input.requestId);
-  if (request.attempt_count !== input.attemptNo) {
+  if (request.attempt_sequence !== input.attemptNo) {
     throw new PersistenceConflictError('STALE_ATTEMPT', 'Worker attempt is stale');
   }
   assertRequestTransition(request.status, 'succeeded');
@@ -155,7 +158,11 @@ async function completeSucceededInTransaction(
     'worker_completed',
     'system',
     null,
-    { attemptNo: input.attemptNo, workerId: input.workerId },
+    {
+      attemptNo: input.attemptNo,
+      budgetAttemptNo: request.attempt_count,
+      workerId: input.workerId,
+    },
   );
   const targets = (await manager.query(
     `SELECT target_kind, config FROM workflow_targets
@@ -205,7 +212,11 @@ async function completeSucceededInTransaction(
         aggregateId: input.requestId,
         correlationId: input.correlationId,
         occurredAt: finishedAt.toISOString(),
-        payload: { requestId: input.requestId, attemptNo: input.attemptNo },
+        payload: {
+          requestId: input.requestId,
+          attemptNo: input.attemptNo,
+          budgetAttemptNo: request.attempt_count,
+        },
       };
       await manager.query(
         `INSERT INTO webhook_deliveries
@@ -279,6 +290,7 @@ async function completeSucceededInTransaction(
     correlationId: input.correlationId,
     metadata: {
       attemptNo: input.attemptNo,
+      budgetAttemptNo: request.attempt_count,
       workerId: input.workerId,
       webhookDeliveries,
       notifications,
@@ -293,11 +305,11 @@ async function completeFailedInTransaction(
   input: FailRequestInput,
 ): Promise<'queued' | 'dead_lettered'> {
   const request = await lockRequest(manager, tenantId, input.requestId);
-  if (request.attempt_count !== input.attemptNo) {
+  if (request.attempt_sequence !== input.attemptNo) {
     throw new PersistenceConflictError('STALE_ATTEMPT', 'Worker attempt is stale');
   }
   assertRequestTransition(request.status, 'failed');
-  const exhausted = input.attemptNo >= request.max_attempts;
+  const exhausted = request.attempt_count >= request.max_attempts;
   const finalStatus: 'queued' | 'dead_lettered' = exhausted ? 'dead_lettered' : 'queued';
   const finishedAt = new Date();
   await manager.query(
@@ -326,7 +338,11 @@ async function completeFailedInTransaction(
     'worker_failed',
     'system',
     null,
-    { attemptNo: input.attemptNo, errorCode: input.errorCode },
+    {
+      attemptNo: input.attemptNo,
+      budgetAttemptNo: request.attempt_count,
+      errorCode: input.errorCode,
+    },
   );
   assertRequestTransition('failed', finalStatus);
   await insertTransition(
@@ -338,7 +354,7 @@ async function completeFailedInTransaction(
     exhausted ? 'attempts_exhausted' : 'retry_scheduled',
     'system',
     null,
-    { attemptNo: input.attemptNo },
+    { attemptNo: input.attemptNo, budgetAttemptNo: request.attempt_count },
   );
   await manager.query(
     `UPDATE workflow_requests
@@ -353,7 +369,7 @@ async function completeFailedInTransaction(
          (tenant_id, id, resource_kind, resource_id, status, reason_code, reason_message, attempt_count)
        VALUES ($1, gen_random_uuid(), 'request', $2, 'open', $3, left($4, 2000), $5)
        ON CONFLICT DO NOTHING`,
-      [tenantId, input.requestId, input.errorCode, input.errorMessage, input.attemptNo],
+      [tenantId, input.requestId, input.errorCode, input.errorMessage, request.attempt_count],
     );
   }
   await appendAuditEvent(manager, scope, {
@@ -363,14 +379,23 @@ async function completeFailedInTransaction(
     resourceType: 'workflow_request',
     resourceId: input.requestId,
     correlationId: input.correlationId,
-    metadata: { attemptNo: input.attemptNo, errorCode: input.errorCode },
+    metadata: {
+      attemptNo: input.attemptNo,
+      budgetAttemptNo: request.attempt_count,
+      errorCode: input.errorCode,
+    },
   });
   await appendOutboxEvent(manager, scope, {
     eventType: exhausted ? 'request.dead_lettered' : 'request.failed',
     aggregateType: 'workflow_request',
     aggregateId: input.requestId,
     correlationId: input.correlationId,
-    payload: { requestId: input.requestId, attemptNo: input.attemptNo, errorCode: input.errorCode },
+    payload: {
+      requestId: input.requestId,
+      attemptNo: input.attemptNo,
+      budgetAttemptNo: request.attempt_count,
+      errorCode: input.errorCode,
+    },
   });
   return finalStatus;
 }
@@ -388,14 +413,16 @@ export class RequestExecutionStore {
     return this.dataSource.transaction(async (manager) => {
       const request = await lockRequest(manager, tenantId, requestId);
       assertRequestTransition(request.status, 'processing');
-      const attemptNo = request.attempt_count + 1;
+      const budgetAttemptNo = request.attempt_count + 1;
+      const attemptNo = request.attempt_sequence + 1;
       const startedAt = new Date();
       await manager.query(
         `UPDATE workflow_requests
-         SET status = 'processing', attempt_count = $3, status_changed_at = $4,
-             updated_at = $4, last_error_code = NULL, last_error_message = NULL
+         SET status = 'processing', attempt_count = $3, attempt_sequence = $4,
+             status_changed_at = $5, updated_at = $5,
+             last_error_code = NULL, last_error_message = NULL
          WHERE tenant_id = $1 AND id = $2`,
-        [tenantId, requestId, attemptNo, startedAt],
+        [tenantId, requestId, budgetAttemptNo, attemptNo, startedAt],
       );
       await insertTransition(
         manager,
@@ -406,10 +433,11 @@ export class RequestExecutionStore {
         'worker_started',
         'system',
         null,
-        { workerId, attemptNo },
+        { workerId, attemptNo, budgetAttemptNo },
       );
       return {
         attemptNo,
+        budgetAttemptNo,
         startedAt,
         correlationId: request.correlation_id,
         processingConfig: request.processing_config,
@@ -459,7 +487,7 @@ export class RequestExecutionStore {
           [
             tenantId,
             requestId,
-            request.attempt_count,
+            request.attempt_sequence,
             workerId,
             request.status_changed_at,
             recoveredAt,
@@ -474,7 +502,11 @@ export class RequestExecutionStore {
           'worker_interrupted',
           'system',
           null,
-          { recoveredBy: workerId, attemptNo: request.attempt_count },
+          {
+            recoveredBy: workerId,
+            attemptNo: request.attempt_sequence,
+            budgetAttemptNo: request.attempt_count,
+          },
         );
         const exhausted = request.attempt_count >= request.max_attempts;
         const recoveryStatus: 'queued' | 'dead_lettered' = exhausted ? 'dead_lettered' : 'queued';
@@ -488,7 +520,11 @@ export class RequestExecutionStore {
           exhausted ? 'interrupted_attempts_exhausted' : 'interrupted_attempt_requeued',
           'system',
           null,
-          { recoveredBy: workerId, attemptNo: request.attempt_count },
+          {
+            recoveredBy: workerId,
+            attemptNo: request.attempt_sequence,
+            budgetAttemptNo: request.attempt_count,
+          },
         );
         await manager.query(
           `UPDATE workflow_requests
@@ -514,7 +550,11 @@ export class RequestExecutionStore {
             resourceType: 'workflow_request',
             resourceId: requestId,
             correlationId: request.correlation_id,
-            metadata: { reason: 'worker_interrupted', attemptNo: request.attempt_count },
+            metadata: {
+              reason: 'worker_interrupted',
+              attemptNo: request.attempt_sequence,
+              budgetAttemptNo: request.attempt_count,
+            },
           });
           if (
             terminalReceipt !== undefined &&
@@ -555,14 +595,16 @@ export class RequestExecutionStore {
         return { duplicate: true };
       }
       assertRequestTransition(request.status, 'processing');
-      const attemptNo = request.attempt_count + 1;
+      const budgetAttemptNo = request.attempt_count + 1;
+      const attemptNo = request.attempt_sequence + 1;
       const startedAt = new Date();
       await manager.query(
         `UPDATE workflow_requests
-         SET status = 'processing', attempt_count = $3, status_changed_at = $4,
-             updated_at = $4, last_error_code = NULL, last_error_message = NULL
+         SET status = 'processing', attempt_count = $3, attempt_sequence = $4,
+             status_changed_at = $5, updated_at = $5,
+             last_error_code = NULL, last_error_message = NULL
          WHERE tenant_id = $1 AND id = $2`,
-        [tenantId, requestId, attemptNo, startedAt],
+        [tenantId, requestId, budgetAttemptNo, attemptNo, startedAt],
       );
       await insertTransition(
         manager,
@@ -573,10 +615,11 @@ export class RequestExecutionStore {
         'worker_started_after_recovery_check',
         'system',
         null,
-        { workerId, attemptNo },
+        { workerId, attemptNo, budgetAttemptNo },
       );
       return {
         attemptNo,
+        budgetAttemptNo,
         startedAt,
         correlationId: request.correlation_id,
         processingConfig: request.processing_config,

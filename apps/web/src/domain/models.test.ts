@@ -10,8 +10,10 @@ const delivery = {
   id: 'e65444ea-d871-4f7c-854f-48a114a0d5e1',
   lastStatusCode: 503,
   nextAttemptAt: '2026-08-24T12:47:30.000Z',
+  requestId: 'd65444ea-d871-4f7c-854f-48a114a0d5e2',
   status: 'retry',
   updatedAt: '2026-08-24T12:42:30.000Z',
+  workflowName: 'Expense review',
 } as const;
 
 describe('WebhookDeliverySchema', () => {

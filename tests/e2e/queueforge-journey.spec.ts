@@ -1,4 +1,8 @@
+import 'reflect-metadata';
+
 import { randomUUID } from 'node:crypto';
+import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
 
 import {
   expect,
@@ -9,6 +13,15 @@ import {
   type Response,
   type TestInfo,
 } from '@playwright/test';
+
+import { createQueueForgeDataSource } from '../../packages/persistence/dist/index.js';
+import {
+  cleanupAuthFixtures,
+  cleanupTenant,
+  cleanupUser,
+  cleanupWorkflowFixtures,
+  type AuthFixtureCleanupResult,
+} from '../database-cleanup.js';
 
 const WEB_ORIGIN = (
   process.env.E2E_BASE_URL ??
@@ -27,6 +40,40 @@ const SINK_ORIGIN = (
 const ACME_TENANT_ID = '10000000-0000-4000-8000-000000000001';
 const SEEDED_WEBHOOK_ENDPOINT_ID = '50000000-0000-4000-8000-000000000001';
 const APPROVER_EMAIL = process.env.E2E_APPROVER_EMAIL ?? 'approver@queueforge.local';
+const OPERATOR_EMAIL = process.env.E2E_OPERATOR_EMAIL ?? 'operator@queueforge.local';
+const E2E_TENANT_SLUG = /^e2e-[a-z0-9]+-[0-9a-f]{8}$/u;
+const E2E_VIEWER_EMAIL = /^e2e-viewer-[a-z0-9]+-[0-9a-f]{8}@example\.test$/u;
+const BULL_JOB_ID =
+  /^qf-[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+const QUEUE_NAMES = [
+  'queueforge.requests',
+  'queueforge.webhooks',
+  'queueforge.notifications',
+] as const;
+
+interface BullJobLike {
+  getState(): Promise<string>;
+  remove(): Promise<void>;
+}
+
+interface BullQueueLike {
+  close(): Promise<void>;
+  getJob(id: string): Promise<BullJobLike | undefined>;
+}
+
+interface BullQueueConstructor {
+  new (
+    name: string,
+    options: {
+      readonly connection: {
+        readonly enableOfflineQueue: boolean;
+        readonly maxRetriesPerRequest: number;
+        readonly url: string;
+      };
+      readonly prefix: string;
+    },
+  ): BullQueueLike;
+}
 
 interface Membership {
   readonly role: string;
@@ -48,12 +95,15 @@ interface WorkflowRequestView {
   readonly id: string;
   readonly maxAttempts: number;
   readonly status: string;
+  readonly workflowId: string;
   readonly workflowName: string;
+  readonly workflowVersionId: string;
 }
 
 interface WorkflowView {
   readonly id: string;
   readonly stableKey: string;
+  readonly versionId: string;
   readonly versionStatus: string;
 }
 
@@ -78,12 +128,26 @@ interface SinkHistory {
   readonly total: number;
 }
 
+interface CleanupRow {
+  readonly id: string;
+  readonly value: string;
+}
+
+interface JourneyCleanupReport {
+  readonly auth: AuthFixtureCleanupResult;
+  readonly queueJobsRemoved: number;
+}
+
 function requiredEnvironment(name: 'BOOTSTRAP_ADMIN_EMAIL' | 'BOOTSTRAP_ADMIN_PASSWORD'): string {
   const value = process.env[name];
   if (value === undefined || value.length === 0) {
     throw new Error(`${name} must be loaded from .env before running the E2E journey`);
   }
   return value;
+}
+
+function errorSummary(error: unknown): string {
+  return error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown teardown error';
 }
 
 function isBrowserResponse(response: Response, method: string, pathname: string): boolean {
@@ -96,27 +160,52 @@ async function responseJson<T>(response: APIResponse | Response): Promise<T> {
   return (await response.json()) as T;
 }
 
-async function login(page: Page, email: string, password: string): Promise<AuthSession> {
+async function login(
+  page: Page,
+  email: string,
+  password: string,
+  authCorrelationIds: Set<string>,
+): Promise<AuthSession> {
+  const correlationId = randomUUID();
+  authCorrelationIds.add(correlationId);
   await page.goto(`${WEB_ORIGIN}/login`);
   const submitButton = page.getByRole('button', { name: 'Sign in', exact: true });
   await expect(submitButton).toBeEnabled();
   await page.getByLabel('Email address').fill(email);
   await page.locator('#password').fill(password);
-  const responsePromise = page.waitForResponse((response) =>
-    isBrowserResponse(response, 'POST', '/api/v1/auth/login'),
-  );
-  await submitButton.click();
-  const session = await responseJson<AuthSession>(await responsePromise);
+  await page.setExtraHTTPHeaders({ 'x-correlation-id': correlationId });
+  let session: AuthSession;
+  try {
+    const responsePromise = page.waitForResponse((response) =>
+      isBrowserResponse(response, 'POST', '/api/v1/auth/login'),
+    );
+    await submitButton.click();
+    session = await responseJson<AuthSession>(await responsePromise);
+  } finally {
+    await page.setExtraHTTPHeaders({});
+  }
   await expect(page.locator('#tenant-switcher')).toBeVisible();
   return session;
 }
 
-async function selectTenant(page: Page, tenantId: string): Promise<AuthSession> {
-  const responsePromise = page.waitForResponse((response) =>
-    isBrowserResponse(response, 'POST', '/api/v1/auth/tenant-select'),
-  );
-  await page.locator('#tenant-switcher').selectOption(tenantId);
-  const session = await responseJson<AuthSession>(await responsePromise);
+async function selectTenant(
+  page: Page,
+  tenantId: string,
+  authCorrelationIds: Set<string>,
+): Promise<AuthSession> {
+  const correlationId = randomUUID();
+  authCorrelationIds.add(correlationId);
+  await page.setExtraHTTPHeaders({ 'x-correlation-id': correlationId });
+  let session: AuthSession;
+  try {
+    const responsePromise = page.waitForResponse((response) =>
+      isBrowserResponse(response, 'POST', '/api/v1/auth/tenant-select'),
+    );
+    await page.locator('#tenant-switcher').selectOption(tenantId);
+    session = await responseJson<AuthSession>(await responsePromise);
+  } finally {
+    await page.setExtraHTTPHeaders({});
+  }
   await expect(page.locator('#tenant-switcher')).toHaveValue(tenantId);
   return session;
 }
@@ -151,12 +240,12 @@ async function createAndActivateWorkflow(
     readonly withWebhook: boolean;
   },
 ): Promise<WorkflowView> {
-  await navigateFromSidebar(page, 'Workflow builder', '/workflows');
-  await page.getByRole('button', { name: 'New workflow' }).click();
-  await page.getByLabel('Workflow name').fill(input.name);
+  await navigateFromSidebar(page, 'Request types', '/workflows');
+  await page.getByRole('button', { name: 'New request type' }).click();
+  await page.getByLabel('Request type name').fill(input.name);
   await page.getByText('Advanced identifier').click();
   await page.getByLabel('Stable key').fill(input.stableKey);
-  await page.getByLabel('What is this workflow for?').fill(input.description);
+  await page.getByLabel('When should someone use this?').fill(input.description);
 
   const createResponsePromise = page.waitForResponse((response) =>
     isBrowserResponse(response, 'POST', '/api/v1/workflows'),
@@ -227,9 +316,23 @@ async function submitFromUi(
   workflowName: string,
   payload: Readonly<Record<string, unknown>>,
 ): Promise<{ readonly replayed: boolean; readonly request: WorkflowRequestView }> {
-  await navigateFromSidebar(page, 'Requests', '/requests');
-  await page.getByRole('button', { name: 'Submit request', exact: true }).first().click();
-  await page.getByLabel('What do you want to do?').selectOption({ label: workflowName });
+  await navigateFromSidebar(page, 'Start & track requests', '/requests');
+  await page.getByRole('button', { name: 'Start request', exact: true }).first().click();
+  const requestTypeSelect = page.getByLabel('What kind of request is this?');
+  await expect(requestTypeSelect).toBeEnabled();
+  const requestedOption = requestTypeSelect.getByRole('option', {
+    exact: true,
+    name: workflowName,
+  });
+  if ((await requestedOption.count()) === 0) {
+    await page.getByText('System check request types', { exact: true }).click();
+    const systemCheckToggle = page.getByRole('checkbox', {
+      name: /Show \d+ system check request types?/,
+    });
+    await systemCheckToggle.check();
+    await expect(requestedOption).toHaveCount(1);
+  }
+  await requestTypeSelect.selectOption({ label: workflowName });
   for (const [key, value] of Object.entries(payload)) {
     const label = key === 'caseId' ? 'Case Id' : key.charAt(0).toUpperCase() + key.slice(1);
     await page.getByLabel(label).fill(String(value));
@@ -238,8 +341,8 @@ async function submitFromUi(
     isBrowserResponse(response, 'POST', '/api/v1/requests'),
   );
   await page
-    .getByRole('dialog', { name: 'Start a new request' })
-    .getByRole('button', { name: 'Submit request', exact: true })
+    .getByRole('dialog', { name: 'Start a request' })
+    .getByRole('button', { name: 'Start request', exact: true })
     .click();
   const response = await responsePromise;
   const request = await responseJson<WorkflowRequestView>(response);
@@ -255,10 +358,11 @@ async function approveFromUi(page: Page, workflowName: string): Promise<void> {
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   await responseJson<unknown>(await refreshResponsePromise);
   await page.getByLabel('Search approvals').fill(workflowName);
-  await expect(page.getByRole('button', { name: `Approve ${workflowName}` })).toBeVisible({
+  const approveButton = page.getByRole('button', { name: /^Approve / }).first();
+  await expect(approveButton).toBeVisible({
     timeout: 30_000,
   });
-  await page.getByRole('button', { name: `Approve ${workflowName}` }).click();
+  await approveButton.click();
   await page
     .getByLabel('Note for the requester')
     .fill('Approved by the end-to-end verification journey.');
@@ -267,9 +371,11 @@ async function approveFromUi(page: Page, workflowName: string): Promise<void> {
       response.request().method() === 'POST' &&
       new URL(response.url()).pathname.endsWith('/decide'),
   );
-  await page.getByRole('button', { name: 'Record approval' }).click();
+  await page.getByRole('button', { name: 'Approve request' }).click();
   await responseJson<unknown>(await responsePromise);
-  await expect(page.getByText('Approval recorded and request queued.')).toBeVisible();
+  await expect(
+    page.getByText('Request approved. QueueForge will start the next step.'),
+  ).toBeVisible();
 }
 
 async function getRequest(
@@ -310,6 +416,227 @@ async function closeContext(context: BrowserContext | undefined): Promise<void> 
   if (context !== undefined) await context.close();
 }
 
+function loadBullQueueConstructor(): BullQueueConstructor {
+  const requireFromWorker = createRequire(resolve(process.cwd(), 'apps/worker/package.json'));
+  const module = requireFromWorker('bullmq') as { readonly Queue?: BullQueueConstructor };
+  if (module.Queue === undefined) throw new Error('BullMQ Queue constructor is unavailable');
+  return module.Queue;
+}
+
+async function removeExactQueueJobs(jobIds: readonly string[]): Promise<number> {
+  const uniqueJobIds = [...new Set(jobIds)];
+  if (uniqueJobIds.some((id) => !BULL_JOB_ID.test(id))) {
+    throw new Error('Refusing queue cleanup for a non-deterministic Bull job ID');
+  }
+  if (uniqueJobIds.length === 0) return 0;
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl === undefined || redisUrl.length === 0) {
+    throw new Error('REDIS_URL is required for E2E queue cleanup');
+  }
+
+  const Queue = loadBullQueueConstructor();
+  const queues = QUEUE_NAMES.map(
+    (name) =>
+      new Queue(name, {
+        connection: { enableOfflineQueue: false, maxRetriesPerRequest: 1, url: redisUrl },
+        prefix: 'queueforge',
+      }),
+  );
+  let removed = 0;
+  const cleanupErrors: unknown[] = [];
+  try {
+    for (const queue of queues) {
+      for (const jobId of uniqueJobIds) {
+        const deadline = Date.now() + 30_000;
+        let job = await queue.getJob(jobId);
+        while (job !== undefined && (await job.getState()) === 'active') {
+          if (Date.now() >= deadline) {
+            throw new Error(`Timed out waiting for active E2E Bull job ${jobId} to settle`);
+          }
+          await new Promise((resolveDelay) => setTimeout(resolveDelay, 250));
+          job = await queue.getJob(jobId);
+        }
+        if (job === undefined) continue;
+        await job.remove();
+        if ((await queue.getJob(jobId)) !== undefined) {
+          throw new Error(`E2E Bull job ${jobId} remained after exact removal`);
+        }
+        removed += 1;
+      }
+    }
+  } finally {
+    for (const result of await Promise.allSettled(queues.map((queue) => queue.close()))) {
+      if (result.status === 'rejected') cleanupErrors.push(result.reason);
+    }
+  }
+  if (cleanupErrors.length > 0) {
+    throw new AggregateError(
+      cleanupErrors,
+      'One or more E2E Bull queue connections failed to close',
+    );
+  }
+  return removed;
+}
+
+async function findWorkflowFixtureQueueJobIds(
+  owner: { query(sql: string, parameters?: unknown[]): Promise<unknown> },
+  requestIds: readonly string[],
+): Promise<readonly string[]> {
+  if (requestIds.length === 0) return [];
+  const rows = (await owner.query(
+    `WITH fixture_requests AS (
+       SELECT id, correlation_id
+       FROM workflow_requests
+       WHERE tenant_id = $1 AND id = ANY($2::uuid[])
+     ), fixture_approvals AS (
+       SELECT id FROM approval_tasks
+       WHERE tenant_id = $1 AND request_id IN (SELECT id FROM fixture_requests)
+     ), fixture_notifications AS (
+       SELECT id FROM notifications
+       WHERE tenant_id = $1 AND request_id IN (SELECT id FROM fixture_requests)
+     )
+     SELECT id::text AS id
+     FROM outbox_events
+     WHERE tenant_id = $1
+       AND (
+         correlation_id IN (SELECT correlation_id FROM fixture_requests)
+         OR aggregate_id IN (SELECT id FROM fixture_requests)
+         OR aggregate_id IN (SELECT id FROM fixture_approvals)
+         OR aggregate_id IN (SELECT id FROM fixture_notifications)
+         OR payload ->> 'requestId' IN (SELECT id::text FROM fixture_requests)
+         OR payload ->> 'approvalId' IN (SELECT id::text FROM fixture_approvals)
+       )
+     ORDER BY id`,
+    [ACME_TENANT_ID, requestIds],
+  )) as unknown as ReadonlyArray<{ readonly id: string }>;
+  return rows.map((row) => `qf-${row.id}`);
+}
+
+async function cleanupJourneyFixtures({
+  authCorrelationIds,
+  memberEmail,
+  requestIds,
+  tenantId,
+  tenantSlug,
+  workflowKeys,
+  workflowTemplateIds,
+}: {
+  readonly authCorrelationIds: readonly string[];
+  readonly memberEmail: string;
+  readonly requestIds: readonly string[];
+  readonly tenantId?: string;
+  readonly tenantSlug: string;
+  readonly workflowKeys: readonly string[];
+  readonly workflowTemplateIds: readonly string[];
+}): Promise<JourneyCleanupReport> {
+  if (!E2E_TENANT_SLUG.test(tenantSlug) || !E2E_VIEWER_EMAIL.test(memberEmail)) {
+    throw new Error('Refusing E2E cleanup because the fixture identifiers are outside test scope');
+  }
+
+  const migrationDatabaseUrl = process.env.MIGRATION_DATABASE_URL;
+  if (migrationDatabaseUrl === undefined || migrationDatabaseUrl.length === 0) {
+    throw new Error('MIGRATION_DATABASE_URL is required for E2E fixture cleanup');
+  }
+  const owner = createQueueForgeDataSource({
+    applicationName: 'queueforge-e2e-cleanup',
+    databaseUrl: migrationDatabaseUrl,
+    includeMigrations: false,
+  });
+  await owner.initialize();
+  try {
+    const tenants = (await owner.query(
+      `SELECT id, slug AS value
+       FROM tenants
+       WHERE slug = $1`,
+      [tenantSlug],
+    )) as unknown as readonly CleanupRow[];
+    const tenant = tenants[0];
+    if (tenants.length > 1) {
+      throw new Error('Refusing E2E cleanup because the test slug matched multiple tenants');
+    }
+    if (tenant !== undefined && tenantId !== undefined && tenant.id !== tenantId) {
+      throw new Error('Refusing E2E cleanup because the tenant slug no longer matches its ID');
+    }
+
+    const users = (await owner.query(
+      `SELECT id, email AS value
+       FROM users
+       WHERE lower(email) = lower($1)`,
+      [memberEmail],
+    )) as unknown as readonly CleanupRow[];
+    const user = users[0];
+    if (user !== undefined && user.value.toLowerCase() !== memberEmail.toLowerCase()) {
+      throw new Error('Refusing E2E cleanup because the user ID no longer matches its email');
+    }
+
+    const cleanupErrors: unknown[] = [];
+    let queueJobsRemoved = 0;
+    try {
+      const queueJobIdsBefore = await findWorkflowFixtureQueueJobIds(owner, requestIds);
+      queueJobsRemoved += await removeExactQueueJobs(queueJobIdsBefore);
+      const workflowCleanup = await cleanupWorkflowFixtures(owner, {
+        requestIds,
+        stableKeys: workflowKeys,
+        templateIds: workflowTemplateIds,
+        tenantCreation: { id: tenantId, slug: tenantSlug },
+        tenantId: ACME_TENANT_ID,
+      });
+      queueJobsRemoved += await removeExactQueueJobs([
+        ...queueJobIdsBefore,
+        ...workflowCleanup.queueJobIds,
+      ]);
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
+    try {
+      if (tenant !== undefined) await cleanupTenant(owner, tenant.id);
+      if (user !== undefined) {
+        const memberships = (await owner.query(
+          `SELECT count(*)::integer AS count
+           FROM memberships
+           WHERE user_id = $1`,
+          [user.id],
+        )) as unknown as ReadonlyArray<{ readonly count: number }>;
+        if ((memberships[0]?.count ?? 0) !== 0) {
+          throw new Error('Refusing E2E user cleanup because the user still has a membership');
+        }
+        await cleanupUser(owner, user.id);
+      }
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
+    let auth: AuthFixtureCleanupResult = {
+      auditEvents: 0,
+      refreshFamilies: 0,
+      securityEvents: 0,
+    };
+    try {
+      auth = await cleanupAuthFixtures(owner, authCorrelationIds);
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
+
+    const leftovers = (await owner.query(
+      `SELECT
+         (SELECT count(*)::integer FROM tenants WHERE slug = $1) AS "tenantCount",
+         (SELECT count(*)::integer FROM users WHERE lower(email) = lower($2)) AS "userCount"`,
+      [tenantSlug, memberEmail],
+    )) as unknown as ReadonlyArray<{
+      readonly tenantCount: number;
+      readonly userCount: number;
+    }>;
+    if ((leftovers[0]?.tenantCount ?? 1) !== 0 || (leftovers[0]?.userCount ?? 1) !== 0) {
+      cleanupErrors.push(new Error('E2E cleanup left disposable tenant or user rows behind'));
+    }
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(cleanupErrors, 'One or more E2E fixture cleanup scopes failed');
+    }
+    return { auth, queueJobsRemoved };
+  } finally {
+    await owner.destroy();
+  }
+}
+
 test.describe('QueueForge durable user journey', () => {
   test('completes the required 12-step visible flow', async ({ browser, page }, testInfo) => {
     const adminEmail = requiredEnvironment('BOOTSTRAP_ADMIN_EMAIL');
@@ -317,7 +644,7 @@ test.describe('QueueForge durable user journey', () => {
     const suffix = `${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`.toLowerCase();
     const tenantName = `E2E Tenant ${suffix}`;
     const tenantSlug = `e2e-${suffix}`;
-    const memberEmail = `viewer-${suffix}@example.test`;
+    const memberEmail = `e2e-viewer-${suffix}@example.test`;
     const memberPassword = `${randomUUID()}Aa1!`;
     const recoveryWorkflowName = `Recovery workflow ${suffix}`;
     const recoveryWorkflowKey = `recovery_${suffix.replaceAll('-', '_')}`;
@@ -327,25 +654,21 @@ test.describe('QueueForge durable user journey', () => {
     const exhaustedPayload = { amount: 99, caseId: `exhaust-${suffix}` };
     const recoveryIdempotencyKey = randomUUID();
     const exhaustedIdempotencyKey = randomUUID();
+    const workflowTemplateIds = new Set<string>();
+    const requestIds = new Set<string>();
+    const authCorrelationIds = new Set<string>();
     let browserRequestIdempotencyKey = recoveryIdempotencyKey;
-    let adminSession = await login(page, adminEmail, sharedBootstrapPassword);
+    let adminSession!: AuthSession;
     let approverContext: BrowserContext | undefined;
-
-    await page.route('**/api/v1/requests', async (route) => {
-      if (route.request().method() !== 'POST') {
-        await route.continue();
-        return;
-      }
-      await route.continue({
-        headers: {
-          ...route.request().headers(),
-          'idempotency-key': browserRequestIdempotencyKey,
-        },
-      });
-    });
+    let operatorContext: BrowserContext | undefined;
+    let operatorPage!: Page;
+    let operatorSession!: AuthSession;
+    let createdTenantId: string | undefined;
+    let journeyError: unknown;
+    let teardownError: unknown;
 
     try {
-      let createdTenantId = '';
+      adminSession = await login(page, adminEmail, sharedBootstrapPassword, authCorrelationIds);
       await test.step('1. Create a tenant and user through authenticated administration surfaces', async () => {
         const response = await page.request.post(`${API_ORIGIN}/api/v1/tenants`, {
           data: { name: tenantName, slug: tenantSlug },
@@ -357,23 +680,39 @@ test.describe('QueueForge durable user journey', () => {
         const tenant = await responseJson<{ readonly tenantId: string }>(response);
         createdTenantId = tenant.tenantId;
 
-        adminSession = await login(page, adminEmail, sharedBootstrapPassword);
-        expect(adminSession.memberships.some((item) => item.tenantId === createdTenantId)).toBe(
+        adminSession = await login(page, adminEmail, sharedBootstrapPassword, authCorrelationIds);
+        expect(adminSession.memberships.some((item) => item.tenantId === tenant.tenantId)).toBe(
           true,
         );
-        adminSession = await selectTenant(page, createdTenantId);
+        adminSession = await selectTenant(page, tenant.tenantId, authCorrelationIds);
+        await expect(
+          page.getByRole('link', { name: 'Start & track requests', exact: true }),
+        ).toHaveCount(0);
+        await expect(page.getByRole('link', { name: 'Approval inbox', exact: true })).toHaveCount(
+          0,
+        );
         await navigateFromSidebar(page, 'People & access', '/team');
-        await page.getByRole('button', { name: 'Add member' }).click();
-        await page.getByLabel('User email').fill(memberEmail);
-        await page.getByLabel('Display name').fill(`E2E Viewer ${suffix}`);
-        await page.locator('#member-initial-password').fill(memberPassword);
-        await page.locator('#member-role').selectOption('viewer');
-        await page.getByRole('button', { name: 'Add membership' }).click();
+        await page.getByRole('button', { name: 'Add person' }).click();
+        let addPersonDialog = page.getByRole('dialog', { name: 'Add tenant member' });
+        await addPersonDialog.getByLabel('Email address').fill(memberEmail);
+        await addPersonDialog.getByLabel('Display name').fill(`E2E Viewer ${suffix}`);
+        await addPersonDialog.locator('#member-initial-password').fill(memberPassword);
+        await addPersonDialog.locator('#member-role').selectOption('viewer');
+        await addPersonDialog.getByRole('button', { name: 'Add person', exact: true }).click();
+        await expect(addPersonDialog).toBeHidden();
+
+        await page.getByRole('button', { name: 'Add person' }).click();
+        addPersonDialog = page.getByRole('dialog', { name: 'Add tenant member' });
+        await addPersonDialog.getByLabel('Email address').fill(OPERATOR_EMAIL);
+        await addPersonDialog.locator('#member-role').selectOption('operator');
+        await addPersonDialog.getByRole('button', { name: 'Add person', exact: true }).click();
+        await expect(addPersonDialog).toBeHidden();
+
         await page.getByLabel('Search members').fill(memberEmail);
         await expect(page.getByRole('table', { name: 'Tenant memberships' })).toContainText(
           memberEmail,
         );
-        adminSession = await selectTenant(page, ACME_TENANT_ID);
+        adminSession = await selectTenant(page, ACME_TENANT_ID, authCorrelationIds);
       });
 
       await test.step('2. Create and activate immutable recovery and exhaustion workflows', async () => {
@@ -386,6 +725,7 @@ test.describe('QueueForge durable user journey', () => {
           withWebhook: true,
         });
         expect(recovery.stableKey).toBe(recoveryWorkflowKey);
+        workflowTemplateIds.add(recovery.id);
         const exhausted = await createAndActivateWorkflow(page, {
           description: 'Exhausts its immutable attempt budget for DLQ and manual retry evidence.',
           failuresBeforeSuccess: 10,
@@ -395,46 +735,98 @@ test.describe('QueueForge durable user journey', () => {
           withWebhook: false,
         });
         expect(exhausted.stableKey).toBe(exhaustedWorkflowKey);
+        workflowTemplateIds.add(exhausted.id);
         await attachSuccessfulScreenshot(page, '02-activated-workflow.png', testInfo);
       });
 
       let recoveryRequest!: WorkflowRequestView;
       await test.step('3. Submit a request through the visible intake dialog', async () => {
+        if (createdTenantId === undefined) throw new Error('E2E tenant was not created');
+        operatorContext = await browser.newContext({ baseURL: WEB_ORIGIN });
+        operatorPage = await operatorContext.newPage();
+        operatorSession = await login(
+          operatorPage,
+          OPERATOR_EMAIL,
+          sharedBootstrapPassword,
+          authCorrelationIds,
+        );
+        expect(operatorSession.memberships.some((item) => item.tenantId === createdTenantId)).toBe(
+          true,
+        );
+        if (operatorSession.selectedTenant.tenantId !== ACME_TENANT_ID) {
+          operatorSession = await selectTenant(operatorPage, ACME_TENANT_ID, authCorrelationIds);
+        }
+        await expect(
+          operatorPage.getByRole('link', { name: 'Start & track requests', exact: true }),
+        ).toBeVisible();
+        await expect(
+          operatorPage.getByRole('link', { name: 'Approval inbox', exact: true }),
+        ).toHaveCount(0);
+        await operatorPage.route('**/api/v1/requests', async (route) => {
+          if (route.request().method() !== 'POST') {
+            await route.continue();
+            return;
+          }
+          await route.continue({
+            headers: {
+              ...route.request().headers(),
+              'idempotency-key': browserRequestIdempotencyKey,
+            },
+          });
+        });
+
         browserRequestIdempotencyKey = recoveryIdempotencyKey;
-        const submission = await submitFromUi(page, recoveryWorkflowName, recoveryPayload);
+        const submission = await submitFromUi(operatorPage, recoveryWorkflowName, recoveryPayload);
         expect(submission.replayed).toBe(false);
         recoveryRequest = submission.request;
+        requestIds.add(recoveryRequest.id);
         expect(recoveryRequest.status).toBe('pending_approval');
       });
 
       await test.step('4. Verify the request is visibly pending approval', async () => {
-        await expect(page.locator('.qf-detail-banner')).toContainText('pending approval');
-        await expect(page.getByRole('list', { name: 'Request status timeline' })).toContainText(
-          'pending_approval',
+        await expect(operatorPage.locator('.qf-detail-banner')).toContainText(
+          'Waiting for approval',
         );
+        await expect(
+          operatorPage.getByRole('list', { name: 'Request status timeline' }),
+        ).toContainText('Waiting for approval');
+        await expect(
+          operatorPage.getByText('Waiting for a decision', { exact: true }).first(),
+        ).toBeVisible();
       });
 
       let approverPage!: Page;
       await test.step('5. Approve with a distinct approver identity', async () => {
         approverContext = await browser.newContext({ baseURL: WEB_ORIGIN });
         approverPage = await approverContext.newPage();
-        await login(approverPage, APPROVER_EMAIL, sharedBootstrapPassword);
+        await login(approverPage, APPROVER_EMAIL, sharedBootstrapPassword, authCorrelationIds);
+        await expect(
+          approverPage.getByRole('link', { name: 'Approval inbox', exact: true }),
+        ).toBeVisible();
+        await expect(
+          approverPage.getByRole('link', { name: 'Start & track requests', exact: true }),
+        ).toHaveCount(0);
         await approveFromUi(approverPage, recoveryWorkflowName);
       });
 
       await test.step('6. Observe durable queue processing in the request view', async () => {
         await pollForStatus(
-          page,
-          adminSession.accessToken,
+          operatorPage,
+          operatorSession.accessToken,
           recoveryRequest.id,
           'processing',
           30_000,
         );
-        await page.getByRole('button', { name: 'Refresh' }).click();
-        await expect(page.locator('.qf-detail-banner')).toContainText('processing');
-        await pollForStatus(page, adminSession.accessToken, recoveryRequest.id, 'succeeded');
-        await page.getByRole('button', { name: 'Refresh' }).click();
-        await expect(page.locator('.qf-detail-banner')).toContainText('succeeded');
+        await operatorPage.getByRole('button', { name: 'Refresh' }).click();
+        await expect(operatorPage.locator('.qf-detail-banner')).toContainText('In progress');
+        await pollForStatus(
+          operatorPage,
+          operatorSession.accessToken,
+          recoveryRequest.id,
+          'succeeded',
+        );
+        await operatorPage.getByRole('button', { name: 'Refresh' }).click();
+        await expect(operatorPage.locator('.qf-detail-banner')).toContainText('Completed');
       });
 
       let deliveredEventId = '';
@@ -456,74 +848,93 @@ test.describe('QueueForge durable user journey', () => {
             { timeout: 60_000 },
           )
           .not.toBe('');
-        await navigateFromSidebar(page, 'Connections', '/webhooks');
-        await page.getByLabel('Search deliveries').fill(deliveredEventId);
-        const table = page.getByRole('table', { name: 'Outbound webhook deliveries' });
-        await expect(table).toContainText('request.succeeded');
-        await expect(table).toContainText('delivered');
+        await navigateFromSidebar(page, 'Delivery connections', '/webhooks');
+        await page.getByLabel('Search delivery history').fill(deliveredEventId);
+        const table = page.getByRole('table', { name: 'Result delivery history' });
+        await expect(table).toContainText('Request completed');
+        await expect(table).toContainText('Demo recovery check');
+        await expect(table).toContainText('Delivered');
       });
 
       await test.step('8. Inspect the correlated append-only audit timeline', async () => {
-        await navigateFromSidebar(page, 'Activity history', '/audit');
-        await page.getByLabel('Event type prefix').fill('request.');
-        await page.getByLabel('Search audit trail').fill(recoveryRequest.correlationId);
-        const table = page.getByRole('table', { name: 'Tenant audit events' });
-        await expect(table).toContainText('request.');
+        await navigateFromSidebar(page, 'Activity log', '/audit');
+        await page.getByLabel('Show activity for').selectOption({ label: 'Requests' });
+        await page.getByLabel('Search activity on this page').fill(recoveryRequest.correlationId);
+        const table = page.getByRole('table', { name: 'Workspace activity log' });
+        await expect(table).toContainText('Request completed');
         await expect(table).toContainText(recoveryRequest.correlationId.slice(0, 8));
       });
 
       await test.step('9. Replay the identical request idempotently through the UI', async () => {
         browserRequestIdempotencyKey = recoveryIdempotencyKey;
-        const replay = await submitFromUi(page, recoveryWorkflowName, recoveryPayload);
+        const replay = await submitFromUi(operatorPage, recoveryWorkflowName, recoveryPayload);
+        requestIds.add(replay.request.id);
         expect(replay.replayed).toBe(true);
         expect(replay.request.id).toBe(recoveryRequest.id);
       });
 
       await test.step('10. Prove tenant isolation in the visible request detail', async () => {
-        adminSession = await selectTenant(page, createdTenantId);
-        await page.goto(`${WEB_ORIGIN}/requests/detail?id=${recoveryRequest.id}`);
-        await expect(page.getByText('Could not load this view')).toBeVisible();
-        await expect(page.getByText(/not found|selected tenant/i).first()).toBeVisible();
-        adminSession = await selectTenant(page, ACME_TENANT_ID);
+        if (createdTenantId === undefined) throw new Error('E2E tenant was not created');
+        operatorSession = await selectTenant(operatorPage, createdTenantId, authCorrelationIds);
+        await operatorPage.goto(`${WEB_ORIGIN}/requests/detail?id=${recoveryRequest.id}`);
+        await expect(operatorPage.getByText('Could not load this view')).toBeVisible();
+        await expect(operatorPage.getByText(/not found|selected tenant/i).first()).toBeVisible();
+        operatorSession = await selectTenant(operatorPage, ACME_TENANT_ID, authCorrelationIds);
       });
 
       await test.step('11. Verify injected worker failure recovered on the bounded retry', async () => {
-        const request = await getRequest(page, adminSession.accessToken, recoveryRequest.id);
+        const request = await getRequest(
+          operatorPage,
+          operatorSession.accessToken,
+          recoveryRequest.id,
+        );
         expect(request.status).toBe('succeeded');
         expect(request.attemptCount).toBe(2);
-        const transitions = await getTimeline(page, adminSession.accessToken, recoveryRequest.id);
+        const transitions = await getTimeline(
+          operatorPage,
+          operatorSession.accessToken,
+          recoveryRequest.id,
+        );
         expect(transitions.map((item) => item.toStatus)).toEqual(
           expect.arrayContaining(['failed', 'queued', 'processing', 'succeeded']),
         );
         expect(transitions.some((item) => item.reason === 'retry_scheduled')).toBe(true);
-        await page.goto(`${WEB_ORIGIN}/requests/detail?id=${recoveryRequest.id}`);
-        const timeline = page.getByRole('list', { name: 'Request status timeline' });
-        await expect(timeline).toContainText('failed');
-        await expect(timeline).toContainText('succeeded');
-        await expect(page.getByText('2 / 2')).toBeVisible();
-        await attachSuccessfulScreenshot(page, '11-recovered-request.png', testInfo);
+        await operatorPage.goto(`${WEB_ORIGIN}/requests/detail?id=${recoveryRequest.id}`);
+        const timeline = operatorPage.getByRole('list', { name: 'Request status timeline' });
+        await expect(timeline).toContainText('Trying again');
+        await expect(timeline).toContainText('QueueForge scheduled another try');
+        await expect(timeline).toContainText('Completed');
+        await expect(
+          operatorPage.getByText('Finished after 2 tries', { exact: true }).first(),
+        ).toBeVisible();
+        await attachSuccessfulScreenshot(operatorPage, '11-recovered-request.png', testInfo);
       });
 
       await test.step('12. Exhaust a job into the DLQ and manually retry it', async () => {
         browserRequestIdempotencyKey = exhaustedIdempotencyKey;
-        const submission = await submitFromUi(page, exhaustedWorkflowName, exhaustedPayload);
+        const submission = await submitFromUi(
+          operatorPage,
+          exhaustedWorkflowName,
+          exhaustedPayload,
+        );
         expect(submission.replayed).toBe(false);
+        requestIds.add(submission.request.id);
         await approveFromUi(approverPage, exhaustedWorkflowName);
         await pollForStatus(
-          page,
-          adminSession.accessToken,
+          operatorPage,
+          operatorSession.accessToken,
           submission.request.id,
           'dead_lettered',
           90_000,
         );
 
         await navigateFromSidebar(page, 'Processing health', '/operations');
-        await page.getByLabel('Search dead letters').fill(submission.request.id);
+        await page.getByLabel('Search requests that need attention').fill(submission.request.id);
         const deadLetterTable = page.getByRole('table', {
-          name: 'Dead-lettered workflow requests',
+          name: 'Requests that need attention',
         });
-        await expect(deadLetterTable).toContainText(exhaustedWorkflowName);
-        await page.getByRole('button', { name: `Retry ${exhaustedWorkflowName}` }).click();
+        await expect(deadLetterTable).toContainText('Demo processing-failure check');
+        await deadLetterTable.getByRole('button', { name: 'Try again', exact: true }).click();
         const retryResponsePromise = page.waitForResponse(
           (response) =>
             response.request().method() === 'POST' &&
@@ -531,15 +942,15 @@ test.describe('QueueForge durable user journey', () => {
               new URL(response.url()).pathname,
             ),
         );
-        await page.getByRole('button', { name: 'Confirm manual retry' }).click();
+        await page.getByRole('button', { name: 'Try processing again' }).click();
         await responseJson<unknown>(await retryResponsePromise);
-        await expect(page.getByText('Dead-lettered request re-queued.')).toBeVisible();
+        await expect(page.getByText('The request has been queued for another try.')).toBeVisible();
 
         await expect
           .poll(async () => {
             const transitions = await getTimeline(
-              page,
-              adminSession.accessToken,
+              operatorPage,
+              operatorSession.accessToken,
               submission.request.id,
             );
             return transitions.some(
@@ -548,9 +959,71 @@ test.describe('QueueForge durable user journey', () => {
           })
           .toBe(true);
         await attachSuccessfulScreenshot(page, '12-manual-dlq-retry.png', testInfo);
+        await pollForStatus(
+          operatorPage,
+          operatorSession.accessToken,
+          submission.request.id,
+          'dead_lettered',
+          90_000,
+        );
       });
+    } catch (error) {
+      journeyError = error;
     } finally {
-      await closeContext(approverContext);
+      const teardownErrors: unknown[] = [];
+      try {
+        await page.goto('about:blank');
+      } catch (error) {
+        teardownErrors.push(error);
+      }
+      for (const context of [approverContext, operatorContext]) {
+        try {
+          await closeContext(context);
+        } catch (error) {
+          teardownErrors.push(error);
+        }
+      }
+      try {
+        const cleanupReport = await cleanupJourneyFixtures({
+          authCorrelationIds: [...authCorrelationIds],
+          memberEmail,
+          requestIds: [...requestIds],
+          tenantId: createdTenantId,
+          tenantSlug,
+          workflowKeys: [recoveryWorkflowKey, exhaustedWorkflowKey],
+          workflowTemplateIds: [...workflowTemplateIds],
+        });
+        await testInfo.attach('e2e-fixture-cleanup.txt', {
+          body: JSON.stringify(cleanupReport, null, 2),
+          contentType: 'application/json',
+        });
+      } catch (error) {
+        teardownErrors.push(error);
+        await testInfo.attach('e2e-fixture-cleanup-failure.txt', {
+          body: [
+            'QueueForge E2E fixture cleanup failed.',
+            `Tenant ID: ${createdTenantId ?? 'not returned'}`,
+            `Tenant slug: ${tenantSlug}`,
+            `Viewer email: ${memberEmail}`,
+            errorSummary(error),
+          ].join('\n'),
+          contentType: 'text/plain',
+        });
+      }
+      if (teardownErrors.length > 0) {
+        teardownError = new Error(
+          `E2E teardown failed: ${teardownErrors.map(errorSummary).join('; ')}`,
+        );
+      }
     }
+
+    if (journeyError !== undefined && teardownError !== undefined) {
+      throw new AggregateError(
+        [journeyError, teardownError],
+        'The E2E journey and its fixture teardown both failed',
+      );
+    }
+    if (journeyError !== undefined) throw journeyError;
+    if (teardownError !== undefined) throw teardownError;
   });
 });

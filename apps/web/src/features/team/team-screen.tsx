@@ -13,6 +13,7 @@ import {
   Eye,
   EyeOff,
   InputField,
+  LockKeyhole,
   Panel,
   Plus,
   RefreshCw,
@@ -34,14 +35,31 @@ import { pageSearchParams, usePagination } from '../../hooks/use-pagination';
 import { useIdempotencyKeyLease } from '../../hooks/use-idempotency-key-lease';
 import { useAuth } from '../../providers/auth-provider';
 import { useToast } from '../../providers/toast-provider';
-import { MemberFormSchema, membershipInputFromForm, type MemberForm } from './member-policy';
+import {
+  MemberFormSchema,
+  memberAccessState,
+  membershipInputFromForm,
+  type MemberForm,
+} from './member-policy';
 
 const ROLE_DESCRIPTIONS: Readonly<Record<TenantRole, string>> = {
-  viewer: 'Read tenant workflows and operational history.',
-  approver: 'Viewer access plus approval decisions.',
-  operator: 'Submit, cancel, retry, and replay operational work.',
-  tenant_admin: 'All tenant configuration, membership, and operational permissions.',
+  viewer: 'Can view request history, request types, and notifications.',
+  approver: 'Can review requests assigned for a human decision.',
+  operator: 'Can start requests and recover work that needs attention.',
+  tenant_admin: 'Can configure request types, delivery connections, and team access.',
 };
+
+const ROLE_LABELS: Readonly<Record<TenantRole, string>> = {
+  viewer: 'Viewer',
+  approver: 'Approver',
+  operator: 'Operator',
+  tenant_admin: 'Administrator',
+};
+
+function selectedRoleDescription(role: unknown): string {
+  const parsed = TenantRoleSchema.safeParse(role);
+  return ROLE_DESCRIPTIONS[parsed.success ? parsed.data : 'viewer'];
+}
 
 export function TeamScreen(): React.JSX.Element {
   const pagination = usePagination();
@@ -107,6 +125,10 @@ export function TeamScreen(): React.JSX.Element {
       await queryClient.invalidateQueries({ queryKey: ['team'] });
     },
   });
+  const closeRoleEditor = (): void => {
+    roleMutation.reset();
+    setRoleChange(null);
+  };
   const submitInvite = handleSubmit(async (values) => inviteMutation.mutateAsync(values));
   const closeInvite = (): void => {
     membershipCreationKey.clear();
@@ -129,30 +151,10 @@ export function TeamScreen(): React.JSX.Element {
     },
     {
       accessorKey: 'role',
-      header: 'Tenant role',
-      cell: ({ row }) =>
-        can('manage_team') && session?.user.id !== row.original.id ? (
-          <select
-            aria-label={`Role for ${row.original.displayName}`}
-            className="qf-table-select"
-            disabled={!online}
-            onChange={(event) =>
-              setRoleChange({
-                member: row.original,
-                role: TenantRoleSchema.parse(event.currentTarget.value),
-              })
-            }
-            value={row.original.role}
-          >
-            {TenantRoleSchema.options.map((role) => (
-              <option key={role} value={role}>
-                {role.replaceAll('_', ' ')}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span>{row.original.role.replaceAll('_', ' ')}</span>
-        ),
+      header: 'Role',
+      cell: ({ row }) => (
+        <StatusBadge label={ROLE_LABELS[row.original.role]} status={row.original.role} />
+      ),
     },
     {
       accessorKey: 'status',
@@ -163,6 +165,35 @@ export function TeamScreen(): React.JSX.Element {
       accessorKey: 'joinedAt',
       header: 'Joined',
       cell: ({ getValue }) => <DateTime value={String(getValue())} />,
+    },
+    {
+      id: 'accessAction',
+      enableSorting: false,
+      header: 'Access',
+      cell: ({ row }) => {
+        const access = memberAccessState(can('manage_team'), session?.user.id, row.original);
+        if (access === 'view_only') return <span className="qf-utility">View only</span>;
+        if (access === 'locked') {
+          return (
+            <span className="qf-role-lock">
+              <LockKeyhole size={15} aria-hidden="true" />
+              Demo role locked
+            </span>
+          );
+        }
+        if (access === 'current_account') {
+          return <span className="qf-utility">Current account</span>;
+        }
+        return (
+          <Button
+            disabled={!online}
+            onClick={() => setRoleChange({ member: row.original, role: row.original.role })}
+            tone="quiet"
+          >
+            Edit access
+          </Button>
+        );
+      },
     },
   ];
 
@@ -185,12 +216,12 @@ export function TeamScreen(): React.JSX.Element {
                 onClick={() => setInviteOpen(true)}
                 tone="primary"
               >
-                Add member
+                Add person
               </Button>
             </PermissionGate>
           </>
         }
-        description="Invite people, understand their responsibilities, and control what each role can do."
+        description="Add people and give each person one clear responsibility in this workspace."
         eyebrow="Manage your organization"
         title="People & access"
       />
@@ -204,7 +235,10 @@ export function TeamScreen(): React.JSX.Element {
         </div>
       ) : null}
       <div className="qf-content-grid qf-content-grid--detail">
-        <Panel title="Memberships">
+        <Panel
+          title="Team members"
+          description="Roles change only after Edit access is opened and confirmed. Starter demo roles are locked so the operator and approver walkthrough stays reliable."
+        >
           <QueryState
             empty={teamQuery.isSuccess && rows.length === 0}
             emptyDescription="This tenant has no visible membership records."
@@ -238,13 +272,13 @@ export function TeamScreen(): React.JSX.Element {
           )}
         </Panel>
         <Panel
-          title="What each role can do"
-          description="Permissions stay limited by default, and every administrative change is recorded."
+          title="Roles at a glance"
+          description="Use the smallest role that matches the person's everyday job."
         >
           <dl className="qf-role-list">
             {TenantRoleSchema.options.map((role) => (
               <div key={role}>
-                <dt>{role.replaceAll('_', ' ')}</dt>
+                <dt>{ROLE_LABELS[role]}</dt>
                 <dd>{ROLE_DESCRIPTIONS[role]}</dd>
               </div>
             ))}
@@ -253,7 +287,7 @@ export function TeamScreen(): React.JSX.Element {
       </div>
 
       <Dialog
-        description="Add an existing identity by email, or provide a display name and initial password to create a new user and membership together."
+        description="Add someone who already has an account, or create a local account for a new teammate."
         footer={
           <>
             <Button onClick={closeInvite}>Cancel</Button>
@@ -264,7 +298,7 @@ export function TeamScreen(): React.JSX.Element {
               onClick={() => void submitInvite()}
               tone="primary"
             >
-              Add membership
+              Add person
             </Button>
           </>
         }
@@ -282,7 +316,7 @@ export function TeamScreen(): React.JSX.Element {
             autoComplete="email"
             error={errors.email?.message}
             id="member-email"
-            label="User email"
+            label="Email address"
             required
             type="email"
             {...register('email')}
@@ -316,15 +350,15 @@ export function TeamScreen(): React.JSX.Element {
             />
           </div>
           <div className="qf-inline-field">
-            <label htmlFor="member-role">Tenant role</label>
+            <label htmlFor="member-role">Role</label>
             <select id="member-role" {...register('role')}>
               {TenantRoleSchema.options.map((role) => (
                 <option key={role} value={role}>
-                  {role.replaceAll('_', ' ')}
+                  {ROLE_LABELS[role]}
                 </option>
               ))}
             </select>
-            <p className="qf-field__message">{ROLE_DESCRIPTIONS.viewer}</p>
+            <p className="qf-field__message">{selectedRoleDescription(membershipInput.role)}</p>
           </div>
         </form>
       </Dialog>
@@ -333,13 +367,15 @@ export function TeamScreen(): React.JSX.Element {
         description={
           roleChange === null
             ? undefined
-            : `${roleChange.member.displayName} will receive ${ROLE_DESCRIPTIONS[roleChange.role]}`
+            : `Choose what ${roleChange.member.displayName} should be able to do. Nothing changes until you confirm.`
         }
         footer={
           <>
-            <Button onClick={() => setRoleChange(null)}>Cancel</Button>
+            <Button onClick={closeRoleEditor}>Cancel</Button>
             <Button
-              disabled={!online}
+              disabled={
+                !online || roleChange === null || roleChange.role === roleChange.member.role
+              }
               loading={roleMutation.isPending}
               loadingLabel="Updating role"
               onClick={() => {
@@ -347,20 +383,50 @@ export function TeamScreen(): React.JSX.Element {
               }}
               tone="primary"
             >
-              Confirm role change
+              Save access
             </Button>
           </>
         }
-        onClose={() => setRoleChange(null)}
+        onClose={closeRoleEditor}
         open={roleChange !== null}
-        title="Change tenant role?"
+        title="Edit access"
       >
         {roleMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
             {formatProblem(roleMutation.error)}
           </div>
         ) : null}
-        <p>The server checks the current membership and prevents unauthorized privilege changes.</p>
+        {roleChange === null ? null : (
+          <div className="qf-form-stack">
+            <div className="qf-inline-alert" role="note">
+              <ShieldCheck size={18} aria-hidden="true" />
+              <p>
+                Current role: <strong>{ROLE_LABELS[roleChange.member.role]}</strong>. This change
+                takes effect immediately and is recorded in the Activity log.
+              </p>
+            </div>
+            <div className="qf-inline-field">
+              <label htmlFor="role-change-role">New role</label>
+              <select
+                id="role-change-role"
+                onChange={(event) =>
+                  setRoleChange({
+                    member: roleChange.member,
+                    role: TenantRoleSchema.parse(event.currentTarget.value),
+                  })
+                }
+                value={roleChange.role}
+              >
+                {TenantRoleSchema.options.map((role) => (
+                  <option key={role} value={role}>
+                    {ROLE_LABELS[role]}
+                  </option>
+                ))}
+              </select>
+              <p className="qf-field__message">{ROLE_DESCRIPTIONS[roleChange.role]}</p>
+            </div>
+          </div>
+        )}
       </Dialog>
     </AppShell>
   );

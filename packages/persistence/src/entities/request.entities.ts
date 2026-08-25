@@ -43,6 +43,9 @@ export class WorkflowRequestEntity extends TenantOwnedEntity {
   @Column('integer', { default: 0, name: 'attempt_count' })
   public attemptCount!: number;
 
+  @Column('integer', { default: 0, name: 'attempt_sequence' })
+  public attemptSequence!: number;
+
   @Column('integer', { default: 5, name: 'max_attempts' })
   public maxAttempts!: number;
 

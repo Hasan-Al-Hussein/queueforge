@@ -17,6 +17,19 @@ export interface AddMembershipInput {
   readonly role: TenantRole;
 }
 
+export type MemberAccessState = 'current_account' | 'editable' | 'locked' | 'view_only';
+
+export function memberAccessState(
+  canManageTeam: boolean,
+  currentUserId: string | undefined,
+  member: { readonly id: string; readonly roleLocked: boolean },
+): MemberAccessState {
+  if (!canManageTeam) return 'view_only';
+  if (member.roleLocked) return 'locked';
+  if (currentUserId === member.id) return 'current_account';
+  return 'editable';
+}
+
 export function membershipInputFromForm(input: MemberForm): AddMembershipInput {
   const displayName = input.displayName?.trim();
   const initialPassword = input.initialPassword;

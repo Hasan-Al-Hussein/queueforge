@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { AuthSession } from '@queueforge/contracts';
+import type { AuthSession, TenantRole } from '@queueforge/contracts';
 
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '../providers/auth-provider';
@@ -72,7 +72,35 @@ const session: AuthSession = {
 
 const logoutMock = vi.fn(async (): Promise<void> => undefined);
 const pushMock = vi.fn();
+const replaceMock = vi.fn();
 const selectTenantMock = vi.fn(async (): Promise<void> => undefined);
+
+function sessionForRole(
+  role: TenantRole,
+  platformRole: 'platform_admin' | null = null,
+): AuthSession {
+  return {
+    ...session,
+    memberships: session.memberships.map((membership) =>
+      membership.tenantId === tenantId ? { ...membership, role } : membership,
+    ),
+    selectedTenant: { ...session.selectedTenant, role },
+    user: { ...session.user, platformRole },
+  };
+}
+
+function authValue(nextSession: AuthSession = session): ReturnType<typeof useAuth> {
+  return {
+    bootstrapError: null,
+    can: vi.fn(() => true),
+    login: vi.fn(),
+    logout: logoutMock,
+    online: true,
+    selectTenant: selectTenantMock,
+    session: nextSession,
+    status: 'authenticated',
+  };
+}
 
 const dialogPrototype = HTMLDialogElement.prototype;
 const originalShowModal = Object.getOwnPropertyDescriptor(dialogPrototype, 'showModal');
@@ -119,18 +147,9 @@ beforeEach(() => {
     prefetch: vi.fn(),
     push: pushMock,
     refresh: vi.fn(),
-    replace: vi.fn(),
+    replace: replaceMock,
   });
-  vi.mocked(useAuth).mockReturnValue({
-    bootstrapError: null,
-    can: vi.fn(() => true),
-    login: vi.fn(),
-    logout: logoutMock,
-    online: true,
-    selectTenant: selectTenantMock,
-    session,
-    status: 'authenticated',
-  });
+  vi.mocked(useAuth).mockReturnValue(authValue());
   vi.mocked(useTheme).mockReturnValue({ theme: 'light', toggleTheme: vi.fn() });
   vi.mocked(useToast).mockReturnValue({ notify: vi.fn() });
 });
@@ -182,7 +201,7 @@ describe('AppShell mobile navigation', () => {
     expect(document.querySelector('.qf-sidebar--desktop')).toHaveAttribute('inert');
 
     const first = within(drawer).getByRole('link', { name: 'QueueForge overview' });
-    const last = within(drawer).getByRole('link', { name: 'People & access' });
+    const last = within(drawer).getByRole('link', { name: 'Notifications' });
     last.focus();
     await user.tab();
     expect(first).toHaveFocus();
@@ -212,6 +231,90 @@ describe('AppShell mobile navigation', () => {
       'inert',
     );
     expect(document.querySelector('.qf-sidebar--desktop')).not.toHaveAttribute('inert');
+  });
+});
+
+describe('AppShell role workspaces', () => {
+  it('gives administrators configuration and monitoring without daily request or approval pages', () => {
+    renderShell();
+
+    const sidebar = screen.getByLabelText('Application sidebar');
+    expect(within(sidebar).getByText('Admin workspace')).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Request types' })).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Delivery connections' })).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Activity log' })).toBeVisible();
+    expect(
+      within(sidebar).queryByRole('link', { name: /track requests/i }),
+    ).not.toBeInTheDocument();
+    expect(within(sidebar).queryByRole('link', { name: 'Approval inbox' })).not.toBeInTheDocument();
+  });
+
+  it('gives operators daily request and recovery tools without approval or admin configuration', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue(sessionForRole('operator')));
+    renderShell();
+
+    const sidebar = screen.getByLabelText('Application sidebar');
+    expect(within(sidebar).getByText('Operations workspace')).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Start & track requests' })).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Processing issues' })).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Delivery activity' })).toBeVisible();
+    expect(within(sidebar).queryByRole('link', { name: 'Approval inbox' })).not.toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole('link', { name: 'People & access' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('gives approvers a focused decision workspace', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue(sessionForRole('approver')));
+    renderShell();
+
+    const sidebar = screen.getByLabelText('Application sidebar');
+    expect(within(sidebar).getByText('Approval workspace')).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Approval inbox' })).toBeVisible();
+    expect(within(sidebar).queryByRole('link', { name: /requests/i })).not.toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole('link', { name: 'Processing issues' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('gives viewers an explicitly read-only workspace', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue(sessionForRole('viewer')));
+    renderShell();
+
+    const sidebar = screen.getByLabelText('Application sidebar');
+    expect(within(sidebar).getByText('Read-only workspace')).toBeVisible();
+    expect(within(sidebar).getByRole('link', { name: 'Request history' })).toBeVisible();
+    expect(within(sidebar).queryByRole('link', { name: 'Approval inbox' })).not.toBeInTheDocument();
+    expect(
+      within(sidebar).queryByRole('link', { name: 'People & access' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('redirects a role away from another role workspace', async () => {
+    vi.mocked(usePathname).mockReturnValue('/approvals');
+    vi.mocked(useAuth).mockReturnValue(authValue(sessionForRole('operator')));
+    renderShell();
+
+    expect(screen.getByText('Opening the right workspace')).toBeVisible();
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/'));
+  });
+
+  it('keeps shared request details available from approval and overview links', () => {
+    vi.mocked(usePathname).mockReturnValue('/requests/detail');
+    vi.mocked(useAuth).mockReturnValue(authValue(sessionForRole('approver')));
+    renderShell();
+
+    expect(screen.getByRole('button', { name: 'Workspace action' })).toBeVisible();
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('uses the admin workspace for a platform administrator', () => {
+    vi.mocked(useAuth).mockReturnValue(authValue(sessionForRole('viewer', 'platform_admin')));
+    renderShell();
+
+    expect(
+      within(screen.getByLabelText('Application sidebar')).getByText('Admin workspace'),
+    ).toBeVisible();
   });
 });
 

@@ -374,7 +374,9 @@ export const WEBHOOK_DELIVERY_SCHEMA: SchemaObject = {
     'attemptCount',
     'nextAttemptAt',
     'lastStatusCode',
+    'requestId',
     'updatedAt',
+    'workflowName',
   ],
   properties: {
     id: uuid,
@@ -385,7 +387,9 @@ export const WEBHOOK_DELIVERY_SCHEMA: SchemaObject = {
     attemptCount: nonNegativeInteger,
     nextAttemptAt: nullableDateTime,
     lastStatusCode: { type: 'integer', nullable: true, minimum: 100, maximum: 599 },
+    requestId: { ...uuid, nullable: true },
     updatedAt: dateTime,
+    workflowName: { type: 'string', nullable: true },
   },
 };
 
@@ -519,14 +523,16 @@ export const RETRIED_DEAD_LETTER_SCHEMA: SchemaObject = {
 export const NOTIFICATION_SCHEMA: SchemaObject = {
   type: 'object',
   additionalProperties: false,
-  required: ['id', 'title', 'body', 'kind', 'readAt', 'createdAt'],
+  required: ['id', 'title', 'body', 'kind', 'readAt', 'requestId', 'createdAt', 'workflowName'],
   properties: {
     id: uuid,
     title: { type: 'string', maxLength: 200 },
     body: { type: 'string', maxLength: 4_000 },
     kind: { type: 'string', enum: ['info', 'success', 'warning', 'error'] },
     readAt: nullableDateTime,
+    requestId: { ...uuid, nullable: true },
     createdAt: dateTime,
+    workflowName: { type: 'string', nullable: true },
   },
 };
 
@@ -558,12 +564,16 @@ export const AUDIT_EVENT_SCHEMA: SchemaObject = {
 export const TEAM_MEMBER_SCHEMA: SchemaObject = {
   type: 'object',
   additionalProperties: false,
-  required: ['id', 'email', 'displayName', 'role', 'status', 'joinedAt'],
+  required: ['id', 'email', 'displayName', 'role', 'roleLocked', 'status', 'joinedAt'],
   properties: {
     id: uuid,
     email: { type: 'string', format: 'email' },
     displayName: { type: 'string' },
     role: { type: 'string', enum: TENANT_ROLES },
+    roleLocked: {
+      type: 'boolean',
+      description: 'True when this membership has a fixed role that administrators cannot change.',
+    },
     status: { type: 'string', enum: ['active', 'disabled'] },
     joinedAt: dateTime,
   },
