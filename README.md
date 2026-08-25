@@ -42,10 +42,10 @@ QueueForge treats the workflow as one reliability problem:
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Product journey           | **14 labeled real-UI steps** and an **83-second** silent walkthrough using synthetic local data                                                                                                   |
 | Runtime UI audit          | **40 role-aware checks**, including **six forbidden-route redirects**, with no observed console, page, request, GraphQL, layout, navigation, or sensitive-data findings                           |
-| Remote quality gate       | [Formatting, linting, typing, unit/build, accessibility, Storybook, migrations, integration, and secret scanning passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495) |
-| Browser and load smoke    | [The real role-aware Playwright journey and bounded k6 smoke passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495)                                                     |
-| Static security analysis  | [CodeQL JavaScript/TypeScript analysis passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495)                                                                           |
-| Exposure boundary         | The same workflow intentionally failed the open Next.js advisory gate, preserving the mandatory loopback-only restriction                                                                         |
+| Remote quality gate       | [Formatting, linting, typing, unit/build, accessibility, Storybook, migrations, integration, and secret scanning passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176376) |
+| Browser and load smoke    | [The real role-aware Playwright journey and bounded k6 smoke passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176376)                                                     |
+| Static security analysis  | [The standalone CodeQL JavaScript/TypeScript workflow passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176199); no open alerts remain after documented triage             |
+| Exposure boundary         | A separate callable workflow retains the fail-closed Next.js advisory gate without misrepresenting ordinary engineering health                                                                    |
 | Revision-bound local load | **70/70 iterations**, **90 HTTP requests**, **232/232 checks**, and zero recorded correctness or HTTP failures under the documented fixed workload                                                |
 
 Results are bounded to their linked revision, synthetic fixtures, local environment, and recorded workload. They are not capacity guarantees or evidence of public-exposure readiness.
@@ -211,7 +211,7 @@ See the [environment guide](docs/environment.md) for the inspected laptop baseli
 
 ## Verification
 
-The linked [reference GitHub Actions run](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495) passed quality/build/integration, the real browser journey with bounded k6 smoke, and CodeQL. At that revision, GitHub summarized those successful checks as non-green because the deployment exposure gate shared the same workflow. Continuous engineering CI and CodeQL are now separate from the deployment-only exposure workflow; `pnpm verify:release` and the callable public-exposure workflow still fail closed while the tracked Next.js exception remains open.
+At revision `26fa7c8`, the [engineering workflow](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176376) passed quality/build/integration plus the real browser journey and bounded k6 smoke, while the independent [CodeQL workflow](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176199) passed with no unresolved alerts after evidence-backed triage. Continuous engineering CI and CodeQL remain separate from the deployment-only exposure workflow; `pnpm verify:release` and the callable public-exposure workflow still fail closed while the tracked Next.js exception remains open.
 
 | Command                   | Coverage                                                                |
 | ------------------------- | ----------------------------------------------------------------------- |
