@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: 'If this engineering case study supports your work, please cite it using this metadata.'
+title: 'QueueForge'
+type: software
+authors:
+  - family-names: 'Ahmed'
+    given-names: 'Hasan'
+repository-code: 'https://github.com/Hasan-Al-Hussein/queueforge'
+url: 'https://github.com/Hasan-Al-Hussein/queueforge'
+license: MIT
+version: 0.1.0
+date-released: 2026-08-25

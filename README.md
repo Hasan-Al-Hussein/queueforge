@@ -1,38 +1,96 @@
+<div align="center">
+
+<img src="docs/media/queueforge-hero.svg" width="100%" alt="QueueForge turns versioned requests into independently approved, durably processed, signed, and auditable outcomes" />
+
 # QueueForge
 
-QueueForge is a local-first, multi-tenant workflow automation system that gives administrators, operators, approvers, and viewers a focused workspace for request intake, approvals, durable processing, retries, signed result delivery, and activity history.
+**Local-first workflow automation where every decision, queue handoff, delivery attempt, and recovery action stays inspectable.**
 
-It is a portfolio and engineering-demonstration system for synthetic data on a developer laptop. It is **not** an internet-facing deployment reference. Next.js 16.3.2 is currently held behind an open upstream security gate, so the web application must remain loopback-only until that gate is closed with vendor evidence and a full regression run.
+Define a versioned request, collect structured input, require an independent human decision, process it through a transactional outbox, and deliver a signed result without losing the causal trail.
 
-## Watch the complete 14-step demo
+[![Demo](https://img.shields.io/badge/DEMO-83_SECONDS-E86F2B?style=for-the-badge)](docs/media/queueforge-pipeline-demo.webm)
+![Runtime](https://img.shields.io/badge/RUNTIME-LOOPBACK_ONLY-16435F?style=for-the-badge)
+![PostgreSQL](https://img.shields.io/badge/STATE-POSTGRESQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
+[![MIT License](https://img.shields.io/badge/LICENSE-MIT-64D7C6?style=for-the-badge)](LICENSE)
 
-[![Watch the 83-second QueueForge pipeline demo](artifacts/screenshots/desktop-overview-1440x900.png)](docs/media/queueforge-pipeline-demo.webm)
+[Product tour](#see-the-complete-workflow) · [Pipeline](#end-to-end-pipeline) · [Architecture](#architecture) · [Security](SECURITY.md) · [Verification](#verification) · [Windows start](#run-locally)
 
-**[Watch the 83-second QueueForge pipeline demo →](docs/media/queueforge-pipeline-demo.webm)**
+</div>
 
-The silent walkthrough follows the real local UI through all 14 documented steps: administration, role boundaries, guided request intake, independent approval, durable processing, signed result delivery, notifications, correlated audit history, tenant isolation, and recovery visibility. It uses synthetic local-demo data and complements the [complete screenshot walkthrough](docs/project-handoff/queueforge-pipeline-walkthrough/README.md); it is not evidence of public deployment.
+> [!IMPORTANT]
+> QueueForge is a single-machine engineering demonstration for synthetic data, not an internet-facing deployment reference. Next.js `16.3.2` remains behind an open upstream security gate; the application must stay loopback-only until a vendor-fixed version passes the full regression suite.
 
-## What it demonstrates
+## The problem
 
-- Tenant-scoped REST and GraphQL surfaces backed by one application layer.
-- Short-lived in-memory browser access tokens and rotating refresh-token families.
-- One-time-reveal, revocable API keys with viewer/operator scope and hashed-at-rest secrets.
-- Deny-by-default roles for viewers, approvers, operators, tenant administrators, and platform administrators.
-- Versioned workflows with optimistic draft autosave and immutable activated versions.
-- Idempotent request submission, optional self-approval protection, and a centralized state machine.
-- A PostgreSQL transactional outbox feeding three BullMQ queues.
-- Durable consumer receipts, bounded retry, lease recovery, and separate dead-letter history.
-- Raw-body inbound HMAC verification and allowlisted, signed outbound webhooks.
-- Correlated request timelines, audit events, queue health, notifications, and worker heartbeats.
-- Responsive, accessible role-specific workspaces in a static-export Next.js interface.
+Business workflows often split one decision across forms, approvals, queues, workers, webhooks, and audit screens. A naive implementation can approve the wrong version, lose work between a database commit and queue publish, duplicate effects during retries, or leave operators unable to explain what happened.
 
-## Complete project pipeline
+QueueForge treats the workflow as one reliability problem:
+
+- **Administrators** publish immutable request types, approval policy, retry budgets, and delivery targets.
+- **Operators** submit ordinary fields without handling internal workflow JSON.
+- **Approvers** review the exact bound revision without receiving operator permissions.
+- **PostgreSQL** commits domain state, idempotency results, audit metadata, and outbox work atomically.
+- **Workers** tolerate at-least-once delivery through stable IDs, durable receipts, bounded retry, and recovery controls.
+- **Reviewers** can follow one correlation ID across the request, decision, attempts, delivery, notifications, and audit history.
+
+## Evidence at a glance
+
+| Signal                    | Verified evidence                                                                                                                                                                                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product journey           | **14 labeled real-UI steps** and an **83-second** silent walkthrough using synthetic local data                                                                                                   |
+| Runtime UI audit          | **40 role-aware checks**, including **six forbidden-route redirects**, with no observed console, page, request, GraphQL, layout, navigation, or sensitive-data findings                           |
+| Remote quality gate       | [Formatting, linting, typing, unit/build, accessibility, Storybook, migrations, integration, and secret scanning passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495) |
+| Browser and load smoke    | [The real role-aware Playwright journey and bounded k6 smoke passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495)                                                     |
+| Static security analysis  | [CodeQL JavaScript/TypeScript analysis passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495)                                                                           |
+| Exposure boundary         | The same workflow intentionally failed the open Next.js advisory gate, preserving the mandatory loopback-only restriction                                                                         |
+| Revision-bound local load | **70/70 iterations**, **90 HTTP requests**, **232/232 checks**, and zero recorded correctness or HTTP failures under the documented fixed workload                                                |
+
+Results are bounded to their linked revision, synthetic fixtures, local environment, and recorded workload. They are not capacity guarantees or evidence of public-exposure readiness.
+
+## See the complete workflow
+
+<div align="center">
+  <a href="docs/media/queueforge-pipeline-demo.webm"><img src="artifacts/screenshots/desktop-overview-1440x900.png" width="900" alt="Open the 83-second QueueForge product demo" /></a>
+  <br />
+  <strong><a href="docs/media/queueforge-pipeline-demo.webm">▶ Watch the 83-second product tour</a></strong>
+</div>
+
+The recording follows administration, role boundaries, guided request intake, independent approval, durable processing, signed result delivery, notifications, correlated audit history, tenant isolation, and recovery visibility. Authentication happens before recording, so no generated local password appears.
+
+These ten equally framed captures show the core journey. Select any image for full resolution, or open the [complete 14-step walkthrough](docs/project-handoff/queueforge-pipeline-walkthrough/README.md) for every intermediate state.
+
+| **01 — Role boundaries**                                                                                                                                                                                                                                         | **02 — Signed delivery connection**                                                                                                                                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![QueueForge people administration showing explicit role boundaries](docs/project-handoff/queueforge-pipeline-walkthrough/step_02_people_and_role_boundaries.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_02_people_and_role_boundaries.png) | [![QueueForge allowlisted delivery connection with signed receiver configuration](docs/project-handoff/queueforge-pipeline-walkthrough/step_03_delivery_connection_ready.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_03_delivery_connection_ready.png) |
+| **03 — Guided request intake**                                                                                                                                                                                                                                   | **04 — Independent approval**                                                                                                                                                                                                                                              |
+| [![QueueForge operator completing a guided request form](docs/project-handoff/queueforge-pipeline-walkthrough/step_05_operator_fills_request_form.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_05_operator_fills_request_form.png)            | [![QueueForge approver reviewing a bound request](docs/project-handoff/queueforge-pipeline-walkthrough/step_07_approver_reviews_request.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_07_approver_reviews_request.png)                                   |
+| **05 — Completed request history**                                                                                                                                                                                                                               | **06 — Result delivery history**                                                                                                                                                                                                                                           |
+| [![QueueForge completed request with readable progress and approval history](artifacts/screenshots/desktop-request-detail-1440x900.png)](artifacts/screenshots/desktop-request-detail-1440x900.png)                                                              | [![QueueForge signed result delivery history](docs/project-handoff/queueforge-pipeline-walkthrough/step_09_result_delivery_history.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_09_result_delivery_history.png)                                         |
+| **07 — Requester notifications**                                                                                                                                                                                                                                 | **08 — Correlated activity proof**                                                                                                                                                                                                                                         |
+| [![QueueForge requester notification for completed work](docs/project-handoff/queueforge-pipeline-walkthrough/step_11_requester_notifications.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_11_requester_notifications.png)                    | [![QueueForge activity log with correlated request events](docs/project-handoff/queueforge-pipeline-walkthrough/step_12_correlated_activity_log.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_12_correlated_activity_log.png)                            |
+| **09 — Cross-tenant denial**                                                                                                                                                                                                                                     | **10 — Processing health and recovery**                                                                                                                                                                                                                                    |
+| [![QueueForge deny-by-default cross-tenant access result](docs/project-handoff/queueforge-pipeline-walkthrough/step_13_cross_tenant_access_blocked.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_13_cross_tenant_access_blocked.png)           | [![QueueForge processing health with operator recovery controls](artifacts/screenshots/desktop-operations-1440x900.png)](artifacts/screenshots/desktop-operations-1440x900.png)                                                                                            |
+
+**[Watch the complete demo →](docs/media/queueforge-pipeline-demo.webm)** · **[Open all 14 labeled steps →](docs/project-handoff/queueforge-pipeline-walkthrough/README.md)**
+
+## End-to-end pipeline
 
 [![QueueForge complete request-to-recovery pipeline](docs/media/queueforge-pipeline.svg)](docs/project-handoff/queueforge-pipeline-walkthrough/README.md)
 
-One request moves through explicit role boundaries, immutable configuration, evidence-bound approval, an atomic PostgreSQL outbox, durable BullMQ processing, signed delivery, correlated proof, and operator recovery. Select the diagram for the labeled **14-step real-UI walkthrough**, or [watch the 83-second demo](docs/media/queueforge-pipeline-demo.webm). Both were captured from the local, loopback-only demonstration environment.
+One request moves through explicit role boundaries, immutable configuration, evidence-bound approval, an atomic PostgreSQL outbox, durable BullMQ processing, signed delivery, correlated proof, and operator recovery. The linked walkthrough connects every visible stage to its implementation and verification surface.
 
-## Architecture at a glance
+## What I engineered
+
+- Built tenant-scoped REST and GraphQL surfaces over one application layer, with membership-derived context and deny-by-default roles.
+- Implemented short-lived in-memory browser access tokens, rotating refresh-token families, and one-time-reveal revocable API keys stored as hashes.
+- Designed optimistic workflow drafting with immutable activated versions, canonical target ordering, and request-to-version binding.
+- Made submission and approval idempotent, revision-aware, self-approval-safe, and atomic with audit and transactional-outbox insertion.
+- Connected a PostgreSQL outbox to three BullMQ queues with durable receipts, bounded retry, lease recovery, and separate dead-letter history.
+- Secured inbound and outbound webhooks with raw-body HMAC verification, nonce/replay controls, destination allowlisting, DNS/address pinning, and redirect denial.
+- Built accessible role-specific Next.js workspaces for intake, approval, processing health, recovery, delivery history, notifications, and correlated audit review.
+- Added real PostgreSQL/Redis concurrency probes, Playwright role journeys, k6 thresholds, CodeQL, secret scanning, evidence freshness checks, and a fail-closed vendor gate.
+
+## Architecture
 
 ```mermaid
 flowchart LR
@@ -53,47 +111,44 @@ flowchart LR
 
 A durably idempotent command transaction commits domain state, bounded audit metadata, its idempotency result, and an outbox row together where the command emits an event. Redis coordinates at-least-once processing; PostgreSQL remains the durable source of truth. See [architecture](docs/architecture.md) and [event flow](docs/event-flow.md).
 
-## Prerequisites
+## Reliability by design
 
-- Windows with PowerShell 7 for the provided scripts.
-- Node.js `>=24.13.0 <25`.
-- Corepack with the workspace-pinned pnpm `11.23.0`.
-- Docker Engine and Docker Compose v2.
-- Git.
+| Failure mode                                                            | Guardrail                                                                                               | Evidence surface                                                     |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| A caller changes a tenant identifier                                    | Membership-derived context, tenant-scoped stores, and composite tenant foreign keys                     | Cross-tenant integration probes and visible forbidden-route behavior |
+| Two clients submit or approve concurrently                              | Stable idempotency keys, uniqueness, resource locks, exact revision checks, and bounded transient retry | Concurrency integration suites and replay assertions                 |
+| The database commits but queue publication fails                        | Domain state and outbox row commit in one PostgreSQL transaction                                        | Outbox persistence, dispatcher, and crash-recovery tests             |
+| BullMQ redelivers work                                                  | Stable event IDs, durable consumer receipts, replay-safe QueueForge effects, and lease recovery         | Worker recovery and duplicate-receipt tests                          |
+| A webhook is forged, replayed, redirected, or targets a private address | Raw-body HMAC, nonce/timestamp receipts, allowlisting, DNS/address pinning, and no redirects            | Inbound/outbound webhook security suites                             |
+| An operator needs to explain a failure                                  | Correlation-bound timeline, attempts, delivery history, audit, worker freshness, and authorized retry   | Role-aware Playwright journey and processing-health UI audit         |
 
-The inspected laptop baseline and low-memory operating guidance are in [docs/environment.md](docs/environment.md). Check the host without changing running services:
+## Technology
 
-```powershell
-pwsh -NoProfile -File scripts/verify-environment.ps1
-```
+| Layer        | Main components                                                                           |
+| ------------ | ----------------------------------------------------------------------------------------- |
+| Web          | Next.js 16.3.2, React 19.2, TypeScript 5.9, static export, accessible role workspaces     |
+| API          | NestJS 11, REST, GraphQL 16, Zod contracts, rotating session families, RBAC               |
+| State        | PostgreSQL, TypeORM migrations, composite tenant constraints, transactional outbox        |
+| Work         | Redis, BullMQ, three queues, durable receipts, leases, bounded retry, dead-letter history |
+| Delivery     | Raw-body HMAC verification, signed allowlisted webhooks, local failure-injection sink     |
+| Verification | Jest, Vitest, Testing Library, axe-core, Playwright, k6 2.2, secretlint, CodeQL           |
+| Runtime      | Node.js 24.13, pnpm 11.23, Docker Compose, PowerShell 7, loopback-only published ports    |
 
-The command writes `artifacts/verification/environment.json` and reports port conflicts; it does not stop unrelated processes.
+## Run locally
 
-## Easiest private start (no paid cloud)
+The standard target is a 16 GB Windows laptop with Node.js `>=24.13.0 <25`, Corepack, pnpm `11.23.0`, Docker Compose v2, Git, and PowerShell 7. PostgreSQL and Redis can stay in Docker while the Node.js processes run on the host.
 
-QueueForge can be delivered as a private ZIP and run entirely on the buyer's Windows computer. Nothing is uploaded to Vercel or another paid service.
+### Private Windows package
 
-The buyer needs only the free [Docker Desktop](https://www.docker.com/products/docker-desktop/) application and PowerShell 7. After unzipping QueueForge:
+1. Open Docker Desktop and wait for the engine.
+2. Extract the private distribution and double-click `START-QUEUEFORGE.cmd`.
+3. Keep the first-start window open while the capped build prepares the stack.
+4. When <http://127.0.0.1:3100> opens, use `admin@queueforge.test`; the generated local password is copied without being printed.
+5. Double-click `STOP-QUEUEFORGE.cmd` to stop the stack while preserving its private database.
 
-1. Open Docker Desktop and wait until it says the engine is running.
-2. Double-click `START-QUEUEFORGE.cmd`.
-3. Keep the first-start window open while QueueForge prepares itself. The build is deliberately limited to two CPU cores and 2.5 GB of memory so the laptop stays responsive.
-4. The browser opens at <http://127.0.0.1:3100>. Use `admin@queueforge.test`; the generated password is already copied, so press `Ctrl+V` in the password box.
-5. Double-click `STOP-QUEUEFORGE.cmd` when finished. The private database is preserved for the next start.
+The package creates fresh secrets for each machine and does not require a paid cloud service. The revision-bound packager, `pnpm package:private`, refuses dirty source and excludes `.env`, Git metadata, dependencies, runtime state, and test output.
 
-Later starts reuse the prepared images and are much faster. The start script never prints the generated password and never deletes QueueForge's database volumes.
-
-For the seller, create a clean revision-bound ZIP with:
-
-```powershell
-pnpm package:private
-```
-
-The packager refuses dirty source and checks that `.env`, local databases, dependencies, test output, and Git metadata are absent. Each buyer generates fresh local secrets on first start. A code-signed Windows installer could be added later, but the ZIP plus two launch files is the complete free distribution path today.
-
-## Quick start: host-first development
-
-This is the preferred route on a 16 GB laptop because only PostgreSQL and Redis run in Docker.
+### Source development
 
 ```powershell
 corepack enable
@@ -106,25 +161,20 @@ pnpm db:seed
 pnpm dev
 ```
 
-`pnpm env:generate` creates `.env` with random local-only secrets and leaves an existing file unchanged. The root development and database commands load that file for their child processes. Do not commit `.env` or paste its values into logs, issues, or screenshots.
+`pnpm env:generate` creates an ignored `.env` with random local-only secrets and leaves an existing file unchanged. Never commit or print those values. Stop the Node.js processes with `Ctrl+C`, then run `pnpm dev:services:down`.
 
-Open:
+| Local surface               | Address                                     |
+| --------------------------- | ------------------------------------------- |
+| Dashboard                   | <http://127.0.0.1:3100>                     |
+| REST/OpenAPI development UI | <http://127.0.0.1:3001/api/docs>            |
+| GraphQL development UI      | <http://127.0.0.1:3001/graphql>             |
+| API readiness               | <http://127.0.0.1:3001/api/v1/health/ready> |
+| Demonstration sink history  | <http://127.0.0.1:3300/history>             |
 
-- Dashboard: <http://127.0.0.1:3100>
-- REST/OpenAPI UI in development: <http://127.0.0.1:3001/api/docs>
-- GraphQL development UI: <http://127.0.0.1:3001/graphql>
-- API readiness: <http://127.0.0.1:3001/api/v1/health/ready>
-- Webhook-sink history: <http://127.0.0.1:3300/history>
+<details>
+<summary><strong>Open the full local Compose route</strong></summary>
 
-Stop the foreground Node processes with `Ctrl+C`, then stop only QueueForge's development dependencies:
-
-```powershell
-pnpm dev:services:down
-```
-
-## Full local Compose demonstration
-
-The full profile builds and runs PostgreSQL, Redis, migration, seed, API, worker, webhook sink, and the statically exported web app with explicit resource caps:
+<br />
 
 ```powershell
 pnpm install --frozen-lockfile
@@ -132,60 +182,43 @@ pnpm env:generate
 docker compose --profile full up --build
 ```
 
-Use `Ctrl+C` for a foreground run. To stop the named QueueForge services without deleting their data volumes:
+The profile runs PostgreSQL, Redis, migration, seed, API, worker, sink, and the static web export with explicit resource caps and loopback-only published ports. Stop it without deleting data using `docker compose --profile full down`.
 
-```powershell
-docker compose --profile full down
-```
+</details>
 
-The full build is more memory-intensive than host-first development. It binds published ports to `127.0.0.1` only.
+<details>
+<summary><strong>Open the seeded roles and reviewer journey</strong></summary>
 
-## Seeded demo identities
+<br />
 
-All seeded users use the randomly generated value of `BOOTSTRAP_ADMIN_PASSWORD` in your local `.env`.
+| Identity                    | Access                                     | Demonstration                                           |
+| --------------------------- | ------------------------------------------ | ------------------------------------------------------- |
+| `admin@queueforge.test`     | Platform admin; Acme and Beta tenant admin | Configure request types, connections, health, and audit |
+| `operator@queueforge.local` | Acme operator                              | Submit, follow, cancel, and retry requests              |
+| `approver@queueforge.local` | Acme approver                              | Decide a bound request without operator controls        |
+| `outsider@queueforge.local` | Beta operator only                         | Demonstrate tenant isolation                            |
 
-| Email                       | Global/tenant access                          | Suggested demonstration                   |
-| --------------------------- | --------------------------------------------- | ----------------------------------------- |
-| `admin@queueforge.test`     | Platform admin; tenant admin in Acme and Beta | Tenant switch, workflow/admin, audit      |
-| `approver@queueforge.local` | Acme approver                                 | Approve or reject without operator rights |
-| `operator@queueforge.local` | Acme operator                                 | Submit, cancel, retry, and replay         |
-| `outsider@queueforge.local` | Beta operator only                            | Demonstrate tenant isolation              |
+All identities use the locally generated `BOOTSTRAP_ADMIN_PASSWORD`; never replace it with a shared portfolio password. The clearest review uses separate admin, operator, and approver sessions. Follow the [demo script](docs/demo-script.md) for the exact safe journey and failure-injection notes.
 
-The seed also activates:
+</details>
 
-- Acme `expense_review`: requires `amount`, `costCenter`, and `summary`; requires approval; prevents self-approval; then runs processor, webhook, and notification targets.
-- Beta `access_review`: requires `system` and `reason`; bypasses approval; runs a processor target.
-
-Never replace the generated password with a shared portfolio password. Read it locally from `.env` immediately before the demo.
-
-## Quick role-based demo
-
-The interface deliberately gives each person only the pages needed for that job. Use three separate sign-ins for the clearest demonstration; all three accounts use the same local `BOOTSTRAP_ADMIN_PASSWORD`.
-
-1. Sign in as `admin@queueforge.test`. In the **Admin workspace**, open **Request types** and inspect `Expense review`. Its normal form builder, approval rule, processing settings, and delivery steps are visible without opening the advanced JSON sections. Admins configure and monitor the system; they do not submit or approve daily requests.
-2. Sign out and sign in as `operator@queueforge.local`. In the **Operations workspace**, open **Start & track requests**, choose **Start request**, and select `Expense review`. Fill in **Amount** (`1250`), **Cost center** (`OPS-42`), and **Summary** (`Synthetic incident tooling`), then choose **Start request**. No JSON or workflow key is required.
-3. Sign out and sign in as `approver@queueforge.local`. In the **Approval workspace**, open **Approval inbox**. Find `Expense review`, review the readable request details, choose **Approve**, optionally add a plain-language note, and confirm with **Approve request**. Approvers do not see operator controls.
-4. Return as the operator to follow **Progress history** on the request. Return as the admin to inspect **Delivery connections** → **Delivery history**, **Processing health**, and the plain-language **Activity log**.
-
-For a presentation-ready walkthrough, including safe startup and failure-injection notes, follow the [demo script](docs/demo-script.md).
-
-## Ports and environment
-
-| Component       | Default | Configuration                                                    |
-| --------------- | ------: | ---------------------------------------------------------------- |
-| Web             |  `3100` | fixed host dev port; `WEB_PORT` for the Compose loopback binding |
-| API / GraphQL   |  `3001` | `API_PORT`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_GRAPHQL_URL`     |
-| Webhook sink    |  `3300` | `SINK_PORT`, `DEMO_WEBHOOK_TARGET_URL`                           |
-| PostgreSQL      |  `5432` | `POSTGRES_PORT`, `DATABASE_URL`, `MIGRATION_DATABASE_URL`        |
-| Redis           |  `6379` | `REDIS_PORT`, `REDIS_URL`                                        |
-| Test PostgreSQL | `55432` | `TEST_POSTGRES_PORT`, `TEST_DATABASE_URL`                        |
-| Test Redis      | `56379` | `TEST_REDIS_PORT`, `TEST_REDIS_URL`                              |
-
-`.env.example` is the field reference; `pnpm env:generate` is the safe local initializer. Runtime parsing fails closed when required secrets or URLs are missing or malformed.
+See the [environment guide](docs/environment.md) for the inspected laptop baseline, port overrides, low-memory guidance, and the non-mutating environment check.
 
 ## Verification
 
-Start isolated test services before PostgreSQL/Redis integration suites:
+The linked [GitHub Actions run](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32852783495) passed quality/build/integration, the real browser journey with bounded k6 smoke, and CodeQL. Its overall conclusion is intentionally non-green because the separate exposure gate correctly rejected the tracked Next.js advisory exception.
+
+| Command                   | Coverage                                                                |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `pnpm verify`             | Formatting, linting, type checking, unit tests, and builds              |
+| `pnpm verify:local`       | Core verification plus real PostgreSQL/Redis integration and web suites |
+| `pnpm test:a11y`          | Accessibility checks                                                    |
+| `pnpm test:e2e`           | Role-aware browser journey against a running local topology             |
+| `pnpm test:load:smoke`    | Bounded loopback-only k6 smoke                                          |
+| `pnpm audit:local`        | Dependency, secret, security, and summary checks                        |
+| `pnpm security:next-gate` | Fail-closed vendor advisory decision                                    |
+
+Start isolated test services before the local integration path:
 
 ```powershell
 pnpm test:services
@@ -205,9 +238,7 @@ The broader release command also invokes end-to-end, load-smoke, dependency, sec
 pnpm verify:release
 ```
 
-`verify:release` does not start the web/API/worker/sink topology required by E2E and load smoke. Keep a migrated, seeded host-first or full-Compose instance running separately before invoking it. The Next.js check runs last and is expected to make the command nonzero while the exception remains open. Run `pnpm security:next-gate` directly when only that known gate needs inspection.
-
-Configured commands are not proof of a passing run. This repository does not claim remote CI success or benchmark results without an attached run artifact. See [testing](docs/testing.md) and [load testing](docs/load-testing.md).
+`verify:release` does not start the web/API/worker/sink topology required by E2E and load smoke. Keep a migrated, seeded host-first or full-Compose instance running separately before invoking it. The Next.js check runs last and is expected to make the command nonzero while the exception remains open. See [testing](docs/testing.md) for the evidence rules and exact suite boundaries.
 
 ## Local performance evidence
 
@@ -231,44 +262,15 @@ The committed smoke/load context and summary pair is the authority for the exact
 
 These are fixed-workload results from one local laptop and synthetic dataset, not capacity guarantees, remote CI evidence, or permission for external exposure.
 
-## Product walkthrough
-
-Captured on **2026-08-25** from the loopback-only **full Docker Compose packaged profile** after API, database, Redis, web, and delivery-sink readiness passed. These screens contain seeded synthetic demonstration data only. The [runtime audit report](artifacts/screenshots/runtime-audit-report.json) records 40 role-aware checks across the administrator, operator, and approver workspaces at 1440×900 desktop and 390×844 mobile sizes, including six forbidden-route redirects. This capture observed zero console or page errors, failed requests, HTTP error responses, GraphQL errors, layout findings, navigation mismatches, or sensitive-data findings.
-
-These images are UI and runtime evidence for this bounded local capture only. They are not evidence of remote CI, benchmark performance, or readiness for external exposure. See the [demo script](docs/demo-script.md) for the reproducible walkthrough.
-
-Every preview below uses the same **1440×900 landscape frame**. Select any image to inspect it at full resolution.
-
-| **01 — Role boundaries**                                                                                                                                                                                                                                         | **02 — Signed delivery connection**                                                                                                                                                                                                                                        |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![QueueForge people administration showing explicit role boundaries](docs/project-handoff/queueforge-pipeline-walkthrough/step_02_people_and_role_boundaries.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_02_people_and_role_boundaries.png) | [![QueueForge allowlisted delivery connection with signed receiver configuration](docs/project-handoff/queueforge-pipeline-walkthrough/step_03_delivery_connection_ready.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_03_delivery_connection_ready.png) |
-| **03 — Guided request intake**                                                                                                                                                                                                                                   | **04 — Independent approval**                                                                                                                                                                                                                                              |
-| [![QueueForge operator completing a guided request form](docs/project-handoff/queueforge-pipeline-walkthrough/step_05_operator_fills_request_form.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_05_operator_fills_request_form.png)            | [![QueueForge approver reviewing a bound request](docs/project-handoff/queueforge-pipeline-walkthrough/step_07_approver_reviews_request.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_07_approver_reviews_request.png)                                   |
-| **05 — Completed request history**                                                                                                                                                                                                                               | **06 — Result delivery history**                                                                                                                                                                                                                                           |
-| [![QueueForge completed request with readable progress and approval history](artifacts/screenshots/desktop-request-detail-1440x900.png)](artifacts/screenshots/desktop-request-detail-1440x900.png)                                                              | [![QueueForge signed result delivery history](docs/project-handoff/queueforge-pipeline-walkthrough/step_09_result_delivery_history.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_09_result_delivery_history.png)                                         |
-| **07 — Requester notifications**                                                                                                                                                                                                                                 | **08 — Correlated activity proof**                                                                                                                                                                                                                                         |
-| [![QueueForge requester notification for completed work](docs/project-handoff/queueforge-pipeline-walkthrough/step_11_requester_notifications.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_11_requester_notifications.png)                    | [![QueueForge activity log with correlated request events](docs/project-handoff/queueforge-pipeline-walkthrough/step_12_correlated_activity_log.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_12_correlated_activity_log.png)                            |
-| **09 — Cross-tenant denial**                                                                                                                                                                                                                                     | **10 — Processing health and recovery**                                                                                                                                                                                                                                    |
-| [![QueueForge deny-by-default cross-tenant access result](docs/project-handoff/queueforge-pipeline-walkthrough/step_13_cross_tenant_access_blocked.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_13_cross_tenant_access_blocked.png)           | [![QueueForge processing health with operator recovery controls](artifacts/screenshots/desktop-operations-1440x900.png)](artifacts/screenshots/desktop-operations-1440x900.png)                                                                                            |
-
-**[Watch the complete 14-step demo →](docs/media/queueforge-pipeline-demo.webm)** · **[Open the labeled 14-step screenshot walkthrough →](docs/project-handoff/queueforge-pipeline-walkthrough/README.md)**
-
 ## Documentation
 
-- [Architecture](docs/architecture.md)
-- [API design and route map](docs/api-design.md)
-- [Database design](docs/database.md)
-- [Event contracts](docs/event-contracts.md)
-- [End-to-end event flow](docs/event-flow.md)
-- [Security controls](docs/security.md)
-- [Threat model](docs/threat-model.md)
-- [Testing](docs/testing.md)
-- [Load testing](docs/load-testing.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [Demo script](docs/demo-script.md)
-- [Career pack](docs/career-pack.md)
-- [Environment baseline](docs/environment.md)
-- [Architecture decisions](docs/adr/0001-typeorm.md) and [API split ADR](docs/adr/0002-api-split.md)
+| Area      | Guides                                                                                                                                                          |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product   | [Demo script](docs/demo-script.md) · [14-step walkthrough](docs/project-handoff/queueforge-pipeline-walkthrough/README.md) · [Career pack](docs/career-pack.md) |
+| Design    | [Architecture](docs/architecture.md) · [API design](docs/api-design.md) · [Database](docs/database.md) · [Event flow](docs/event-flow.md)                       |
+| Contracts | [Event contracts](docs/event-contracts.md) · [TypeORM ADR](docs/adr/0001-typeorm.md) · [API split ADR](docs/adr/0002-api-split.md)                              |
+| Assurance | [Security controls](docs/security.md) · [Threat model](docs/threat-model.md) · [Testing](docs/testing.md) · [Load testing](docs/load-testing.md)                |
+| Operation | [Environment baseline](docs/environment.md) · [Troubleshooting](docs/troubleshooting.md) · [Responsible disclosure](SECURITY.md)                                |
 
 ## Repository layout
 
@@ -289,7 +291,9 @@ packages/
   ui/               Accessible React primitives
 docs/               Design, operation, testing, and interview evidence
 tests/integration/  Real PostgreSQL/Redis integration probes
+load-tests/         Bounded loopback-only k6 scenarios
 scripts/            Environment, security-gate, test-service, and k6 helpers
+.github/            Commit-pinned CI, CodeQL, and dependency automation
 ```
 
 ## Claim boundary
@@ -297,3 +301,7 @@ scripts/            Environment, security-gate, test-service, and k6 helpers
 QueueForge demonstrates a transactional outbox, at-least-once processing, and durable deduplication of QueueForge-owned database effects when the relevant tests pass. It does not claim exactly-once queue execution, exactly-once delivery to arbitrary HTTP receivers, PostgreSQL row-level security, cryptographically immutable audit logs, public/cloud readiness, or closed dependency gates that have not been evidenced.
 
 The current Next.js security exception is recorded in `scripts/next-security-gate.json`. `pnpm security:next-gate` is expected to fail while that record remains open; loopback-only use is mandatory.
+
+## License
+
+QueueForge is released under the [MIT License](LICENSE). See [NOTICE.md](NOTICE.md) for the project boundary and third-party attribution statement.
