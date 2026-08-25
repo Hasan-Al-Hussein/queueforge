@@ -60,7 +60,7 @@ function ValidationHarness({
 describe('workflow editor validation accessibility', () => {
   it('associates a name contract issue with the name input and focuses it', async () => {
     render(<ValidationHarness field="name" />);
-    const input = screen.getByRole('textbox', { name: 'Workflow name' });
+    const input = screen.getByRole('textbox', { name: 'Request type name' });
 
     await waitFor(() => expect(input).toHaveFocus());
     expect(input).toHaveAttribute('aria-invalid', 'true');

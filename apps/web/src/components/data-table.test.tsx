@@ -69,6 +69,23 @@ describe('DataTable', () => {
     expect(await screen.findByText('No records match the current filter.')).toBeVisible();
   });
 
+  it('marks an action column as sticky and provides a mobile scroll cue', () => {
+    render(
+      <DataTable
+        ariaLabel="Requests"
+        columns={columns}
+        getRowId={(row) => row.id}
+        rows={rows}
+        stickyLastColumn
+      />,
+    );
+
+    expect(screen.getByLabelText('Requests scroll area')).toHaveClass(
+      'qf-table-scroll--sticky-last',
+    );
+    expect(screen.getByText(/Swipe sideways to see more details/)).toBeInTheDocument();
+  });
+
   it('delegates controlled search and sorting without reshaping the server page', async () => {
     const user = userEvent.setup();
     const onSearch = vi.fn();

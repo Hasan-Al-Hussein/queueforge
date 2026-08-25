@@ -12,10 +12,10 @@ export function AutosaveConflictActions({
   return (
     <>
       <Button disabled={disabled} onClick={onLoadServer}>
-        Load server copy
+        Use saved copy
       </Button>
       <Button disabled={disabled} onClick={onKeepLocal} tone="primary">
-        Keep my local changes
+        Keep my changes
       </Button>
     </>
   );

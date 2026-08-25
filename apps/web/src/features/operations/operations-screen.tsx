@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
 import Link from 'next/link';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -39,10 +39,6 @@ function QueueRow({ queue }: { readonly queue: QueueSnapshot }): React.JSX.Eleme
         <div>
           <strong>{queueDisplayName(queue.name)}</strong>
           <span>Accepted work</span>
-          <details className="qf-advanced-disclosure">
-            <summary>Technical name</summary>
-            <code>{queue.name}</code>
-          </details>
         </div>
         <div className="qf-queue-row__outbox">
           <span>Waiting to start</span>
@@ -68,10 +64,6 @@ function QueueRow({ queue }: { readonly queue: QueueSnapshot }): React.JSX.Eleme
       <div>
         <strong>{queueDisplayName(queue.name)}</strong>
         <span>Work type</span>
-        <details className="qf-advanced-disclosure">
-          <summary>Technical name</summary>
-          <code>{queue.name}</code>
-        </details>
       </div>
       <div>
         <span>Awaiting start</span>
@@ -255,6 +247,45 @@ export function OperationsScreen(): React.JSX.Element {
       ),
     },
   ];
+  const attentionPanel = (
+    <Panel
+      title="Needs attention"
+      description="These requests used every automatic try. Review what happened before trying again."
+    >
+      <QueryState
+        empty={deadLettersQuery.isSuccess && deadLetters.length === 0}
+        emptyDescription="Every request has finished or still has an automatic try available."
+        emptyTitle="Nothing needs help"
+        error={deadLettersQuery.error}
+        isLoading={deadLettersQuery.isLoading}
+        onRetry={() => void deadLettersQuery.refetch()}
+      >
+        <DataTable
+          ariaLabel="Requests that need attention"
+          columns={columns}
+          getRowId={(row) => row.id}
+          rows={deadLetters}
+          stickyLastColumn
+          search={{
+            label: 'Search requests that need attention',
+            placeholder: 'Request type, reference, or reason',
+            text: (row) => `${row.workflowName} ${row.requestId} ${row.reason}`,
+          }}
+        />
+      </QueryState>
+      {deadLettersQuery.data?.meta === undefined ? null : (
+        <PaginationControls
+          ariaLabel="Requests that need attention"
+          disabled={deadLettersQuery.isFetching}
+          meta={deadLettersQuery.data.meta}
+          onPageChange={deadLetterPagination.setPage}
+          onPageSizeChange={deadLetterPagination.setPageSize}
+          page={deadLetterPagination.page}
+          pageSize={deadLetterPagination.pageSize}
+        />
+      )}
+    </Panel>
+  );
 
   return (
     <AppShell>
@@ -275,6 +306,7 @@ export function OperationsScreen(): React.JSX.Element {
         eyebrow="Keep work moving"
         title="Processing health"
       />
+      {deadLetters.length > 0 ? attentionPanel : null}
       <MetricStrip
         items={
           telemetryAvailable
@@ -340,44 +372,24 @@ export function OperationsScreen(): React.JSX.Element {
                 <QueueRow key={queue.name} queue={queue} />
               ))}
             </div>
+            {queueRows.length === 0 ? null : (
+              <details className="qf-advanced-disclosure">
+                <summary>Technical queue names</summary>
+                <dl className="qf-key-values">
+                  {queueRows.map((queue) => (
+                    <Fragment key={queue.name}>
+                      <dt>{queueDisplayName(queue.name)}</dt>
+                      <dd>
+                        <code>{queue.name}</code>
+                      </dd>
+                    </Fragment>
+                  ))}
+                </dl>
+              </details>
+            )}
           </QueryState>
         </Panel>
-        <Panel
-          title="Needs attention"
-          description="These requests used every automatic try. Review what happened before trying again."
-        >
-          <QueryState
-            empty={deadLettersQuery.isSuccess && deadLetters.length === 0}
-            emptyDescription="Every request has finished or still has an automatic try available."
-            emptyTitle="Nothing needs help"
-            error={deadLettersQuery.error}
-            isLoading={deadLettersQuery.isLoading}
-            onRetry={() => void deadLettersQuery.refetch()}
-          >
-            <DataTable
-              ariaLabel="Requests that need attention"
-              columns={columns}
-              getRowId={(row) => row.id}
-              rows={deadLetters}
-              search={{
-                label: 'Search requests that need attention',
-                placeholder: 'Request type, reference, or reason',
-                text: (row) => `${row.workflowName} ${row.requestId} ${row.reason}`,
-              }}
-            />
-          </QueryState>
-          {deadLettersQuery.data?.meta === undefined ? null : (
-            <PaginationControls
-              ariaLabel="Requests that need attention"
-              disabled={deadLettersQuery.isFetching}
-              meta={deadLettersQuery.data.meta}
-              onPageChange={deadLetterPagination.setPage}
-              onPageSizeChange={deadLetterPagination.setPageSize}
-              page={deadLetterPagination.page}
-              pageSize={deadLetterPagination.pageSize}
-            />
-          )}
-        </Panel>
+        {deadLetters.length === 0 ? attentionPanel : null}
       </div>
       <Dialog
         description="QueueForge will keep the earlier failure history and start a fresh processing try."

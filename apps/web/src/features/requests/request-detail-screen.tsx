@@ -20,7 +20,6 @@ import {
   ShieldCheck,
   StatePanel,
   StatusBadge,
-  type QueueRailItem,
 } from '@queueforge/ui';
 
 import { apiRequest, formatProblem } from '../../api/client';
@@ -36,13 +35,14 @@ import {
   requestProgressLabel,
   requestSourceLabel,
   requestStatusLabel,
-  requestTransitionReasonLabel,
   requestTypeLabel,
 } from '../../domain/presentation';
 import { useIdempotencyKeyLease } from '../../hooks/use-idempotency-key-lease';
 import { useStaticSearchParam } from '../../hooks/use-static-search-param';
 import { useAuth } from '../../providers/auth-provider';
 import { useToast } from '../../providers/toast-provider';
+import { requestTimelineItems } from './request-detail-timeline';
+import styles from './request-detail-screen.module.css';
 
 const REQUEST_DETAIL_QUERY = gql`
   query RequestDetail($id: ID!) {
@@ -87,38 +87,6 @@ interface RequestDetailQueryData {
 }
 
 type Command = 'cancel' | 'retry';
-
-function railItems(detail: RequestDetail): readonly QueueRailItem[] {
-  if (detail.transitions.length === 0) {
-    return [
-      {
-        id: detail.request.id,
-        label: requestStatusLabel(detail.request.status),
-        state: 'current',
-        timestamp: detail.request.statusChangedAt,
-      },
-    ];
-  }
-  return detail.transitions.map((transition, index) => {
-    const isLast = index === detail.transitions.length - 1;
-    const failed = ['failed', 'dead_lettered', 'rejected', 'validation_failed'].includes(
-      transition.toStatus,
-    );
-    const description = [
-      transition.actorName,
-      requestTransitionReasonLabel(transition.reason ?? null),
-    ]
-      .filter((value) => value !== null && value !== undefined)
-      .join(' · ');
-    return {
-      id: transition.id,
-      label: requestStatusLabel(transition.toStatus),
-      description: description === '' ? undefined : description,
-      state: failed ? 'failed' : isLast ? 'current' : 'complete',
-      timestamp: new Date(transition.occurredAt).toLocaleString(),
-    };
-  });
-}
 
 export function RequestDetailScreen(): React.JSX.Element {
   const search = useStaticSearchParam('id');
@@ -297,7 +265,11 @@ export function RequestDetailScreen(): React.JSX.Element {
                   title="Progress history"
                   description="A clear, time-ordered record of what happened to this request."
                 >
-                  <QueueRail items={railItems(parsed)} ariaLabel="Request status timeline" />
+                  <QueueRail
+                    ariaLabel="Request status timeline"
+                    className={styles.timeline}
+                    items={requestTimelineItems(parsed)}
+                  />
                 </Panel>
                 <div className="qf-content-grid">
                   <Panel title="Request summary">

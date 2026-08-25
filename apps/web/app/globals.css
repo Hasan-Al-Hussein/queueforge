@@ -669,6 +669,12 @@ code,
   width: calc(100% - 32px);
 }
 
+.qf-dialog[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
 .qf-dialog::backdrop {
   background: rgb(5 16 24 / 68%);
 }
@@ -693,7 +699,9 @@ code,
   margin-top: 3px;
 }
 .qf-dialog__body {
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px;
 }
 .qf-dialog__footer {
@@ -1122,6 +1130,13 @@ code,
 .qf-table-scroll {
   max-width: 100%;
   overflow-x: auto;
+}
+.qf-table-scroll-hint {
+  color: var(--qf-muted);
+  display: none;
+  font-size: 12px;
+  justify-content: flex-end;
+  margin: 8px 0 4px;
 }
 .qf-table-scroll:focus-visible {
   outline-offset: -3px;
@@ -1805,7 +1820,7 @@ td {
 .qf-journey-guide {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1842,6 +1857,15 @@ td {
 .qf-journey-guide strong {
   display: block;
   margin-bottom: 3px;
+}
+
+.qf-guide-link {
+  align-items: center;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 5px;
+  margin-top: 10px;
 }
 
 .qf-journey-guide p,
@@ -2337,6 +2361,36 @@ td {
   }
   .qf-data-table__search > .qf-utility {
     grid-column: 2;
+  }
+  .qf-table-scroll-hint {
+    display: flex;
+  }
+  .qf-table-scroll--sticky-last th:last-child,
+  .qf-table-scroll--sticky-last td:last-child {
+    background: var(--qf-surface);
+    box-shadow: -10px 0 14px -14px rgb(23 32 51 / 70%);
+    position: sticky;
+    right: 0;
+    z-index: 2;
+  }
+  .qf-table-scroll--sticky-last th:last-child {
+    background: var(--qf-surface-raised);
+    z-index: 3;
+  }
+  .qf-table-scroll--sticky-last .qf-content-row:hover td:last-child {
+    background: color-mix(in srgb, var(--qf-neutral-bg) 62%, var(--qf-surface));
+  }
+  .qf-dialog__header,
+  .qf-dialog__body,
+  .qf-dialog__footer {
+    padding: 16px;
+  }
+  .qf-dialog__footer {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+  .qf-dialog__footer .qf-button {
+    flex: 1 1 140px;
   }
   .qf-pagination {
     align-items: stretch;

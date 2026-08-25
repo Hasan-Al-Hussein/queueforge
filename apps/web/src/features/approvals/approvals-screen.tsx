@@ -25,6 +25,7 @@ import { AppShell } from '../../components/app-shell';
 import { DataTable } from '../../components/data-table';
 import { DateTime } from '../../components/format';
 import { HumanReadablePayload } from '../../components/human-readable-payload';
+import { InlineLoadError } from '../../components/inline-load-error';
 import { PageHeader } from '../../components/page-header';
 import { PaginationControls } from '../../components/pagination-controls';
 import { QueryState } from '../../components/query-state';
@@ -38,6 +39,18 @@ import { useToast } from '../../providers/toast-provider';
 
 interface DecisionForm {
   readonly note?: string;
+}
+
+export function approvalDecisionDetailsReady({
+  error,
+  hasDetails,
+  isLoading,
+}: {
+  readonly error: unknown;
+  readonly hasDetails: boolean;
+  readonly isLoading: boolean;
+}): boolean {
+  return hasDetails && !isLoading && (error === null || error === undefined);
 }
 
 export function ApprovalsScreen(): React.JSX.Element {
@@ -77,6 +90,11 @@ export function ApprovalsScreen(): React.JSX.Element {
     reset,
   } = useForm<DecisionForm>({ defaultValues: { note: '' }, mode: 'onBlur' });
   const decisionNote = useWatch({ control, name: 'note' });
+  const decisionDetailsReady = approvalDecisionDetailsReady({
+    error: selectedRequestQuery.error,
+    hasDetails: selectedRequestQuery.data !== undefined,
+    isLoading: selectedRequestQuery.isLoading,
+  });
   const decisionKey = useIdempotencyKeyLease(
     JSON.stringify({
       decision: selected?.decision ?? null,
@@ -120,7 +138,7 @@ export function ApprovalsScreen(): React.JSX.Element {
     },
   });
   const submit = handleSubmit(async (values) => {
-    if (selected === null) return;
+    if (selected === null || !decisionDetailsReady) return;
     const note = values.note?.trim();
     await decisionMutation.mutateAsync({
       ...selected,
@@ -244,6 +262,7 @@ export function ApprovalsScreen(): React.JSX.Element {
             columns={columns}
             getRowId={(row) => row.id}
             rows={rows}
+            stickyLastColumn
             search={{
               label: 'Search approvals',
               placeholder: 'Request type, person, or detail',
@@ -274,7 +293,7 @@ export function ApprovalsScreen(): React.JSX.Element {
           <>
             <Button onClick={cancelDecision}>Cancel</Button>
             <Button
-              disabled={!online}
+              disabled={!online || !decisionDetailsReady}
               loading={decisionMutation.isPending}
               loadingLabel="Recording"
               onClick={() => void submit()}
@@ -302,6 +321,13 @@ export function ApprovalsScreen(): React.JSX.Element {
               <span />
               <span />
             </div>
+          ) : selectedRequestQuery.error !== null ? (
+            <InlineLoadError
+              error={selectedRequestQuery.error}
+              onRetry={() => void selectedRequestQuery.refetch()}
+              retrying={selectedRequestQuery.isFetching}
+              title="Could not load request details"
+            />
           ) : selectedRequestQuery.data === undefined ? null : (
             <HumanReadablePayload
               payload={selectedRequestQuery.data.payload}

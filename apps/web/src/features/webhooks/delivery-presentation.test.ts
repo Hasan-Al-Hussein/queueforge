@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   deliveryAttemptLabel,
+  nextDeliveryAttemptAt,
   receiverReplyLabel,
   webhookDeliveryStatusLabel,
   webhookEventLabel,
@@ -24,5 +25,22 @@ describe('webhook delivery presentation', () => {
     expect(receiverReplyLabel(202)).toBe('Accepted for processing · HTTP 202');
     expect(receiverReplyLabel(422)).toBe('Receiver rejected it · HTTP 422');
     expect(receiverReplyLabel(503)).toBe('Receiver reported an error · HTTP 503');
+  });
+
+  it('shows a next attempt only while delivery work is nonterminal', () => {
+    const scheduledAt = '2026-08-25T08:00:00.000Z';
+
+    expect(nextDeliveryAttemptAt({ nextAttemptAt: scheduledAt, status: 'pending' })).toBe(
+      scheduledAt,
+    );
+    expect(nextDeliveryAttemptAt({ nextAttemptAt: scheduledAt, status: 'delivering' })).toBe(
+      scheduledAt,
+    );
+    expect(nextDeliveryAttemptAt({ nextAttemptAt: scheduledAt, status: 'retry' })).toBe(
+      scheduledAt,
+    );
+    expect(nextDeliveryAttemptAt({ nextAttemptAt: scheduledAt, status: 'delivered' })).toBeNull();
+    expect(nextDeliveryAttemptAt({ nextAttemptAt: scheduledAt, status: 'dead' })).toBeNull();
+    expect(nextDeliveryAttemptAt({ nextAttemptAt: null, status: 'pending' })).toBeNull();
   });
 });

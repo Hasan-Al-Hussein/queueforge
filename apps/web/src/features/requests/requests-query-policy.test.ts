@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { requestListSearchParams, requestSortFromTable } from './requests-screen';
+import {
+  guidedRequestFormReady,
+  requestListSearchParams,
+  requestSortFromTable,
+} from './requests-screen';
 
 describe('request list server query policy', () => {
   it('builds a bounded global search and sort query', () => {
@@ -39,5 +43,31 @@ describe('request list server query policy', () => {
       sortBy: 'submittedAt',
       sortDirection: 'desc',
     });
+  });
+
+  it('enables request submission only for a successfully loaded supported guided form', () => {
+    const ready = {
+      detailError: null,
+      hasDetails: true,
+      hasSelection: true,
+      isDetailLoading: false,
+      isListLoading: false,
+      listError: null,
+      supported: true,
+    };
+
+    expect(guidedRequestFormReady(ready)).toBe(true);
+    expect(guidedRequestFormReady({ ...ready, hasSelection: false })).toBe(false);
+    expect(guidedRequestFormReady({ ...ready, hasDetails: false })).toBe(false);
+    expect(guidedRequestFormReady({ ...ready, isDetailLoading: true })).toBe(false);
+    expect(guidedRequestFormReady({ ...ready, isListLoading: true })).toBe(false);
+    expect(guidedRequestFormReady({ ...ready, supported: false })).toBe(false);
+    expect(guidedRequestFormReady({ ...ready, detailError: new Error('Failed') })).toBe(false);
+    expect(
+      guidedRequestFormReady({
+        ...ready,
+        listError: new Error('Cached list refresh failed'),
+      }),
+    ).toBe(false);
   });
 });

@@ -10,8 +10,8 @@ describe('AutosaveConflictActions', () => {
     const loadServer = vi.fn();
     const keepLocal = vi.fn();
     render(<AutosaveConflictActions onKeepLocal={keepLocal} onLoadServer={loadServer} />);
-    await user.click(screen.getByRole('button', { name: 'Load server copy' }));
-    await user.click(screen.getByRole('button', { name: 'Keep my local changes' }));
+    await user.click(screen.getByRole('button', { name: 'Use saved copy' }));
+    await user.click(screen.getByRole('button', { name: 'Keep my changes' }));
     expect(loadServer).toHaveBeenCalledOnce();
     expect(keepLocal).toHaveBeenCalledOnce();
   });

@@ -252,6 +252,7 @@ export function TeamScreen(): React.JSX.Element {
               columns={columns}
               getRowId={(row) => row.id}
               rows={rows}
+              stickyLastColumn
               search={{
                 label: 'Search members',
                 placeholder: 'Name, email, role, or status',

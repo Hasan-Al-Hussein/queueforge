@@ -205,7 +205,8 @@ export async function seedQueueForge(
       versionId: DEMO_IDS.expenseVersion,
       stableKey: 'expense_review',
       name: 'Expense review',
-      description: 'Approval-gated expense review with signed completion delivery.',
+      description:
+        'Submit an expense for review, then send the approved result to the local audit system.',
       requestSchema: {
         type: 'object',
         additionalProperties: false,
@@ -282,7 +283,8 @@ export async function seedQueueForge(
         tenantId: DEMO_IDS.acmeTenant,
         versionId: DEMO_IDS.expenseVersion,
         name: 'Expense review',
-        description: 'Approval-gated expense review with signed completion delivery.',
+        description:
+          'Submit an expense for review, then send the approved result to the local audit system.',
       },
       {
         tenantId: DEMO_IDS.betaTenant,

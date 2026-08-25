@@ -241,7 +241,7 @@ export function WorkflowContentFields({
         <div className="qf-editor-section__heading">
           <span>1</span>
           <div>
-            <h3>Name and explain this workflow</h3>
+            <h3>Name and explain this request type</h3>
             <p>Use language that requesters and approvers will recognize immediately.</p>
           </div>
         </div>
@@ -250,7 +250,7 @@ export function WorkflowContentFields({
             disabled={!editable}
             error={errors.name?.message}
             id="editor-name"
-            label="Workflow name"
+            label="Request type name"
             maxLength={160}
             required
             {...register('name', { required: 'Name is required.' })}
@@ -381,7 +381,7 @@ export function WorkflowContentFields({
                 <div>
                   <strong>
                     {kind === 'processor'
-                      ? 'Run workflow'
+                      ? 'Process request'
                       : kind === 'webhook'
                         ? 'Send webhook'
                         : kind === 'notification'
@@ -433,7 +433,7 @@ export function WorkflowPolicyFields({
 }: WorkflowPolicyFieldsProps): React.JSX.Element {
   const policies = [
     {
-      description: 'Disabled workflows remain visible but reject new intake.',
+      description: 'Paused request types remain visible but cannot accept new requests.',
       field: 'isEnabled',
       id: 'editor-is-enabled',
       label: 'Accept new requests',
@@ -515,7 +515,7 @@ function SaveIndicator({
     return (
       <span className="qf-save-state qf-save-state--error">
         <AlertTriangle size={15} />
-        Revision conflict
+        Changes need review
       </span>
     );
   if (state === 'error')
@@ -702,7 +702,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
     onSuccess: (workflow) => {
       queryClient.setQueryData(['workflow', workflowId], workflow);
       setActivateOpen(false);
-      notify(`Version ${String(workflow.versionNo)} activated.`, 'success');
+      notify(`Request type published as version ${String(workflow.versionNo)}.`, 'success');
     },
   });
   const cloneMutation = useMutation({
@@ -715,7 +715,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
     },
     onSuccess: (workflow) => {
       queryClient.setQueryData(['workflow', workflow.id], workflow);
-      notify('New draft cloned from the active version.', 'success');
+      notify('Editable draft created from the published request type.', 'success');
       if (workflow.id !== workflowId) {
         router.push(`/workflows/editor?id=${encodeURIComponent(workflow.id)}`);
       }
@@ -733,7 +733,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
       loadedVersionRef.current = result.data.versionId;
       setConflictDraft(null);
       setSaveState('saved');
-      notify('Loaded the latest server revision.', 'info');
+      notify('Loaded the newest saved copy.', 'info');
     }
   };
 
@@ -746,7 +746,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
       revisionRef.current = latest.revision;
       setConflictDraft(null);
       const saved = await persistDraft(values, latest.revision);
-      if (saved !== null) notify('Local changes saved against the latest revision.', 'success');
+      if (saved !== null) notify('Your changes were saved against the newest copy.', 'success');
     } catch (error) {
       setSaveError(formatProblem(error));
       setSaveState('error');
@@ -769,7 +769,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
               prefetch={false}
             >
               <ArrowLeft size={16} />
-              Catalog
+              Request types
             </Link>
             <SaveIndicator error={saveError} state={saveState} />
             {saveState === 'error' && editable ? (
@@ -789,7 +789,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
                 onClick={() => setActivateOpen(true)}
                 tone="primary"
               >
-                Activate version
+                Publish changes
               </Button>
             ) : null}
             {workflow?.versionStatus === 'active' && can('configure_workflows') ? (
@@ -800,32 +800,32 @@ export function WorkflowEditorScreen(): React.JSX.Element {
                 onClick={() => cloneMutation.mutate()}
                 tone="primary"
               >
-                Clone new draft
+                Create editable draft
               </Button>
             ) : null}
           </>
         }
-        description="Draft changes autosave with compare-and-swap revisions. Activated content is read-only."
-        eyebrow="Workflow version editor"
-        title={workflow?.name ?? 'Workflow editor'}
+        description="Draft changes save automatically. Published versions stay unchanged so existing requests keep their original rules."
+        eyebrow="Request type setup"
+        title={workflow?.name ?? 'Request type editor'}
       />
 
       {!search.ready ? (
         <StatePanel
-          description="Reading the workflow identifier from this static route."
+          description="Reading the request type reference from this page."
           kind="loading"
-          title="Opening workflow"
+          title="Opening request type"
         />
       ) : workflowId === null ? (
         <StatePanel
           action={
             <Link className="qf-button qf-button--secondary" href="/workflows" prefetch={false}>
-              Choose a workflow
+              Choose a request type
             </Link>
           }
-          description="This static editor requires a valid UUID in the id query parameter."
+          description="Choose a request type from the catalog to edit its form and rules."
           kind="empty"
-          title="No workflow selected"
+          title="No request type selected"
         />
       ) : (
         <PermissionSurface permission="read">
@@ -837,11 +837,11 @@ export function WorkflowEditorScreen(): React.JSX.Element {
             {workflow !== undefined ? (
               <div className="qf-content-grid qf-content-grid--detail">
                 <Panel
-                  title="Version content"
+                  title="Request type setup"
                   description={
                     editable
-                      ? `Draft revision ${String(workflow.revision)} · autosaves 850 ms after changes stop`
-                      : 'This activated or retired version is immutable.'
+                      ? 'Draft · changes save automatically after you stop typing'
+                      : 'Published and archived versions are read-only. Create a draft to make changes.'
                   }
                   actions={<StatusBadge status={workflow.versionStatus} />}
                 >
@@ -873,7 +873,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
                   <Panel title="Approval policy">
                     <WorkflowPolicyFields editable={editable} errors={errors} register={register} />
                   </Panel>
-                  <Panel title="Version facts">
+                  <Panel title="Published record">
                     <dl className="qf-key-values">
                       <dt>Stable key</dt>
                       <dd className="qf-mono">{workflow.stableKey}</dd>
@@ -891,7 +891,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
                   </Panel>
                   {!can('configure_workflows') ? (
                     <StatePanel
-                      description="Your role may inspect workflow configuration but cannot edit or activate versions."
+                      description="Your role may review this request type but cannot edit or publish changes."
                       kind="forbidden"
                       title="Read-only access"
                     />
@@ -904,24 +904,24 @@ export function WorkflowEditorScreen(): React.JSX.Element {
       )}
 
       <Dialog
-        description="Activation retires the previous active version and makes this version content immutable."
+        description="Publishing makes this setup available to new requests. The previous published version stays unchanged for existing requests."
         footer={
           <>
             <Button onClick={() => setActivateOpen(false)}>Keep as draft</Button>
             <Button
               disabled={!online}
               loading={activateMutation.isPending}
-              loadingLabel="Activating"
+              loadingLabel="Publishing"
               onClick={() => activateMutation.mutate()}
               tone="primary"
             >
-              Activate immutable version
+              Publish request type
             </Button>
           </>
         }
         onClose={() => setActivateOpen(false)}
         open={activateOpen}
-        title="Activate this workflow version?"
+        title="Publish this request type?"
       >
         {activateMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
@@ -929,13 +929,13 @@ export function WorkflowEditorScreen(): React.JSX.Element {
           </div>
         ) : null}
         <p>
-          New requests will bind to this exact content. Existing requests remain bound to their
-          original version.
+          New requests will use this exact setup. Existing requests keep the version they started
+          with.
         </p>
       </Dialog>
 
       <Dialog
-        description="Another save changed the server revision after this editor loaded. Choose which content to keep."
+        description="A newer saved copy exists. Choose whether to use it or keep the changes in this tab."
         footer={
           <AutosaveConflictActions
             disabled={!online}
@@ -945,18 +945,25 @@ export function WorkflowEditorScreen(): React.JSX.Element {
         }
         onClose={() => {
           setConflictDraft(null);
-          setSaveError('Revision conflict is unresolved. Edit again or reload the server copy.');
+          setSaveError('Choose which copy to keep before continuing.');
           setSaveState('error');
         }}
         open={conflictDraft !== null}
-        title="Draft revision conflict"
+        title="Someone else changed this draft"
       >
         <div className="qf-inline-alert">
           <AlertTriangle size={18} />
           <p>
-            Loading the server copy discards unsaved local edits. Keeping local changes first
-            fetches the newest revision, then submits an explicit compare-and-swap update.
+            Using the saved copy discards changes that exist only in this tab. Keeping your changes
+            combines them with the newest saved copy before saving again.
           </p>
+          <details className="qf-advanced-disclosure">
+            <summary>Technical behavior</summary>
+            <p>
+              QueueForge reloads the latest revision and uses a compare-and-swap update so one
+              editor cannot silently overwrite another.
+            </p>
+          </details>
         </div>
       </Dialog>
     </AppShell>

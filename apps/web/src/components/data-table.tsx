@@ -13,13 +13,14 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 
-import { ArrowDown, ArrowUp, ChevronsUpDown, InputField, Search } from '@queueforge/ui';
+import { ArrowDown, ArrowUp, ChevronsUpDown, InputField, Search, cn } from '@queueforge/ui';
 
 export interface DataTableProps<T> {
   readonly ariaLabel: string;
   readonly columns: readonly ColumnDef<T, unknown>[];
   readonly getRowId: (row: T) => string;
   readonly rows: readonly T[];
+  readonly stickyLastColumn?: boolean;
   readonly search?: {
     readonly label: string;
     readonly maxLength?: number;
@@ -42,6 +43,7 @@ export function DataTable<T>({
   getRowId,
   rows,
   search,
+  stickyLastColumn = false,
   sorting: controlledSorting,
 }: DataTableProps<T>): React.JSX.Element {
   const [localSorting, setLocalSorting] = useState<SortingState>([]);
@@ -105,8 +107,11 @@ export function DataTable<T>({
           )}
         </div>
       ) : null}
+      <p className="qf-table-scroll-hint" aria-hidden="true">
+        Swipe sideways to see more details →
+      </p>
       <div
-        className="qf-table-scroll"
+        className={cn('qf-table-scroll', stickyLastColumn && 'qf-table-scroll--sticky-last')}
         role="region"
         aria-label={`${ariaLabel} scroll area`}
         tabIndex={0}

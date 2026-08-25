@@ -39,6 +39,13 @@ export function deliveryAttemptLabel(attemptCount: number): string {
   return `${String(attemptCount)} ${attemptCount === 1 ? 'try' : 'tries'}`;
 }
 
+export function nextDeliveryAttemptAt(
+  delivery: Pick<WebhookDelivery, 'nextAttemptAt' | 'status'>,
+): string | null {
+  if (delivery.status === 'delivered' || delivery.status === 'dead') return null;
+  return delivery.nextAttemptAt;
+}
+
 export function receiverReplyLabel(statusCode: number | null): string {
   if (statusCode === null) return 'No reply yet';
   if (statusCode === 200) return 'Accepted · HTTP 200';

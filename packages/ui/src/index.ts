@@ -5,5 +5,6 @@ export * from './field.js';
 export * from './icons.js';
 export * from './panel.js';
 export * from './queue-rail.js';
+export * from './segmented-tabs.js';
 export * from './state-panel.js';
 export * from './status-badge.js';

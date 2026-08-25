@@ -105,13 +105,21 @@ export function readWorkflowSchema(schema: Record<string, unknown>): WorkflowSch
       supported: false,
     };
   }
-  const required = new Set(
-    Array.isArray(schema.required)
-      ? schema.required.filter((item): item is string => typeof item === 'string')
-      : [],
-  );
+  const requiredKeys = Array.isArray(schema.required)
+    ? schema.required.filter((item): item is string => typeof item === 'string')
+    : [];
+  const required = new Set(requiredKeys);
+  const requiredOrder = new Map(requiredKeys.map((key, index) => [key, index]));
+  const propertyEntries = Object.entries(schema.properties).sort(([left], [right]) => {
+    const leftOrder = requiredOrder.get(left);
+    const rightOrder = requiredOrder.get(right);
+    if (leftOrder !== undefined && rightOrder !== undefined) return leftOrder - rightOrder;
+    if (leftOrder !== undefined) return -1;
+    if (rightOrder !== undefined) return 1;
+    return left.localeCompare(right);
+  });
   const fields: WorkflowField[] = [];
-  for (const [key, value] of Object.entries(schema.properties)) {
+  for (const [key, value] of propertyEntries) {
     if (
       !isRecord(value) ||
       Object.keys(value).some((propertyKey) => !PROPERTY_KEYS.has(propertyKey))

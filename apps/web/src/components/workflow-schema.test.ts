@@ -20,7 +20,16 @@ const expenseSchema = {
 
 describe('workflow schema helpers', () => {
   it('turns the seeded expense schema into friendly fields and a valid payload', () => {
-    const result = readWorkflowSchema(expenseSchema);
+    const result = readWorkflowSchema({
+      ...expenseSchema,
+      // PostgreSQL JSONB may return object keys in a different order. The required list preserves
+      // the administrator's intended question sequence for this all-required form.
+      properties: {
+        amount: expenseSchema.properties.amount,
+        summary: expenseSchema.properties.summary,
+        costCenter: expenseSchema.properties.costCenter,
+      },
+    });
     expect(result.supported).toBe(true);
     expect(result.fields.map((field) => [field.key, field.label, field.kind])).toEqual([
       ['amount', 'Amount', 'number'],

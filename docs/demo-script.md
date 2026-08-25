@@ -51,7 +51,7 @@ Narration:
 Show:
 
 1. the `Administrator` badge, **Admin workspace** title, and selected tenant in the application shell;
-2. **Administration overview**, **Your next step**, the four-step **How QueueForge works** guide, plain-language status totals, and recent activity;
+2. **Administration overview**, **Your next step**, the role-specific **Administrator quick guide**, and plain-language status totals;
 3. the tenant switcher: switch to Beta Logistics, point out that its configuration and activity are separate, then return to Acme;
 4. light/dark theme and a visible keyboard focus indicator if time permits.
 
@@ -66,8 +66,8 @@ Show:
 - the guided **Build the request form** section and its normal labeled questions;
 - the approval rule and self-approval protection;
 - the readable summary of processing, delivery, and notification steps;
-- the stable key `expense_review` and active version under **Version facts**;
-- the active version's read-only posture and explicit **Clone new draft** path;
+- the stable key `expense_review` and active version under **Published record**;
+- the published version's read-only posture and explicit **Create editable draft** path;
 - draft autosave revision/conflict controls if a draft exists.
 
 Keep **Advanced processing JSON** and **Advanced delivery configuration** closed during the normal demo. They are support tools, not the primary editing experience.

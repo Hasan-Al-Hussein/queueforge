@@ -16,9 +16,9 @@ export default function WorkflowEditorPage(): React.JSX.Element {
         fallback={
           <main className="qf-session-gate">
             <StatePanel
-              description="Reading the workflow identifier from this static route."
+              description="Reading the request type reference from this page."
               kind="loading"
-              title="Opening workflow"
+              title="Opening request type"
             />
           </main>
         }

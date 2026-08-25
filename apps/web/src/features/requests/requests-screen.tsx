@@ -31,6 +31,7 @@ import { AppShell } from '../../components/app-shell';
 import { DataTable } from '../../components/data-table';
 import { CompactId, DateTime } from '../../components/format';
 import { GuidedRequestForm } from '../../components/guided-request-form';
+import { InlineLoadError } from '../../components/inline-load-error';
 import { PageHeader } from '../../components/page-header';
 import { PaginationControls } from '../../components/pagination-controls';
 import { PermissionGate } from '../../components/permission-gate';
@@ -101,6 +102,34 @@ export function requestSortFromTable(sorting: SortingState): {
     sortBy: primary.id as RequestSortBy,
     sortDirection: primary.desc ? 'desc' : 'asc',
   };
+}
+
+export function guidedRequestFormReady({
+  detailError,
+  hasDetails,
+  hasSelection,
+  isDetailLoading,
+  isListLoading,
+  listError,
+  supported,
+}: {
+  readonly detailError: unknown;
+  readonly hasDetails: boolean;
+  readonly hasSelection: boolean;
+  readonly isDetailLoading: boolean;
+  readonly isListLoading: boolean;
+  readonly listError: unknown;
+  readonly supported: boolean;
+}): boolean {
+  return (
+    hasSelection &&
+    hasDetails &&
+    supported &&
+    !isDetailLoading &&
+    !isListLoading &&
+    (detailError === null || detailError === undefined) &&
+    (listError === null || listError === undefined)
+  );
 }
 
 const requestColumns: readonly ColumnDef<WorkflowRequestView, unknown>[] = [
@@ -232,6 +261,15 @@ export function RequestsScreen(): React.JSX.Element {
         : readWorkflowSchema(workflowDetailQuery.data.requestSchema),
     [workflowDetailQuery.data],
   );
+  const requestFormReady = guidedRequestFormReady({
+    detailError: workflowDetailQuery.error,
+    hasDetails: workflowDetailQuery.data !== undefined,
+    hasSelection: selectedWorkflow !== undefined,
+    isDetailLoading: workflowDetailQuery.isLoading,
+    isListLoading: workflowsQuery.isLoading,
+    listError: workflowsQuery.error,
+    supported: guidedSchema?.supported === true,
+  });
   const submissionInput = {
     payload: payloadValues,
     workflowKey: selectedWorkflow?.stableKey ?? '',
@@ -268,6 +306,10 @@ export function RequestsScreen(): React.JSX.Element {
       setSubmissionError(
         'This request type is not ready for the simple form yet. Ask an administrator to update its questions.',
       );
+      return;
+    }
+    if (!requestFormReady) {
+      setSubmissionError('Wait for the request form to finish loading successfully.');
       return;
     }
     const result = buildWorkflowPayload(guidedSchema.fields, payloadValues);
@@ -430,7 +472,7 @@ export function RequestsScreen(): React.JSX.Element {
           <>
             <Button onClick={cancelSubmission}>Cancel</Button>
             <Button
-              disabled={!online || selectedWorkflow === undefined || workflowDetailQuery.isLoading}
+              disabled={!online || !requestFormReady}
               loading={submitMutation.isPending}
               loadingLabel="Submitting"
               onClick={() => void submit()}
@@ -457,38 +499,52 @@ export function RequestsScreen(): React.JSX.Element {
           }}
           noValidate
         >
-          <div className="qf-field">
-            <label className="qf-field__label" htmlFor="submit-workflow">
-              What kind of request is this? <span aria-hidden="true">*</span>
-            </label>
-            <select
-              className="qf-input qf-input--large"
-              disabled={workflowsQuery.isLoading}
-              id="submit-workflow"
-              onChange={(event) => {
-                setSelectedWorkflowId(event.currentTarget.value);
-                setPayloadValues({});
-                setPayloadErrors({});
-                setSubmissionError(null);
-                submissionKey.clear();
-              }}
-              value={selectedWorkflowId}
-            >
-              <option value="">Choose a request type</option>
-              {selectableWorkflows.map((workflow) => (
-                <option key={workflow.id} value={workflow.id}>
-                  {workflow.name}
-                </option>
-              ))}
-            </select>
-            <p className="qf-field__message">
-              {workflowsQuery.isLoading
-                ? 'Loading available request types…'
-                : selectableWorkflows.length === 0
-                  ? 'No request types are currently available.'
-                  : 'Choose the option that best matches what you need.'}
-            </p>
-          </div>
+          {workflowsQuery.isLoading ? (
+            <div className="qf-form-skeleton" aria-label="Loading request types" role="status">
+              <span />
+              <span />
+            </div>
+          ) : workflowsQuery.error !== null ? (
+            <InlineLoadError
+              error={workflowsQuery.error}
+              onRetry={() => void workflowsQuery.refetch()}
+              retrying={workflowsQuery.isFetching}
+              title="Could not load request types"
+            />
+          ) : selectableWorkflows.length === 0 ? (
+            <div className="qf-guidance-card" role="status">
+              <strong>No request types are available</strong>
+              <p>Ask an administrator to publish a request type before starting new work.</p>
+            </div>
+          ) : (
+            <div className="qf-field">
+              <label className="qf-field__label" htmlFor="submit-workflow">
+                What kind of request is this? <span aria-hidden="true">*</span>
+              </label>
+              <select
+                className="qf-input qf-input--large"
+                id="submit-workflow"
+                onChange={(event) => {
+                  setSelectedWorkflowId(event.currentTarget.value);
+                  setPayloadValues({});
+                  setPayloadErrors({});
+                  setSubmissionError(null);
+                  submissionKey.clear();
+                }}
+                value={selectedWorkflowId}
+              >
+                <option value="">Choose a request type</option>
+                {selectableWorkflows.map((workflow) => (
+                  <option key={workflow.id} value={workflow.id}>
+                    {workflow.name}
+                  </option>
+                ))}
+              </select>
+              <p className="qf-field__message">
+                Choose the option that best matches what you need.
+              </p>
+            </div>
+          )}
           {systemCheckWorkflowCount === 0 ? null : (
             <details className="qf-advanced-disclosure">
               <summary>System check request types</summary>
@@ -521,7 +577,9 @@ export function RequestsScreen(): React.JSX.Element {
               </label>
             </details>
           )}
-          {selectedWorkflow === undefined ? (
+          {workflowsQuery.isSuccess &&
+          selectableWorkflows.length > 0 &&
+          selectedWorkflow === undefined ? (
             <div className="qf-guidance-card">
               <strong>Start by choosing a request type</strong>
               <p>
@@ -529,7 +587,7 @@ export function RequestsScreen(): React.JSX.Element {
                 or a technical key.
               </p>
             </div>
-          ) : (
+          ) : selectedWorkflow !== undefined ? (
             <div className="qf-workflow-choice-summary">
               <div>
                 <span>Selected request type</span>
@@ -540,13 +598,20 @@ export function RequestsScreen(): React.JSX.Element {
                 {selectedWorkflow.requiresApproval ? 'Approval required' : 'Runs automatically'}
               </span>
             </div>
-          )}
-          {workflowDetailQuery.isLoading ? (
+          ) : null}
+          {selectedWorkflow === undefined ? null : workflowDetailQuery.isLoading ? (
             <div className="qf-form-skeleton" aria-label="Loading request form" role="status">
               <span />
               <span />
               <span />
             </div>
+          ) : workflowDetailQuery.error !== null ? (
+            <InlineLoadError
+              error={workflowDetailQuery.error}
+              onRetry={() => void workflowDetailQuery.refetch()}
+              retrying={workflowDetailQuery.isFetching}
+              title="Could not load this request form"
+            />
           ) : guidedSchema?.supported === true ? (
             <GuidedRequestForm
               errors={payloadErrors}

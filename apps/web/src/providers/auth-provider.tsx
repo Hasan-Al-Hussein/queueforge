@@ -23,6 +23,7 @@ import {
   apiRequest,
   ApiProblem,
   configureAuthRecovery,
+  getCsrfToken,
   recoverAuthenticationSession,
   setAccessToken,
 } from '../api/client';
@@ -125,6 +126,13 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): Re
 
   const bootstrap = useCallback(async (): Promise<void> => {
     setBootstrapError(null);
+    // Refresh requires the readable double-submit CSRF cookie. When it is absent,
+    // a refresh request cannot succeed, which is the normal state on a first visit.
+    if (getCsrfToken() === null) {
+      applySession(null);
+      return;
+    }
+
     try {
       const recoveryConfigured = await recoverAuthenticationSession();
       if (!recoveryConfigured) throw new Error('Authentication recovery is not configured.');

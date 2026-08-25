@@ -115,17 +115,17 @@ export const FormState: Story = {
   },
 };
 
-export const RevisionConflict: Story = {
+export const DraftConflict: Story = {
   args: {
     children: (
       <div className="qf-inline-alert">
         <AlertTriangle size={18} />
         <p>
-          Another save changed revision 7. Choose the server copy or explicitly keep local edits.
+          Someone else changed this draft. Choose the saved copy or keep the changes in this tab.
         </p>
       </div>
     ),
-    title: 'Revision conflict',
+    title: 'Draft changes need review',
   },
 };
 

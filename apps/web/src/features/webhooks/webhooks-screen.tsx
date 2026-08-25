@@ -15,6 +15,7 @@ import {
   Plus,
   RefreshCw,
   RotateCcw,
+  SegmentedTabs,
   ShieldCheck,
   StatusBadge,
 } from '@queueforge/ui';
@@ -42,6 +43,7 @@ import { useAuth } from '../../providers/auth-provider';
 import { useToast } from '../../providers/toast-provider';
 import {
   deliveryAttemptLabel,
+  nextDeliveryAttemptAt,
   receiverReplyLabel,
   webhookDeliveryStatusLabel,
   webhookEventLabel,
@@ -215,19 +217,22 @@ export function WebhooksScreen(): React.JSX.Element {
     {
       accessorKey: 'status',
       header: 'Delivery status',
-      cell: ({ row }) => (
-        <div>
-          <StatusBadge
-            status={row.original.status}
-            label={webhookDeliveryStatusLabel(row.original.status)}
-          />
-          {row.original.nextAttemptAt === null ? null : (
-            <div className="qf-utility">
-              Next try <DateTime value={row.original.nextAttemptAt} />
-            </div>
-          )}
-        </div>
-      ),
+      cell: ({ row }) => {
+        const nextAttemptAt = nextDeliveryAttemptAt(row.original);
+        return (
+          <div>
+            <StatusBadge
+              status={row.original.status}
+              label={webhookDeliveryStatusLabel(row.original.status)}
+            />
+            {nextAttemptAt === null ? null : (
+              <div className="qf-utility">
+                Next try <DateTime value={nextAttemptAt} />
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       id: 'request',
@@ -324,91 +329,76 @@ export function WebhooksScreen(): React.JSX.Element {
         </p>
       </div>
       <Panel>
-        <div className="qf-segmented" role="tablist" aria-label="Integration sections">
-          <button
-            aria-controls="webhook-deliveries-panel"
-            aria-selected={tab === 'deliveries'}
-            id="webhook-deliveries-tab"
-            onClick={() => setTab('deliveries')}
-            role="tab"
-            type="button"
-          >
-            Delivery history
-          </button>
-          <button
-            aria-controls="webhook-endpoints-panel"
-            aria-selected={tab === 'endpoints'}
-            id="webhook-endpoints-tab"
-            onClick={() => setTab('endpoints')}
-            role="tab"
-            type="button"
-          >
-            Connections
-          </button>
-        </div>
-        {tab === 'deliveries' ? (
-          <div
-            aria-labelledby="webhook-deliveries-tab"
-            id="webhook-deliveries-panel"
-            role="tabpanel"
-          >
-            <QueryState
-              empty={deliveryQuery.isSuccess && deliveries.length === 0}
-              emptyDescription="Completed requests will appear here after QueueForge sends their results to a connected system."
-              emptyTitle="Nothing has been sent yet"
-              error={deliveryQuery.error}
-              isLoading={deliveryQuery.isLoading}
-              onRetry={() => void deliveryQuery.refetch()}
-            >
-              <DataTable
-                ariaLabel="Result delivery history"
-                columns={deliveryColumns}
-                getRowId={(row) => row.id}
-                rows={deliveries}
-                search={{
-                  label: 'Search delivery history',
-                  placeholder: 'Destination, update, or status',
-                  text: (row) =>
-                    `${webhookEventLabel(row.eventType)} ${row.eventType} ${row.eventId} ${row.endpointName} ${row.workflowName ?? ''} ${row.requestId ?? ''} ${webhookDeliveryStatusLabel(row.status)}`,
-                }}
-              />
-            </QueryState>
-            {deliveryQuery.data?.meta === undefined ? null : (
-              <PaginationControls
-                ariaLabel="Result deliveries"
-                disabled={deliveryQuery.isFetching}
-                meta={deliveryQuery.data.meta}
-                onPageChange={deliveryPagination.setPage}
-                onPageSizeChange={deliveryPagination.setPageSize}
-                page={deliveryPagination.page}
-                pageSize={deliveryPagination.pageSize}
-              />
-            )}
-          </div>
-        ) : (
-          <div aria-labelledby="webhook-endpoints-tab" id="webhook-endpoints-panel" role="tabpanel">
-            <QueryState
-              empty={endpointQuery.isSuccess && endpointQuery.data.length === 0}
-              emptyDescription="Add the local system that should receive completed results."
-              emptyTitle="No connections yet"
-              error={endpointQuery.error}
-              isLoading={endpointQuery.isLoading}
-              onRetry={() => void endpointQuery.refetch()}
-            >
-              <DataTable
-                ariaLabel="Integration connections"
-                columns={endpointColumns}
-                getRowId={(row) => row.id}
-                rows={endpointQuery.data ?? []}
-                search={{
-                  label: 'Search connections',
-                  placeholder: 'Connection name or address',
-                  text: (row) => `${row.name} ${row.url} ${row.keyId}`,
-                }}
-              />
-            </QueryState>
-          </div>
-        )}
+        <SegmentedTabs
+          ariaLabel="Integration sections"
+          onValueChange={setTab}
+          options={[
+            { label: 'Delivery history', value: 'deliveries' },
+            { label: 'Connections', value: 'endpoints' },
+          ]}
+          value={tab}
+        >
+          {tab === 'deliveries' ? (
+            <>
+              <QueryState
+                empty={deliveryQuery.isSuccess && deliveries.length === 0}
+                emptyDescription="Completed requests will appear here after QueueForge sends their results to a connected system."
+                emptyTitle="Nothing has been sent yet"
+                error={deliveryQuery.error}
+                isLoading={deliveryQuery.isLoading}
+                onRetry={() => void deliveryQuery.refetch()}
+              >
+                <DataTable
+                  ariaLabel="Result delivery history"
+                  columns={deliveryColumns}
+                  getRowId={(row) => row.id}
+                  rows={deliveries}
+                  search={{
+                    label: 'Search delivery history',
+                    placeholder: 'Destination, update, or status',
+                    text: (row) =>
+                      `${webhookEventLabel(row.eventType)} ${row.eventType} ${row.eventId} ${row.endpointName} ${row.workflowName ?? ''} ${row.requestId ?? ''} ${webhookDeliveryStatusLabel(row.status)}`,
+                  }}
+                  stickyLastColumn
+                />
+              </QueryState>
+              {deliveryQuery.data?.meta === undefined ? null : (
+                <PaginationControls
+                  ariaLabel="Result deliveries"
+                  disabled={deliveryQuery.isFetching}
+                  meta={deliveryQuery.data.meta}
+                  onPageChange={deliveryPagination.setPage}
+                  onPageSizeChange={deliveryPagination.setPageSize}
+                  page={deliveryPagination.page}
+                  pageSize={deliveryPagination.pageSize}
+                />
+              )}
+            </>
+          ) : (
+            <>
+              <QueryState
+                empty={endpointQuery.isSuccess && endpointQuery.data.length === 0}
+                emptyDescription="Add the local system that should receive completed results."
+                emptyTitle="No connections yet"
+                error={endpointQuery.error}
+                isLoading={endpointQuery.isLoading}
+                onRetry={() => void endpointQuery.refetch()}
+              >
+                <DataTable
+                  ariaLabel="Integration connections"
+                  columns={endpointColumns}
+                  getRowId={(row) => row.id}
+                  rows={endpointQuery.data ?? []}
+                  search={{
+                    label: 'Search connections',
+                    placeholder: 'Connection name or address',
+                    text: (row) => `${row.name} ${row.url} ${row.keyId}`,
+                  }}
+                />
+              </QueryState>
+            </>
+          )}
+        </SegmentedTabs>
       </Panel>
 
       <Dialog

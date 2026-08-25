@@ -22,7 +22,7 @@ import { AppShell } from '../../components/app-shell';
 import { stripGraphqlTypenames } from '../../api/graphql-response';
 import { DataTable } from '../../components/data-table';
 import { CompactId, DateTime } from '../../components/format';
-import { MetricStrip } from '../../components/metric-strip';
+import { MetricStrip, type Metric } from '../../components/metric-strip';
 import { PageHeader } from '../../components/page-header';
 import { QueryState } from '../../components/query-state';
 import { effectiveWorkspaceRole } from '../../components/workspace-access';
@@ -184,6 +184,181 @@ interface RoleOverviewCopy {
   readonly title: string;
 }
 
+export interface RoleGuideStep {
+  readonly description: string;
+  readonly href:
+    | '/approvals'
+    | '/notifications'
+    | '/operations'
+    | '/requests'
+    | '/team'
+    | '/webhooks'
+    | '/workflows';
+  readonly label: string;
+}
+
+interface RoleGuide {
+  readonly description: string;
+  readonly steps: readonly RoleGuideStep[];
+  readonly title: string;
+}
+
+export function roleGuide(role: TenantRole): RoleGuide {
+  if (role === 'tenant_admin') {
+    return {
+      description: 'Set up the experience your operators and approvers will use.',
+      title: 'Administrator quick guide',
+      steps: [
+        {
+          description: 'Build the form, approval rule, and processing steps.',
+          href: '/workflows',
+          label: 'Create a request type',
+        },
+        {
+          description: 'Choose where completed results should be sent.',
+          href: '/webhooks',
+          label: 'Connect another system',
+        },
+        {
+          description: 'Invite people and give each person the right workspace.',
+          href: '/team',
+          label: 'Manage people and access',
+        },
+      ],
+    };
+  }
+  if (role === 'operator') {
+    return {
+      description: 'Start everyday work, follow progress, and recover interrupted requests.',
+      title: 'Operator quick guide',
+      steps: [
+        {
+          description: 'Choose a request type and answer its simple questions.',
+          href: '/requests',
+          label: 'Start a request',
+        },
+        {
+          description: 'Open a request to see approval, processing, and delivery progress.',
+          href: '/requests',
+          label: 'Track what is happening',
+        },
+        {
+          description: 'Review the reason before safely trying stopped work again.',
+          href: '/operations',
+          label: 'Resolve processing issues',
+        },
+      ],
+    };
+  }
+  if (role === 'approver') {
+    return {
+      description: 'Make clear decisions without being distracted by configuration or queues.',
+      title: 'Approver quick guide',
+      steps: [
+        {
+          description: 'Open the requests that are waiting for your judgment.',
+          href: '/approvals',
+          label: 'Open your approval inbox',
+        },
+        {
+          description: 'Read who requested it and the important information they provided.',
+          href: '/approvals',
+          label: 'Review the request',
+        },
+        {
+          description: 'Approve or decline, then follow the recorded update.',
+          href: '/notifications',
+          label: 'Decide and stay updated',
+        },
+      ],
+    };
+  }
+  return {
+    description: 'Follow activity and inspect details without changing operational work.',
+    title: 'Viewer quick guide',
+    steps: [
+      {
+        description: 'Browse requests across the selected workspace.',
+        href: '/requests',
+        label: 'Open request history',
+      },
+      {
+        description: 'Open any request to understand its current status and timeline.',
+        href: '/requests',
+        label: 'Inspect progress',
+      },
+      {
+        description: 'Read updates addressed to you or your role.',
+        href: '/notifications',
+        label: 'Check notifications',
+      },
+    ],
+  };
+}
+
+export function roleMetrics(role: TenantRole, overview: DashboardOverview): readonly Metric[] {
+  if (role === 'approver') {
+    return [
+      {
+        label: 'Waiting for you',
+        value: countFor(overview, 'pending_approval'),
+        detail: 'Your decision is needed',
+      },
+      {
+        label: 'Completed',
+        value: countFor(overview, 'succeeded'),
+        detail: 'Finished requests',
+      },
+      {
+        label: 'Declined',
+        value: countFor(overview, 'rejected'),
+        detail: 'Requests that did not continue',
+      },
+    ];
+  }
+  if (role === 'viewer') {
+    return [
+      {
+        label: 'Waiting for approval',
+        value: countFor(overview, 'pending_approval'),
+        detail: 'A person needs to decide',
+      },
+      {
+        label: 'In progress',
+        value: countFor(overview, 'queued') + countFor(overview, 'processing'),
+        detail: 'Waiting or running',
+      },
+      {
+        label: 'Completed',
+        value: countFor(overview, 'succeeded'),
+        detail: 'Finished requests',
+      },
+    ];
+  }
+  return [
+    {
+      label: 'Waiting for approval',
+      value: countFor(overview, 'pending_approval'),
+      detail: 'A person needs to decide',
+    },
+    {
+      label: 'Ready to start',
+      value: countFor(overview, 'queued'),
+      detail: 'Safely waiting in line',
+    },
+    {
+      label: 'Running now',
+      value: countFor(overview, 'processing'),
+      detail: 'Being processed',
+    },
+    {
+      label: 'Needs attention',
+      value: countFor(overview, 'failed') + countFor(overview, 'dead_lettered'),
+      detail: 'Stopped after automatic retries',
+    },
+  ];
+}
+
 function roleOverviewCopy(role: TenantRole, overview: DashboardOverview): RoleOverviewCopy {
   const pending = countFor(overview, 'pending_approval');
   const attention = countFor(overview, 'failed') + countFor(overview, 'dead_lettered');
@@ -291,6 +466,7 @@ export function OverviewScreen(): React.JSX.Element {
       ? 'viewer'
       : effectiveWorkspaceRole(session.selectedTenant.role, session.user.platformRole);
   const copy = parsed === null ? null : roleOverviewCopy(workspaceRole, parsed);
+  const guide = roleGuide(workspaceRole);
 
   return (
     <AppShell>
@@ -344,79 +520,42 @@ export function OverviewScreen(): React.JSX.Element {
                 <ArrowRight size={16} />
               </Link>
             </section>
-            <MetricStrip
-              items={[
-                {
-                  label: workspaceRole === 'approver' ? 'Waiting for you' : 'Waiting for approval',
-                  value: countFor(parsed, 'pending_approval'),
-                  detail: 'A person needs to decide',
-                },
-                {
-                  label: 'Ready to start',
-                  value: countFor(parsed, 'queued'),
-                  detail: 'Safely waiting in line',
-                },
-                {
-                  label: 'Running now',
-                  value: countFor(parsed, 'processing'),
-                  detail: 'Being processed',
-                },
-                {
-                  label: 'Needs attention',
-                  value: countFor(parsed, 'failed') + countFor(parsed, 'dead_lettered'),
-                  detail: 'Stopped after automatic retries',
-                },
-              ]}
-            />
+            <MetricStrip items={roleMetrics(workspaceRole, parsed)} />
             <Panel
               className="qf-getting-started"
-              title="How QueueForge works"
-              description="Four simple steps from an idea to a completed, traceable action."
+              title={guide.title}
+              description={guide.description}
             >
               <ol className="qf-journey-guide">
-                <li>
-                  <span>1</span>
-                  <div>
-                    <strong>Build a request type</strong>
-                    <p>An admin chooses the form, decision rule, and result.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>2</span>
-                  <div>
-                    <strong>Start a request</strong>
-                    <p>An operator fills the friendly form for that request type.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>3</span>
-                  <div>
-                    <strong>Review if needed</strong>
-                    <p>An approver reads the request and makes a clear decision.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>4</span>
-                  <div>
-                    <strong>Process and track</strong>
-                    <p>QueueForge runs the work safely and records every step.</p>
-                  </div>
-                </li>
+                {guide.steps.map((step, index) => (
+                  <li key={`${step.href}-${step.label}`}>
+                    <span>{String(index + 1)}</span>
+                    <div>
+                      <strong>{step.label}</strong>
+                      <p>{step.description}</p>
+                      <Link className="qf-guide-link" href={step.href} prefetch={false}>
+                        Open this step <ArrowRight aria-hidden="true" size={14} />
+                      </Link>
+                    </div>
+                  </li>
+                ))}
               </ol>
             </Panel>
             <div className="qf-content-grid qf-content-grid--overview">
-              <Panel
-                title="Completed work"
-                description="Successful and failed requests over the visible period."
-              >
-                {parsed.throughput.length > 0 ? (
-                  <ThroughputChart points={parsed.throughput} />
-                ) : (
-                  <p className="qf-chart-summary">
-                    No throughput points are available for this interval.
-                  </p>
-                )}
-              </Panel>
+              {workspaceRole === 'operator' || workspaceRole === 'tenant_admin' ? (
+                <Panel
+                  title="Completed work"
+                  description="Successful and failed requests over the visible period."
+                >
+                  {parsed.throughput.length > 0 ? (
+                    <ThroughputChart points={parsed.throughput} />
+                  ) : (
+                    <p className="qf-chart-summary">
+                      No throughput points are available for this interval.
+                    </p>
+                  )}
+                </Panel>
+              ) : null}
               {workspaceRole === 'operator' || workspaceRole === 'tenant_admin' ? (
                 <Panel
                   title="How work is moving"
@@ -425,30 +564,36 @@ export function OverviewScreen(): React.JSX.Element {
                   <QueueRail items={pipelineRail(parsed)} ariaLabel="Current request journey" />
                 </Panel>
               ) : null}
-              <Panel
-                className="qf-span-full"
-                title="Recent requests"
-                description="Latest status changes across this tenant."
-                actions={
-                  workspaceRole === 'operator' || workspaceRole === 'viewer' ? (
-                    <Link className="qf-button qf-button--quiet" href="/requests" prefetch={false}>
-                      Open history <ArrowRight size={15} />
-                    </Link>
-                  ) : undefined
-                }
-              >
-                <DataTable
-                  ariaLabel="Recent workflow requests"
-                  columns={requestColumns}
-                  getRowId={(row) => row.id}
-                  rows={parsed.recentRequests}
-                  search={{
-                    label: 'Search recent requests',
-                    placeholder: 'Request type, status, or reference',
-                    text: (row) => `${row.id} ${row.workflowName} ${row.status} ${row.source}`,
-                  }}
-                />
-              </Panel>
+              {workspaceRole === 'tenant_admin' ? null : (
+                <Panel
+                  className="qf-span-full"
+                  title="Recent requests"
+                  description="Latest status changes across this workspace."
+                  actions={
+                    workspaceRole === 'operator' || workspaceRole === 'viewer' ? (
+                      <Link
+                        className="qf-button qf-button--quiet"
+                        href="/requests"
+                        prefetch={false}
+                      >
+                        Open history <ArrowRight size={15} />
+                      </Link>
+                    ) : undefined
+                  }
+                >
+                  <DataTable
+                    ariaLabel="Recent workflow requests"
+                    columns={requestColumns}
+                    getRowId={(row) => row.id}
+                    rows={parsed.recentRequests}
+                    search={{
+                      label: 'Search recent requests',
+                      placeholder: 'Request type, status, or reference',
+                      text: (row) => `${row.id} ${row.workflowName} ${row.status} ${row.source}`,
+                    }}
+                  />
+                </Panel>
+              )}
               <details className="qf-span-full qf-technical-note">
                 <summary>
                   <GitPullRequestArrow size={18} aria-hidden="true" />

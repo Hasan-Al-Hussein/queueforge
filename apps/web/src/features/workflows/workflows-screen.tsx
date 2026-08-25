@@ -139,7 +139,7 @@ export function WorkflowsScreen(): React.JSX.Element {
     onSuccess: async (workflow) => {
       workflowCreationKey.clear();
       await queryClient.invalidateQueries({ queryKey: ['workflows'] });
-      notify('Draft workflow created.', 'success');
+      notify('Request type draft created.', 'success');
       reset();
       setCreateOpen(false);
       router.push(`/workflows/editor?id=${encodeURIComponent(workflow.id)}`);

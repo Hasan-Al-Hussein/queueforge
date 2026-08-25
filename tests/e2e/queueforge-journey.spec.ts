@@ -222,7 +222,10 @@ async function attachSuccessfulScreenshot(
 }
 
 async function navigateFromSidebar(page: Page, linkName: string, pathname: string): Promise<void> {
-  await page.getByRole('link', { name: linkName, exact: true }).click();
+  await page
+    .getByRole('navigation', { name: 'Primary navigation' })
+    .getByRole('link', { name: linkName, exact: true })
+    .click();
   await expect(page).toHaveURL((url) => {
     const normalizedPath = url.pathname.replace(/\/$/, '') || '/';
     return normalizedPath === pathname;
@@ -300,11 +303,11 @@ async function createAndActivateWorkflow(
   await responseJson<WorkflowView>(await autosaveResponsePromise);
   await expect(page.getByText('All changes saved')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Activate version' }).click();
+  await page.getByRole('button', { name: 'Publish changes' }).click();
   const activateResponsePromise = page.waitForResponse((response) =>
     isBrowserResponse(response, 'POST', `/api/v1/workflows/${draft.id}/activate`),
   );
-  await page.getByRole('button', { name: 'Activate immutable version' }).click();
+  await page.getByRole('button', { name: 'Publish request type' }).click();
   const activated = await responseJson<WorkflowView>(await activateResponsePromise);
   expect(activated.versionStatus).toBe('active');
   await expect(page.getByText('active', { exact: true }).first()).toBeVisible();
