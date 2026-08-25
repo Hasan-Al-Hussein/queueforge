@@ -242,9 +242,9 @@ export function OperationsScreen(): React.JSX.Element {
             Refresh
           </Button>
         }
-        description="Inspect queue pressure, worker-visible backlog, and exhausted request attempts."
-        eyebrow="Durable processing"
-        title="Queues & dead letters"
+        description="See what is running, what is waiting, and which requests need an operator's help."
+        eyebrow="Monitor work safely"
+        title="Processing health"
       />
       <MetricStrip
         items={
@@ -281,7 +281,7 @@ export function OperationsScreen(): React.JSX.Element {
       />
       <div className="qf-content-grid">
         <Panel
-          title="Queue telemetry"
+          title="Current processing activity"
           description={
             telemetryAvailable
               ? 'Global BullMQ telemetry and worker freshness auto-refresh every 15 seconds.'
@@ -310,8 +310,8 @@ export function OperationsScreen(): React.JSX.Element {
           </QueryState>
         </Panel>
         <Panel
-          title="Request dead-letter queue"
-          description="Exhausted request processing only; webhook delivery failures are tracked separately."
+          title="Requests that need help"
+          description="These requests used every automatic attempt. Review the failure before retrying."
         >
           <QueryState
             empty={deadLettersQuery.isSuccess && deadLetters.length === 0}

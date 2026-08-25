@@ -177,12 +177,12 @@ describe('AppShell mobile navigation', () => {
     await waitFor(() => expect(close).toHaveFocus());
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
 
-    const tenantSwitcher = screen.getByLabelText('Tenant');
+    const tenantSwitcher = screen.getByLabelText('Workspace');
     expect(tenantSwitcher.closest('.qf-shell__workspace')).toHaveAttribute('inert');
     expect(document.querySelector('.qf-sidebar--desktop')).toHaveAttribute('inert');
 
     const first = within(drawer).getByRole('link', { name: 'QueueForge overview' });
-    const last = within(drawer).getByRole('link', { name: 'Team & access' });
+    const last = within(drawer).getByRole('link', { name: 'People & access' });
     last.focus();
     await user.tab();
     expect(first).toHaveFocus();
@@ -208,7 +208,7 @@ describe('AppShell mobile navigation', () => {
       ).not.toBeInTheDocument();
       expect(trigger).toHaveFocus();
     });
-    expect(screen.getByLabelText('Tenant').closest('.qf-shell__workspace')).not.toHaveAttribute(
+    expect(screen.getByLabelText('Workspace').closest('.qf-shell__workspace')).not.toHaveAttribute(
       'inert',
     );
     expect(document.querySelector('.qf-sidebar--desktop')).not.toHaveAttribute('inert');
@@ -218,7 +218,7 @@ describe('AppShell mobile navigation', () => {
 describe('AppShell dirty exits', () => {
   it.each([
     ['brand', 'QueueForge overview', '/'],
-    ['sidebar', 'Overview', '/'],
+    ['sidebar', 'Home', '/'],
     ['notifications', 'Open notifications', '/notifications'],
   ] as const)('guards the %s link while a draft is dirty', async (_, linkName, href) => {
     const user = userEvent.setup();
@@ -236,7 +236,7 @@ describe('AppShell dirty exits', () => {
     const user = userEvent.setup();
     renderShell(true);
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Tenant' }), secondTenantId);
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Workspace' }), secondTenantId);
     expect(selectTenantMock).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Discard changes and continue' }));
 

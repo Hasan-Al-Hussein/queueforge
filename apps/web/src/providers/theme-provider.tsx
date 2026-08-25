@@ -15,12 +15,10 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }): R
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const applyPreference = (matches: boolean): void => setTheme(matches ? 'dark' : 'light');
-    applyPreference(media.matches);
-    const handleChange = (event: MediaQueryListEvent): void => applyPreference(event.matches);
-    media.addEventListener('change', handleChange);
-    return () => media.removeEventListener('change', handleChange);
+    const stored = window.localStorage.getItem('queueforge-theme');
+    // This one-time hydration sync restores only an explicit user choice; light remains the default.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (stored === 'dark' || stored === 'light') setTheme(stored);
   }, []);
 
   useEffect(() => {
@@ -31,7 +29,12 @@ export function ThemeProvider({ children }: { readonly children: ReactNode }): R
   const value = useMemo<ThemeContextValue>(
     () => ({
       theme,
-      toggleTheme: () => setTheme((current) => (current === 'light' ? 'dark' : 'light')),
+      toggleTheme: () =>
+        setTheme((current) => {
+          const next = current === 'light' ? 'dark' : 'light';
+          window.localStorage.setItem('queueforge-theme', next);
+          return next;
+        }),
     }),
     [theme],
   );

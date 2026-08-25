@@ -31,7 +31,12 @@ function ValidationHarness({
     formState: { errors },
     register,
     setError,
+    setValue,
+    watch,
   } = useForm<EditorForm>({ defaultValues: defaults });
+  // React Hook Form owns the test harness subscription; React Compiler intentionally skips it.
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const values = watch();
 
   useEffect(() => {
     setError(field, { message: 'Fix this exact control.' }, { shouldFocus: true });
@@ -42,7 +47,13 @@ function ValidationHarness({
   return isPolicy ? (
     <WorkflowPolicyFields editable errors={errors} register={register} />
   ) : (
-    <WorkflowContentFields editable errors={errors} register={register} />
+    <WorkflowContentFields
+      editable
+      errors={errors}
+      register={register}
+      setValue={setValue}
+      values={values}
+    />
   );
 }
 

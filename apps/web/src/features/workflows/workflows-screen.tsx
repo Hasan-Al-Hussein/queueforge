@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -60,14 +60,9 @@ const columns: readonly ColumnDef<WorkflowSummary, unknown>[] = [
         >
           {row.original.name}
         </Link>
-        <div className="qf-mono qf-utility">{row.original.stableKey}</div>
+        <div className="qf-utility">{row.original.description ?? 'No description yet'}</div>
       </div>
     ),
-  },
-  {
-    accessorKey: 'versionNo',
-    header: 'Version',
-    cell: ({ getValue }) => <span className="qf-mono">v{String(getValue())}</span>,
   },
   {
     accessorKey: 'versionStatus',
@@ -88,11 +83,6 @@ const columns: readonly ColumnDef<WorkflowSummary, unknown>[] = [
         label={getValue() === true ? 'enabled' : 'disabled'}
       />
     ),
-  },
-  {
-    accessorKey: 'revision',
-    header: 'Revision',
-    cell: ({ getValue }) => <span className="qf-mono">r{String(getValue())}</span>,
   },
   {
     accessorKey: 'updatedAt',
@@ -117,6 +107,7 @@ export function WorkflowsScreen(): React.JSX.Element {
     handleSubmit,
     register,
     reset,
+    setValue,
   } = useForm<CreateWorkflow>({
     defaultValues: { description: '', name: '', stableKey: '' },
     mode: 'onBlur',
@@ -173,9 +164,9 @@ export function WorkflowsScreen(): React.JSX.Element {
             </PermissionGate>
           </>
         }
-        description="Draft, validate, and activate immutable workflow versions for this tenant."
-        eyebrow="Versioned configuration"
-        title="Workflows"
+        description="Create friendly request forms, choose approvals, and decide what happens next."
+        eyebrow="Set up how work flows"
+        title="Workflow builder"
       />
       <Panel>
         <QueryState
@@ -187,8 +178,8 @@ export function WorkflowsScreen(): React.JSX.Element {
               </Button>
             </PermissionGate>
           }
-          emptyDescription="Create a draft, define its JSON request schema and processing policy, then activate an immutable version."
-          emptyTitle="No workflows configured"
+          emptyDescription="Create your first workflow, add the questions people should answer, then turn it on."
+          emptyTitle="No workflows yet"
           error={workflowsQuery.error}
           isLoading={workflowsQuery.isLoading}
           onRetry={() => void workflowsQuery.refetch()}
@@ -208,7 +199,7 @@ export function WorkflowsScreen(): React.JSX.Element {
       </Panel>
 
       <Dialog
-        description="This creates revision 1 as a mutable draft. Activation makes the version content immutable."
+        description="Give the workflow a clear name. You will build its request form on the next screen."
         footer={
           <>
             <Button onClick={cancelCreation}>Cancel</Button>
@@ -225,7 +216,7 @@ export function WorkflowsScreen(): React.JSX.Element {
         }
         onClose={cancelCreation}
         open={createOpen}
-        title="Create workflow"
+        title="Create a new workflow"
       >
         {createMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
@@ -238,23 +229,37 @@ export function WorkflowsScreen(): React.JSX.Element {
             id="workflow-name"
             label="Workflow name"
             required
-            {...register('name')}
-          />
-          <InputField
-            error={errors.stableKey?.message}
-            helper="External submissions use this stable key."
-            id="workflow-key"
-            label="Stable key"
-            required
-            {...register('stableKey')}
+            {...register('name', {
+              onChange: (event: ChangeEvent<HTMLInputElement>) => {
+                const value = event.target.value
+                  .trim()
+                  .toLowerCase()
+                  .replaceAll(/[^a-z0-9]+/g, '_')
+                  .replaceAll(/^_+|_+$/g, '')
+                  .slice(0, 100);
+                setValue('stableKey', value, { shouldValidate: true });
+              },
+            })}
           />
           <TextareaField
             error={errors.description?.message}
+            helper="Explain when someone should use this workflow."
             id="workflow-description"
-            label="Description"
+            label="What is this workflow for?"
             maxLength={2000}
             {...register('description')}
           />
+          <details className="qf-advanced-disclosure">
+            <summary>Advanced identifier</summary>
+            <InputField
+              error={errors.stableKey?.message}
+              helper="Generated automatically. APIs use this stable key."
+              id="workflow-key"
+              label="Stable key"
+              required
+              {...register('stableKey')}
+            />
+          </details>
         </form>
       </Dialog>
     </AppShell>

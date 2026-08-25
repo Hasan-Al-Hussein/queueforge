@@ -1,98 +1,101 @@
 # QueueForge design system
 
-**Product:** A local workflow orchestration and operations console for platform engineers.
+**Product:** A local, private workflow workspace for requesters, approvers, operators, and administrators.
 
-**Design thesis:** QueueForge should feel like a well-kept control desk: dense enough for incident work, calm enough for long sessions, and explicit about state. Its signature is a narrow vertical **queue rail** that connects lifecycle events without turning the interface into decoration.
+**Design thesis:** QueueForge should make the next human action obvious before showing system detail. It feels calm, trustworthy, and approachable for long sessions while preserving an Advanced path for engineers. Its signature remains the lifecycle rail, supported by numbered guided steps and a subtle forge-grid canvas.
 
-**Dials:** variance 5/10, motion 2/10, density 8/10.
+**Dials:** variance 5/10, motion 5/10, density 4/10.
+
+## Experience principles
+
+1. Lead with the human task: “Start a request,” “Review a decision,” or “Fix an item.”
+2. Use progressive disclosure: normal controls first, technical IDs/JSON/queue semantics under Advanced details.
+3. Generate request forms from workflow schemas. No ordinary requester or approver should need to understand JSON.
+4. Use plain-language labels while preserving exact technical terms where they materially help operators.
+5. Default to light mode. Preserve an explicit user theme choice locally; never infer dark mode on first use.
+6. Give every screen a clear next step, helpful empty state, visible loading feedback, and recovery path.
 
 ## Visual language
 
-- Light surfaces resemble technical paper and equipment labels, not glossy cards.
-- Dark surfaces use blue-black layers rather than pure black or inverted colors.
-- Structure comes from 1 px rules, alignment, type weight, and restrained surface changes.
-- Corners are modest (4–8 px). Pills are reserved for statuses, not general containers.
-- Shadows are rare. Use them for floating dialogs and menus only.
-- No glassmorphism, gradient blobs, marketing hero, card-within-card layouts, or decorative charts.
+- Light mode uses a soft blue-gray canvas, crisp white work surfaces, deep navy structure, and generous space.
+- Dark mode uses distinct navy-charcoal layers with high-contrast text instead of near-black surfaces.
+- The left navigation is the strongest color block; the main workspace stays quiet and readable.
+- A subtle 28 px dot grid gives the canvas identity without visual noise.
+- Corners are 8–16 px. Pills remain reserved for statuses and short route labels.
+- Soft shadows distinguish working surfaces; dialogs receive the strongest elevation.
+- Do not use glassmorphism, gradient buttons, decorative chart clutter, or motion without functional feedback.
 
 ## Color tokens
 
-| Role           | Light     | Dark      | Use                                         |
-| -------------- | --------- | --------- | ------------------------------------------- |
-| Canvas         | `#F4F6F7` | `#10171D` | App background                              |
-| Surface        | `#FFFFFF` | `#162129` | Primary work surface                        |
-| Surface raised | `#F9FAFB` | `#1C2A34` | Toolbar/dialog contrast                     |
-| Foreground     | `#15202A` | `#EDF3F5` | Main text                                   |
-| Muted text     | `#52616D` | `#A9BAC4` | Secondary text (must remain AA)             |
-| Rule           | `#C9D2D8` | `#344650` | Dividers and input borders                  |
-| Primary navy   | `#183B56` | `#8EC5E8` | Selected navigation and focus context       |
-| Action blue    | `#1D63D2` | `#68A5FF` | Primary actions and links                   |
-| Forge orange   | `#C65D20` | `#FF9B63` | Queue rail, attention, one signature accent |
-| Success        | `#177245` | `#52CC8A` | Successful state with icon/text             |
-| Warning        | `#8A5A00` | `#F2BE52` | Retry/pending state with icon/text          |
-| Danger         | `#B4232C` | `#FF7D85` | Failure/destructive state with icon/text    |
-| Focus          | `#0B6FE8` | `#8BC1FF` | 3 px visible keyboard ring                  |
+| Role           | Light     | Dark      | Use                                   |
+| -------------- | --------- | --------- | ------------------------------------- |
+| Canvas         | `#F5F7FB` | `#0D1623` | App background                        |
+| Surface        | `#FFFFFF` | `#142235` | Primary work surface                  |
+| Surface raised | `#F8FAFD` | `#1B2B40` | Forms, rows, and secondary surfaces   |
+| Foreground     | `#172033` | `#F2F6FB` | Main text                             |
+| Muted text     | `#5F6F85` | `#B0BED0` | Secondary text (AA minimum)           |
+| Rule           | `#DCE3EC` | `#30445D` | Dividers and input borders            |
+| Primary navy   | `#173F61` | `#9BD4FF` | Navigation and key context            |
+| Action blue    | `#2563EB` | `#78A9FF` | Primary actions and links             |
+| Forge orange   | `#E86F2B` | `#FF9B62` | One signature attention accent        |
+| Success        | `#137A55` | `#61D49D` | Successful states with text/icon      |
+| Warning        | `#995700` | `#FFD071` | Waiting/retry states with text/icon   |
+| Danger         | `#C33245` | `#FF8B98` | Failure/destructive state             |
+| Focus          | `#2563EB` | `#9BC2FF` | 3 px visible keyboard focus indicator |
 
-Never communicate status by color alone. Every status includes readable text and, where space permits, a consistent Lucide icon.
+Never communicate status by color alone.
 
 ## Typography
 
-Use fonts available on the target Windows machine so the archive remains offline and deterministic.
+Use fonts already available on Windows so the product remains offline and deterministic.
 
-- Display/navigation: `Bahnschrift`, `Arial Narrow`, sans-serif.
-- Body/forms: `Segoe UI`, `Arial`, sans-serif.
-- IDs, times, metrics: `Cascadia Code`, `Consolas`, monospace with tabular figures.
-- Scale: 12 utility, 14 dense body, 16 default/mobile form body, 20 section title, 28 page title.
-- Body line height 1.5; operational rows may use 1.35 only when labels remain readable.
+- UI and headings: `Segoe UI Variable`, then `Segoe UI`, Arial, sans-serif.
+- IDs and exact machine values only: `Cascadia Code`, Consolas, monospace.
+- Scale: 12 helper/eyebrow, 15 default body, 16 comfortable descriptions, 18–20 section titles, 28–38 page titles.
+- Body line height is 1.55. Avoid uppercase except short eyebrows and table headers.
 
-## Layout and spacing
+## Layout and navigation
 
-- Base spacing unit: 4 px; common gaps are 8, 12, 16, 24, and 32 px.
-- Desktop: persistent 232 px rail, compact top status bar, fluid main workspace.
-- Tablet: collapsible navigation drawer; never create a second primary navigation system.
-- Mobile: top app bar plus one navigation drawer, single-column content, tables become scroll-contained or key/value rows.
-- Main content max width is 1600 px, but data tables may use the available viewport.
-- Touch targets are at least 44×44 px with at least 8 px separation.
-- No hidden content behind fixed navigation and no page-level horizontal scrolling at 375 px.
+- Desktop: 252 px grouped navigation (Everyday work, Set up, Monitor, Organization) and a 72 px workspace bar.
+- Main content max width: 1520 px with 18–44 px responsive gutters.
+- Tablet/mobile: one modal navigation drawer with focus containment, Escape close, and focus return.
+- Prefer one strong recommendation, four compact metrics, then supporting details.
+- Touch targets are at least 44×44 px; mobile form body text remains at least 16 px.
+- Verification workspaces are grouped separately in the workspace selector instead of mixed with demo workspaces.
 
-## Signature queue rail
+## Forms and builders
 
-The queue rail is a 2 px vertical line with 10–12 px state nodes beside a timeline, approval, or request summary. The current state uses forge orange; complete states use semantic success; failures use danger plus a failure icon. Labels and timestamps remain the primary information. Motion is an optional 180 ms opacity/translate transition and is disabled under `prefers-reduced-motion`.
-
-## Components
-
-- Buttons: one primary action per view, 44 px minimum height, stable width during loading, no hover transforms that shift layout.
-- Inputs: visible label and helper/error region, 44 px minimum height, validate on blur, focus the first invalid field after submit.
-- Tables: sticky header only when it does not create nested-scroll traps; `aria-sort`; stable ID/time columns use monospace; filters and sort are allowlisted.
-- Status badge: compact label + icon; semantic foreground/background pairs tested in both themes.
-- Panels: use section borders and headers. Do not wrap every block in a rounded card.
-- Dialogs: real dialog semantics, initial focus, Escape/close path, focus return, explicit confirmation for destructive/replay actions.
-- Toasts: `aria-live=polite`, do not steal focus, include a recovery action when applicable.
-- Charts: trends use lines/bars; queue target comparisons use compact bullet/progress views. Always show exact values and an accessible table or text summary.
-- Empty/loading/error/forbidden/offline states are first-class variants for each major surface.
+- Requesters choose a named active workflow. The workflow key is never an everyday input.
+- Render supported JSON Schema properties as labeled text, long text, number, yes/no, choice, email, URL, or date controls.
+- Validate beside the exact field and focus the first invalid control.
+- Admins build request forms visually. Keep Advanced JSON available without making it the default.
+- Processing behavior uses labeled numeric controls; raw policy and delivery JSON live under Advanced disclosures.
+- Approvers see a human-readable field summary before the decision note and actions.
+- Stable technical identifiers are generated automatically where possible.
 
 ## Motion
 
-- 150–220 ms for hover, press, disclosure, and status changes.
-- Animate transform/opacity only; never block input or trigger layout shift.
-- No scroll-reveal framework, bouncing controls, ambient pulsing, or decorative parallax.
-- Respect reduced motion globally.
+- 150–220 ms ease-out for hover, press, disclosure, and dialog feedback.
+- Buttons lift 1 px on hover and compress slightly on press without changing layout.
+- At most one page-entry transition per view. Loading shimmer is allowed only while data is loading.
+- Respect `prefers-reduced-motion` globally. No bounce, parallax, scroll hijacking, or ambient animation.
 
-## Accessibility and performance gates
+## Components and accessibility
 
-- WCAG AA text contrast (4.5:1 normal, 3:1 large); UI/data marks at least 3:1.
-- Skip link, sequential headings, logical tab order, route-change focus, visible focus ring.
-- Icon-only controls have accessible names; native controls are preferred.
-- Charts have visible values, a text insight, and table alternative; tooltips are not hover-only.
-- Heavy charts load dynamically and reserve their dimensions; core navigation and status need no chart bundle.
-- Keep access tokens in memory only. No authentication material in localStorage or persisted query caches.
-- Test at 375, 768, 1024, and 1440 px and with 200% text zoom.
+- Buttons: one primary action per task area, stable loading state, clear active/disabled feedback.
+- Inputs: persistent label, helper/error region, appropriate HTML input type and autocomplete where relevant.
+- Panels: 14 px radius, 1 px rule, soft elevation, 18–20 px internal padding.
+- Tables: server-backed pagination/search/sort where required; keep exact status and accessible names.
+- Dialogs: native semantics, initial focus, Escape/close path, focus return, and visible async state.
+- Charts: visible exact values and textual/table alternative; dynamically load heavy chart code.
+- Use sequential headings, logical tab order, visible focus, and named icon-only actions.
+- Test light/dark at 390, 768, 1024, and 1440 px, reduced motion, keyboard only, and 200% zoom.
 
 ## Forbidden patterns
 
-- Emojis as application icons.
-- Gradient CTA buttons, glass panels, oversized rounded cards, and generic bento layouts.
-- Placeholder-only labels, invisible focus, color-only state, hover-only actions.
-- Optimistic permission claims or hidden server errors.
-- Automatic retry of effectful commands without a stable idempotency key.
-- Charts without their values or an accessible alternative.
+- Raw JSON as the default requester or approver experience.
+- Technical copy where plain language carries the same meaning.
+- Forced onboarding tours, hidden navigation, or unexplained acronyms.
+- Gradient CTA buttons, glass panels, oversized marketing cards, or color-only state.
+- Automatic effectful retries without the existing stable idempotency protections.
+- Persisting access tokens, secrets, or request credentials in browser storage.

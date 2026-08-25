@@ -4,7 +4,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useForm, type FieldErrors, type UseFormRegister } from 'react-hook-form';
+import {
+  useForm,
+  type FieldErrors,
+  type UseFormRegister,
+  type UseFormSetValue,
+} from 'react-hook-form';
 import { z } from 'zod';
 
 import { DraftAutosaveInputSchema, type DraftAutosaveInput } from '@queueforge/contracts';
@@ -33,6 +38,7 @@ import { AppShell } from '../../components/app-shell';
 import { PageHeader } from '../../components/page-header';
 import { PermissionSurface } from '../../components/permission-gate';
 import { QueryState } from '../../components/query-state';
+import { WorkflowFieldBuilder } from '../../components/workflow-field-builder';
 import { WorkflowDetailSchema, type WorkflowDetail } from '../../domain/models';
 import {
   useDirtyNavigation,
@@ -182,70 +188,243 @@ interface WorkflowContentFieldsProps {
   readonly editable: boolean;
   readonly errors: FieldErrors<EditorForm>;
   readonly register: UseFormRegister<EditorForm>;
+  readonly setValue: UseFormSetValue<EditorForm>;
+  readonly values: EditorForm;
 }
 
 export function WorkflowContentFields({
   editable,
   errors,
   register,
+  setValue,
+  values,
 }: WorkflowContentFieldsProps): React.JSX.Element {
+  const processingConfig = (() => {
+    try {
+      const parsed = JSON.parse(values.processingConfigText) as unknown;
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // The advanced editor below owns malformed JSON recovery.
+    }
+    return {};
+  })();
+  const setProcessingValue = (key: string, value: number): void => {
+    setValue(
+      'processingConfigText',
+      JSON.stringify(
+        {
+          durationMs: 250,
+          failuresBeforeSuccess: 0,
+          maxAttempts: 5,
+          ...processingConfig,
+          [key]: value,
+        },
+        null,
+        2,
+      ),
+      { shouldDirty: true },
+    );
+  };
+  const targets: readonly unknown[] = (() => {
+    try {
+      const parsed = JSON.parse(values.targetsText) as unknown;
+      return Array.isArray(parsed) ? (parsed as unknown[]) : [];
+    } catch {
+      return [];
+    }
+  })();
   return (
     <>
-      <InputField
-        disabled={!editable}
-        error={errors.name?.message}
-        id="editor-name"
-        label="Workflow name"
-        maxLength={160}
-        required
-        {...register('name', { required: 'Name is required.' })}
-      />
-      <TextareaField
-        disabled={!editable}
-        error={errors.description?.message}
-        id="editor-description"
-        label="Description"
-        maxLength={2000}
-        {...register('description')}
-      />
-      <TextareaField
-        className="qf-json-editor"
-        disabled={!editable}
-        error={errors.requestSchemaText?.message}
-        helper="JSON Schema used to validate every submitted payload."
-        id="editor-request-schema"
-        label="Request JSON Schema"
-        required
-        spellCheck={false}
-        {...register('requestSchemaText')}
-      />
-      <TextareaField
-        className="qf-json-editor"
-        disabled={!editable}
-        error={errors.processingConfigText?.message}
-        helper="Local execution policy such as attempts and timeout."
-        id="editor-processing-policy"
-        label="Processing policy JSON"
-        required
-        spellCheck={false}
-        {...register('processingConfigText')}
-      />
-      <TextareaField
-        className="qf-json-editor"
-        disabled={!editable}
-        error={errors.targetsText?.message}
-        helper="Ordered targets (0–99): processor, webhook, or notification. Webhook configs reference a server-managed endpoint; never paste a secret."
-        id="editor-targets"
-        label="Execution targets JSON"
-        required
-        spellCheck={false}
-        {...register('targetsText')}
-      />
+      <section className="qf-editor-section">
+        <div className="qf-editor-section__heading">
+          <span>1</span>
+          <div>
+            <h3>Name and explain this workflow</h3>
+            <p>Use language that requesters and approvers will recognize immediately.</p>
+          </div>
+        </div>
+        <div className="qf-form-grid qf-form-grid--two">
+          <InputField
+            disabled={!editable}
+            error={errors.name?.message}
+            id="editor-name"
+            label="Workflow name"
+            maxLength={160}
+            required
+            {...register('name', { required: 'Name is required.' })}
+          />
+          <TextareaField
+            className="qf-textarea--comfortable"
+            disabled={!editable}
+            error={errors.description?.message}
+            id="editor-description"
+            label="Short explanation"
+            maxLength={2000}
+            {...register('description')}
+          />
+        </div>
+      </section>
+
+      <section className="qf-editor-section" id="editor-request-schema" tabIndex={-1}>
+        <div className="qf-editor-section__heading">
+          <span>2</span>
+          <div>
+            <h3>Build the request form</h3>
+            <p>These become normal labeled fields for the person starting a request.</p>
+          </div>
+        </div>
+        <WorkflowFieldBuilder
+          disabled={!editable}
+          error={errors.requestSchemaText?.message}
+          jsonText={values.requestSchemaText}
+          onChange={(nextJson) => setValue('requestSchemaText', nextJson, { shouldDirty: true })}
+        />
+      </section>
+
+      <section className="qf-editor-section">
+        <div className="qf-editor-section__heading">
+          <span>3</span>
+          <div>
+            <h3>Choose how processing behaves</h3>
+            <p>Safe defaults work for most demonstrations. Change them only when needed.</p>
+          </div>
+        </div>
+        <div className="qf-form-grid qf-form-grid--three">
+          <InputField
+            disabled={!editable}
+            error={errors.processingConfigText?.message}
+            helper="Usually 250 ms for the local demo."
+            id="editor-processing-duration"
+            label="Typical run time (ms)"
+            max={10000}
+            min={0}
+            onChange={(event) =>
+              setProcessingValue('durationMs', Number(event.currentTarget.value))
+            }
+            type="number"
+            value={
+              typeof processingConfig.durationMs === 'number' ? processingConfig.durationMs : 250
+            }
+          />
+          <InputField
+            disabled={!editable}
+            helper="How many times QueueForge may try."
+            id="editor-processing-attempts"
+            label="Maximum attempts"
+            max={25}
+            min={1}
+            onChange={(event) =>
+              setProcessingValue('maxAttempts', Number(event.currentTarget.value))
+            }
+            type="number"
+            value={
+              typeof processingConfig.maxAttempts === 'number' ? processingConfig.maxAttempts : 5
+            }
+          />
+          <InputField
+            disabled={!editable}
+            helper="Demo-only failure simulation; keep 0 normally."
+            id="editor-processing-failures"
+            label="Simulated failures"
+            max={10}
+            min={0}
+            onChange={(event) =>
+              setProcessingValue('failuresBeforeSuccess', Number(event.currentTarget.value))
+            }
+            type="number"
+            value={
+              typeof processingConfig.failuresBeforeSuccess === 'number'
+                ? processingConfig.failuresBeforeSuccess
+                : 0
+            }
+          />
+        </div>
+        <details className="qf-advanced-disclosure">
+          <summary>Advanced processing JSON</summary>
+          <TextareaField
+            className="qf-json-editor"
+            disabled={!editable}
+            error={errors.processingConfigText?.message}
+            helper="The visual controls above write this validated configuration."
+            id="editor-processing-policy"
+            label="Processing policy JSON"
+            required
+            spellCheck={false}
+            {...register('processingConfigText')}
+          />
+        </details>
+      </section>
+
+      <section className="qf-editor-section">
+        <div className="qf-editor-section__heading">
+          <span>4</span>
+          <div>
+            <h3>Review what happens after approval</h3>
+            <p>The processor runs first, followed by configured delivery or notification steps.</p>
+          </div>
+        </div>
+        <div className="qf-execution-summary">
+          {targets.map((target, index) => {
+            const targetRecord =
+              typeof target === 'object' && target !== null
+                ? (target as Record<string, unknown>)
+                : null;
+            const kind =
+              targetRecord !== null && 'targetKind' in targetRecord
+                ? String(targetRecord.targetKind)
+                : 'step';
+            return (
+              <div key={`${kind}-${String(index)}`}>
+                <span>{String(index + 1)}</span>
+                <div>
+                  <strong>
+                    {kind === 'processor'
+                      ? 'Run workflow'
+                      : kind === 'webhook'
+                        ? 'Send webhook'
+                        : kind === 'notification'
+                          ? 'Notify people'
+                          : 'Advanced step'}
+                  </strong>
+                  <p>
+                    {kind === 'processor'
+                      ? 'Processes the approved request.'
+                      : kind === 'webhook'
+                        ? 'Delivers a signed result to a configured endpoint.'
+                        : kind === 'notification'
+                          ? 'Creates an in-app notification.'
+                          : 'Configured through the advanced editor.'}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <details className="qf-advanced-disclosure">
+          <summary>Advanced delivery configuration</summary>
+          <TextareaField
+            className="qf-json-editor"
+            disabled={!editable}
+            error={errors.targetsText?.message}
+            helper="Ordered processor, webhook, and notification targets. Reference endpoint IDs only; never paste secrets."
+            id="editor-targets"
+            label="Execution targets JSON"
+            required
+            spellCheck={false}
+            {...register('targetsText')}
+          />
+        </details>
+      </section>
     </>
   );
 }
 
-type WorkflowPolicyFieldsProps = WorkflowContentFieldsProps;
+type WorkflowPolicyFieldsProps = Pick<
+  WorkflowContentFieldsProps,
+  'editable' | 'errors' | 'register'
+>;
 
 export function WorkflowPolicyFields({
   editable,
@@ -386,6 +565,7 @@ export function WorkflowEditorScreen(): React.JSX.Element {
     register,
     reset,
     setError,
+    setValue,
     watch,
   } = useForm<EditorForm>({
     defaultValues: {
@@ -684,6 +864,8 @@ export function WorkflowEditorScreen(): React.JSX.Element {
                       editable={editable}
                       errors={errors}
                       register={register}
+                      setValue={setValue}
+                      values={values}
                     />
                   </form>
                 </Panel>

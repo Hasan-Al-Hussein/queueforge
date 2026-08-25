@@ -17,6 +17,7 @@
     "dev:inner": "concurrently -k -n api,worker,web,sink -c blue,magenta,cyan,yellow \"pnpm --filter @queueforge/api dev\" \"pnpm --filter @queueforge/worker dev\" \"pnpm --filter @queueforge/web dev\" \"pnpm --filter @queueforge/webhook-sink dev\"",
     "dev:services": "docker compose -p queueforge-dev up -d postgres redis",
     "dev:services:down": "docker compose -p queueforge-dev down",
+    "package:private": "pwsh -NoProfile -File scripts/package-private-demo.ps1",
     "test:services": "docker compose -p queueforge-test -f compose.test.yaml up -d --wait",
     "test:services:down": "docker compose -p queueforge-test -f compose.test.yaml down",
     "test:services:reset": "pwsh -NoProfile -File scripts/reset-test-services.ps1",

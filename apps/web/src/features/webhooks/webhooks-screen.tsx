@@ -264,9 +264,9 @@ export function WebhooksScreen(): React.JSX.Element {
             </PermissionGate>
           </>
         }
-        description="Configure allowlisted signed targets and inspect each at-least-once delivery attempt."
-        eyebrow="Signed egress"
-        title="Webhooks"
+        description="Connect approved systems and follow every signed delivery attempt in one place."
+        eyebrow="Send results securely"
+        title="Connections"
       />
       <div className="qf-inline-alert" role="note">
         <ShieldCheck size={18} />

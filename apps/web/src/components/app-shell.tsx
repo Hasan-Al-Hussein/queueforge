@@ -48,16 +48,39 @@ interface NavItem {
   readonly label: string;
 }
 
-const NAV_ITEMS: readonly NavItem[] = [
-  { href: '/', icon: LayoutDashboard, label: 'Overview' },
-  { href: '/requests', icon: Workflow, label: 'Requests' },
-  { href: '/approvals', icon: ClipboardCheck, label: 'Approvals' },
-  { href: '/workflows', icon: GitBranch, label: 'Workflows' },
-  { href: '/webhooks', icon: Webhook, label: 'Webhooks' },
-  { href: '/operations', icon: Boxes, label: 'Queues & DLQ' },
-  { href: '/notifications', icon: Bell, label: 'Notifications' },
-  { href: '/audit', icon: FileClock, label: 'Audit trail' },
-  { href: '/team', icon: Users, label: 'Team & access' },
+interface NavGroup {
+  readonly label: string;
+  readonly items: readonly NavItem[];
+}
+
+const NAV_GROUPS: readonly NavGroup[] = [
+  {
+    label: 'Everyday work',
+    items: [
+      { href: '/', icon: LayoutDashboard, label: 'Home' },
+      { href: '/requests', icon: Workflow, label: 'Requests' },
+      { href: '/approvals', icon: ClipboardCheck, label: 'Approval inbox' },
+    ],
+  },
+  {
+    label: 'Set up',
+    items: [
+      { href: '/workflows', icon: GitBranch, label: 'Workflow builder' },
+      { href: '/webhooks', icon: Webhook, label: 'Connections' },
+    ],
+  },
+  {
+    label: 'Monitor',
+    items: [
+      { href: '/operations', icon: Boxes, label: 'Processing health' },
+      { href: '/notifications', icon: Bell, label: 'Notifications' },
+      { href: '/audit', icon: FileClock, label: 'Activity history' },
+    ],
+  },
+  {
+    label: 'Organization',
+    items: [{ href: '/team', icon: Users, label: 'People & access' }],
+  },
 ];
 
 const DRAWER_FOCUSABLE_SELECTOR = [
@@ -112,26 +135,30 @@ function Navigation({
   const pathname = usePathname();
   return (
     <nav aria-label="Primary navigation" className="qf-nav">
-      <p className="qf-nav__label">Control surfaces</p>
-      <ul>
-        {NAV_ITEMS.map((item) => {
-          const Icon = item.icon;
-          const current = isCurrentPath(pathname, item.href);
-          return (
-            <li key={item.href}>
-              <Link
-                aria-current={current ? 'page' : undefined}
-                href={item.href}
-                onClick={(event) => onNavigate(event, item.href)}
-                prefetch={false}
-              >
-                <Icon size={17} />
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      {NAV_GROUPS.map((group) => (
+        <div className="qf-nav__group" key={group.label}>
+          <p className="qf-nav__label">{group.label}</p>
+          <ul>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              const current = isCurrentPath(pathname, item.href);
+              return (
+                <li key={item.href}>
+                  <Link
+                    aria-current={current ? 'page' : undefined}
+                    href={item.href}
+                    onClick={(event) => onNavigate(event, item.href)}
+                    prefetch={false}
+                  >
+                    <Icon size={18} />
+                    <span>{item.label}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
     </nav>
   );
 }
@@ -167,7 +194,7 @@ function SidebarContent({
         ) : null}
       </div>
       <div className="qf-tenant-stamp">
-        <span>Selected tenant</span>
+        <span>Current workspace</span>
         <strong>{tenantName}</strong>
         <small>{role.replaceAll('_', ' ')}</small>
       </div>
@@ -442,7 +469,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
             tone="quiet"
           />
           <div className="qf-tenant-select">
-            <label htmlFor="tenant-switcher">Tenant</label>
+            <label htmlFor="tenant-switcher">Workspace</label>
             <span className="qf-select-wrap">
               <select
                 disabled={switchingTenant}
@@ -454,11 +481,28 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
                 }}
                 value={session.selectedTenant.tenantId}
               >
-                {session.memberships.map((membership) => (
-                  <option key={membership.tenantId} value={membership.tenantId}>
-                    {membership.tenantName} · {membership.role.replaceAll('_', ' ')}
-                  </option>
-                ))}
+                <optgroup label="Your workspaces">
+                  {session.memberships
+                    .filter((membership) => !/^E2E Tenant\b/i.test(membership.tenantName))
+                    .map((membership) => (
+                      <option key={membership.tenantId} value={membership.tenantId}>
+                        {membership.tenantName} · {membership.role.replaceAll('_', ' ')}
+                      </option>
+                    ))}
+                </optgroup>
+                {session.memberships.some((membership) =>
+                  /^E2E Tenant\b/i.test(membership.tenantName),
+                ) ? (
+                  <optgroup label="Verification workspaces">
+                    {session.memberships
+                      .filter((membership) => /^E2E Tenant\b/i.test(membership.tenantName))
+                      .map((membership) => (
+                        <option key={membership.tenantId} value={membership.tenantId}>
+                          {membership.tenantName} · {membership.role.replaceAll('_', ' ')}
+                        </option>
+                      ))}
+                  </optgroup>
+                ) : null}
               </select>
               <ChevronDown aria-hidden="true" size={15} />
             </span>

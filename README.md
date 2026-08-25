@@ -55,6 +55,28 @@ pwsh -NoProfile -File scripts/verify-environment.ps1
 
 The command writes `artifacts/verification/environment.json` and reports port conflicts; it does not stop unrelated processes.
 
+## Easiest private start (no paid cloud)
+
+QueueForge can be delivered as a private ZIP and run entirely on the buyer's Windows computer. Nothing is uploaded to Vercel or another paid service.
+
+The buyer needs only the free [Docker Desktop](https://www.docker.com/products/docker-desktop/) application and PowerShell 7. After unzipping QueueForge:
+
+1. Open Docker Desktop and wait until it says the engine is running.
+2. Double-click `START-QUEUEFORGE.cmd`.
+3. Keep the first-start window open while QueueForge prepares itself. The build is deliberately limited to two CPU cores and 2.5 GB of memory so the laptop stays responsive.
+4. The browser opens at <http://127.0.0.1:3100>. Use `admin@queueforge.test`; the generated password is already copied, so press `Ctrl+V` in the password box.
+5. Double-click `STOP-QUEUEFORGE.cmd` when finished. The private database is preserved for the next start.
+
+Later starts reuse the prepared images and are much faster. The start script never prints the generated password and never deletes QueueForge's database volumes.
+
+For the seller, create a clean revision-bound ZIP with:
+
+```powershell
+pnpm package:private
+```
+
+The packager refuses dirty source and checks that `.env`, local databases, dependencies, test output, and Git metadata are absent. Each buyer generates fresh local secrets on first start. A code-signed Windows installer could be added later, but the ZIP plus two launch files is the complete free distribution path today.
+
 ## Quick start: host-first development
 
 This is the preferred route on a 16 GB laptop because only PostgreSQL and Redis run in Docker.

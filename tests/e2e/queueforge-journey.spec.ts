@@ -151,11 +151,12 @@ async function createAndActivateWorkflow(
     readonly withWebhook: boolean;
   },
 ): Promise<WorkflowView> {
-  await navigateFromSidebar(page, 'Workflows', '/workflows');
+  await navigateFromSidebar(page, 'Workflow builder', '/workflows');
   await page.getByRole('button', { name: 'New workflow' }).click();
   await page.getByLabel('Workflow name').fill(input.name);
+  await page.getByText('Advanced identifier').click();
   await page.getByLabel('Stable key').fill(input.stableKey);
-  await page.getByLabel('Description').fill(input.description);
+  await page.getByLabel('What is this workflow for?').fill(input.description);
 
   const createResponsePromise = page.waitForResponse((response) =>
     isBrowserResponse(response, 'POST', '/api/v1/workflows'),
@@ -198,8 +199,11 @@ async function createAndActivateWorkflow(
     };
     return body.processingConfig?.failuresBeforeSuccess === input.failuresBeforeSuccess;
   });
-  await page.getByLabel('Request JSON Schema').fill(JSON.stringify(requestSchema, null, 2));
+  await page.getByRole('button', { exact: true, name: 'Advanced JSON' }).click();
+  await page.getByLabel('Request schema').fill(JSON.stringify(requestSchema, null, 2));
+  await page.getByText('Advanced processing JSON').click();
   await page.getByLabel('Processing policy JSON').fill(JSON.stringify(processingConfig, null, 2));
+  await page.getByText('Advanced delivery configuration').click();
   await page.getByLabel('Execution targets JSON').fill(JSON.stringify(targets, null, 2));
   await page.getByRole('checkbox', { name: 'Accept new requests' }).check();
   await page.getByRole('checkbox', { name: 'Require approval' }).check();
@@ -220,18 +224,21 @@ async function createAndActivateWorkflow(
 
 async function submitFromUi(
   page: Page,
-  workflowKey: string,
+  workflowName: string,
   payload: Readonly<Record<string, unknown>>,
 ): Promise<{ readonly replayed: boolean; readonly request: WorkflowRequestView }> {
   await navigateFromSidebar(page, 'Requests', '/requests');
   await page.getByRole('button', { name: 'Submit request', exact: true }).first().click();
-  await page.getByLabel('Workflow key').fill(workflowKey);
-  await page.getByLabel('Payload JSON').fill(JSON.stringify(payload, null, 2));
+  await page.getByLabel('What do you want to do?').selectOption({ label: workflowName });
+  for (const [key, value] of Object.entries(payload)) {
+    const label = key === 'caseId' ? 'Case Id' : key.charAt(0).toUpperCase() + key.slice(1);
+    await page.getByLabel(label).fill(String(value));
+  }
   const responsePromise = page.waitForResponse((response) =>
     isBrowserResponse(response, 'POST', '/api/v1/requests'),
   );
   await page
-    .getByRole('dialog', { name: 'Submit workflow request' })
+    .getByRole('dialog', { name: 'Start a new request' })
     .getByRole('button', { name: 'Submit request', exact: true })
     .click();
   const response = await responsePromise;
@@ -241,7 +248,7 @@ async function submitFromUi(
 }
 
 async function approveFromUi(page: Page, workflowName: string): Promise<void> {
-  await navigateFromSidebar(page, 'Approvals', '/approvals');
+  await navigateFromSidebar(page, 'Approval inbox', '/approvals');
   const refreshResponsePromise = page.waitForResponse((response) =>
     isBrowserResponse(response, 'GET', '/api/v1/approvals'),
   );
@@ -252,7 +259,9 @@ async function approveFromUi(page: Page, workflowName: string): Promise<void> {
     timeout: 30_000,
   });
   await page.getByRole('button', { name: `Approve ${workflowName}` }).click();
-  await page.getByLabel('Decision note').fill('Approved by the end-to-end verification journey.');
+  await page
+    .getByLabel('Note for the requester')
+    .fill('Approved by the end-to-end verification journey.');
   const responsePromise = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&
@@ -353,7 +362,7 @@ test.describe('QueueForge durable user journey', () => {
           true,
         );
         adminSession = await selectTenant(page, createdTenantId);
-        await navigateFromSidebar(page, 'Team & access', '/team');
+        await navigateFromSidebar(page, 'People & access', '/team');
         await page.getByRole('button', { name: 'Add member' }).click();
         await page.getByLabel('User email').fill(memberEmail);
         await page.getByLabel('Display name').fill(`E2E Viewer ${suffix}`);
@@ -392,7 +401,7 @@ test.describe('QueueForge durable user journey', () => {
       let recoveryRequest!: WorkflowRequestView;
       await test.step('3. Submit a request through the visible intake dialog', async () => {
         browserRequestIdempotencyKey = recoveryIdempotencyKey;
-        const submission = await submitFromUi(page, recoveryWorkflowKey, recoveryPayload);
+        const submission = await submitFromUi(page, recoveryWorkflowName, recoveryPayload);
         expect(submission.replayed).toBe(false);
         recoveryRequest = submission.request;
         expect(recoveryRequest.status).toBe('pending_approval');
@@ -447,7 +456,7 @@ test.describe('QueueForge durable user journey', () => {
             { timeout: 60_000 },
           )
           .not.toBe('');
-        await navigateFromSidebar(page, 'Webhooks', '/webhooks');
+        await navigateFromSidebar(page, 'Connections', '/webhooks');
         await page.getByLabel('Search deliveries').fill(deliveredEventId);
         const table = page.getByRole('table', { name: 'Outbound webhook deliveries' });
         await expect(table).toContainText('request.succeeded');
@@ -455,7 +464,7 @@ test.describe('QueueForge durable user journey', () => {
       });
 
       await test.step('8. Inspect the correlated append-only audit timeline', async () => {
-        await navigateFromSidebar(page, 'Audit trail', '/audit');
+        await navigateFromSidebar(page, 'Activity history', '/audit');
         await page.getByLabel('Event type prefix').fill('request.');
         await page.getByLabel('Search audit trail').fill(recoveryRequest.correlationId);
         const table = page.getByRole('table', { name: 'Tenant audit events' });
@@ -465,7 +474,7 @@ test.describe('QueueForge durable user journey', () => {
 
       await test.step('9. Replay the identical request idempotently through the UI', async () => {
         browserRequestIdempotencyKey = recoveryIdempotencyKey;
-        const replay = await submitFromUi(page, recoveryWorkflowKey, recoveryPayload);
+        const replay = await submitFromUi(page, recoveryWorkflowName, recoveryPayload);
         expect(replay.replayed).toBe(true);
         expect(replay.request.id).toBe(recoveryRequest.id);
       });
@@ -497,7 +506,7 @@ test.describe('QueueForge durable user journey', () => {
 
       await test.step('12. Exhaust a job into the DLQ and manually retry it', async () => {
         browserRequestIdempotencyKey = exhaustedIdempotencyKey;
-        const submission = await submitFromUi(page, exhaustedWorkflowKey, exhaustedPayload);
+        const submission = await submitFromUi(page, exhaustedWorkflowName, exhaustedPayload);
         expect(submission.replayed).toBe(false);
         await approveFromUi(approverPage, exhaustedWorkflowName);
         await pollForStatus(
@@ -508,7 +517,7 @@ test.describe('QueueForge durable user journey', () => {
           90_000,
         );
 
-        await navigateFromSidebar(page, 'Queues & DLQ', '/operations');
+        await navigateFromSidebar(page, 'Processing health', '/operations');
         await page.getByLabel('Search dead letters').fill(submission.request.id);
         const deadLetterTable = page.getByRole('table', {
           name: 'Dead-lettered workflow requests',

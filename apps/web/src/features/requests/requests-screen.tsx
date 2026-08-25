@@ -3,54 +3,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef, SortingState } from '@tanstack/react-table';
-import { useForm, useWatch } from 'react-hook-form';
-import { z } from 'zod';
 
 import {
   SubmitWorkflowRequestSchema,
   WorkflowRequestViewSchema,
+  type JsonObject,
+  type SubmitWorkflowRequest,
+  type WorkflowSummary,
   type WorkflowRequestView,
 } from '@queueforge/contracts';
-import {
-  Button,
-  Dialog,
-  InputField,
-  Panel,
-  Plus,
-  RefreshCw,
-  Send,
-  StatusBadge,
-  TextareaField,
-} from '@queueforge/ui';
+import { Button, Dialog, Panel, Plus, RefreshCw, Send, StatusBadge } from '@queueforge/ui';
 
 import { apiRequest, formatProblem } from '../../api/client';
 import { routes } from '../../api/routes';
 import { AppShell } from '../../components/app-shell';
 import { DataTable } from '../../components/data-table';
 import { CompactId, DateTime } from '../../components/format';
+import { GuidedRequestForm } from '../../components/guided-request-form';
 import { PageHeader } from '../../components/page-header';
 import { PaginationControls } from '../../components/pagination-controls';
 import { PermissionGate } from '../../components/permission-gate';
 import { QueryState } from '../../components/query-state';
-import { PagedRequestsSchema } from '../../domain/models';
+import { buildWorkflowPayload, readWorkflowSchema } from '../../components/workflow-schema';
+import { PagedRequestsSchema, WorkflowDetailSchema, WorkflowListSchema } from '../../domain/models';
 import { useIdempotencyKeyLease } from '../../hooks/use-idempotency-key-lease';
 import { pageSearchParams, usePagination } from '../../hooks/use-pagination';
 import { useAuth } from '../../providers/auth-provider';
 import { useToast } from '../../providers/toast-provider';
-
-const SubmitFormSchema = z.object({
-  workflowKey: z
-    .string()
-    .trim()
-    .min(2)
-    .max(100)
-    .regex(/^[a-z0-9][a-z0-9_-]*$/, 'Use lowercase letters, numbers, underscores, or dashes.'),
-  payloadText: z.string().min(2, 'Enter a JSON object.'),
-});
-type SubmitForm = z.infer<typeof SubmitFormSchema>;
 
 export type RequestSortBy = 'submittedAt' | 'workflowName' | 'status' | 'source' | 'attemptCount';
 export type RequestSortDirection = 'asc' | 'desc';
@@ -168,6 +149,11 @@ export function RequestsScreen(): React.JSX.Element {
   const pagination = usePagination();
   const router = useRouter();
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [selectedWorkflowId, setSelectedWorkflowId] = useState('');
+  const [payloadValues, setPayloadValues] = useState<Record<string, unknown>>({});
+  const [payloadErrors, setPayloadErrors] = useState<Readonly<Record<string, string>>>({});
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [advancedPayloadText, setAdvancedPayloadText] = useState('{}');
   const queryClient = useQueryClient();
   const { online } = useAuth();
   const { notify } = useToast();
@@ -200,22 +186,40 @@ export function RequestsScreen(): React.JSX.Element {
       });
     },
   });
-  const {
-    control,
-    formState: { errors, isSubmitting },
-    handleSubmit,
-    register,
-    reset,
-    setError,
-  } = useForm<SubmitForm>({
-    defaultValues: { payloadText: '{\n  "amount": 1250,\n  "currency": "AED"\n}', workflowKey: '' },
-    mode: 'onBlur',
-    resolver: zodResolver(SubmitFormSchema),
+  const workflowsQuery = useQuery({
+    queryKey: ['workflows'],
+    queryFn: ({ signal }) => apiRequest(routes.workflows, { schema: WorkflowListSchema, signal }),
   });
-  const submissionInput = useWatch({ control });
+  const selectableWorkflows = useMemo(
+    () =>
+      (workflowsQuery.data ?? []).filter(
+        (workflow) => workflow.versionStatus === 'active' && workflow.isEnabled,
+      ),
+    [workflowsQuery.data],
+  );
+  const selectedWorkflow: WorkflowSummary | undefined = selectableWorkflows.find(
+    (workflow) => workflow.id === selectedWorkflowId,
+  );
+  const workflowDetailQuery = useQuery({
+    enabled: submitOpen && selectedWorkflowId !== '',
+    queryKey: ['workflow', selectedWorkflowId],
+    queryFn: ({ signal }) =>
+      apiRequest(routes.workflow(selectedWorkflowId), { schema: WorkflowDetailSchema, signal }),
+  });
+  const guidedSchema = useMemo(
+    () =>
+      workflowDetailQuery.data === undefined
+        ? null
+        : readWorkflowSchema(workflowDetailQuery.data.requestSchema),
+    [workflowDetailQuery.data],
+  );
+  const submissionInput = {
+    payload: payloadValues,
+    workflowKey: selectedWorkflow?.stableKey ?? '',
+  };
   const submissionKey = useIdempotencyKeyLease(JSON.stringify(submissionInput));
   const submitMutation = useMutation({
-    mutationFn: (input: z.infer<typeof SubmitWorkflowRequestSchema>) =>
+    mutationFn: (input: SubmitWorkflowRequest) =>
       apiRequest(routes.requests, {
         body: input,
         idempotencyKey: submissionKey.acquire(),
@@ -225,39 +229,61 @@ export function RequestsScreen(): React.JSX.Element {
     onSuccess: async (request) => {
       submissionKey.clear();
       await queryClient.invalidateQueries({ queryKey: ['requests'] });
-      notify('Request accepted and committed.', 'success');
+      notify('Request submitted. QueueForge will keep you updated.', 'success');
       setSubmitOpen(false);
-      reset();
+      setSelectedWorkflowId('');
+      setPayloadValues({});
+      setPayloadErrors({});
       router.push(`/requests/detail?id=${encodeURIComponent(request.id)}`);
     },
   });
 
-  const submit = handleSubmit(async (values) => {
-    let payload: unknown;
-    try {
-      payload = JSON.parse(values.payloadText) as unknown;
-    } catch {
-      setError('payloadText', { message: 'Payload must be valid JSON.' }, { shouldFocus: true });
+  const submit = async (): Promise<void> => {
+    setSubmissionError(null);
+    if (selectedWorkflow === undefined || guidedSchema === null) {
+      setSubmissionError('Choose an active workflow to continue.');
       return;
+    }
+    let payload: JsonObject | undefined;
+    if (guidedSchema.supported) {
+      const result = buildWorkflowPayload(guidedSchema.fields, payloadValues);
+      setPayloadErrors(result.errors);
+      payload = result.payload;
+      if (payload === undefined) return;
+    } else {
+      try {
+        const parsedAdvanced = JSON.parse(advancedPayloadText) as unknown;
+        if (
+          typeof parsedAdvanced !== 'object' ||
+          parsedAdvanced === null ||
+          Array.isArray(parsedAdvanced)
+        ) {
+          throw new Error('not an object');
+        }
+        payload = parsedAdvanced as JsonObject;
+      } catch {
+        setSubmissionError('Advanced request data must be a valid JSON object.');
+        return;
+      }
     }
     const parsed = SubmitWorkflowRequestSchema.safeParse({
       payload,
-      workflowKey: values.workflowKey,
+      workflowKey: selectedWorkflow.stableKey,
     });
     if (!parsed.success) {
-      setError(
-        'payloadText',
-        { message: parsed.error.issues[0]?.message ?? 'Payload must be a JSON object.' },
-        { shouldFocus: true },
-      );
+      setSubmissionError(parsed.error.issues[0]?.message ?? 'Check the request information.');
       return;
     }
     await submitMutation.mutateAsync(parsed.data);
-  });
+  };
   const cancelSubmission = (): void => {
     submissionKey.clear();
     submitMutation.reset();
     setSubmitOpen(false);
+    setSelectedWorkflowId('');
+    setPayloadValues({});
+    setPayloadErrors({});
+    setSubmissionError(null);
   };
 
   const rows = requestsQuery.data?.items ?? [];
@@ -309,8 +335,8 @@ export function RequestsScreen(): React.JSX.Element {
             </PermissionGate>
           </>
         }
-        description="Inspect immutable workflow-version bindings, attempts, and current execution state."
-        eyebrow="Workflow intake"
+        description="Start work, follow its progress, and see exactly what needs attention."
+        eyebrow="Your work"
         title="Requests"
       />
       <Panel>
@@ -345,7 +371,7 @@ export function RequestsScreen(): React.JSX.Element {
               </Button>
             </PermissionGate>
           }
-          emptyDescription="No requests match this filter. Change the status filter or submit synthetic work."
+          emptyDescription="No requests match this view. Change the filter or start a new request."
           error={requestsQuery.error}
           isLoading={requestsQuery.isLoading}
           onRetry={() => void requestsQuery.refetch()}
@@ -384,13 +410,13 @@ export function RequestsScreen(): React.JSX.Element {
       </Panel>
 
       <Dialog
-        description="The active workflow version is captured when this command commits."
+        description="Choose what you want QueueForge to do, then answer a few simple questions."
         footer={
           <>
             <Button onClick={cancelSubmission}>Cancel</Button>
             <Button
-              disabled={!online}
-              loading={isSubmitting || submitMutation.isPending}
+              disabled={!online || selectedWorkflow === undefined || workflowDetailQuery.isLoading}
+              loading={submitMutation.isPending}
               loadingLabel="Submitting"
               onClick={() => void submit()}
               tone="primary"
@@ -401,31 +427,110 @@ export function RequestsScreen(): React.JSX.Element {
         }
         onClose={cancelSubmission}
         open={submitOpen}
-        title="Submit workflow request"
+        title="Start a new request"
       >
-        {submitMutation.error !== null ? (
+        {submissionError !== null || submitMutation.error !== null ? (
           <div className="qf-form-error" role="alert">
-            {formatProblem(submitMutation.error)}
+            {submissionError ?? formatProblem(submitMutation.error)}
           </div>
         ) : null}
-        <form className="qf-form-stack" onSubmit={(event) => void submit(event)} noValidate>
-          <InputField
-            error={errors.workflowKey?.message}
-            helper="Stable key of an active workflow, for example expense_review."
-            id="submit-workflow-key"
-            label="Workflow key"
-            required
-            {...register('workflowKey')}
-          />
-          <TextareaField
-            error={errors.payloadText?.message}
-            helper="A JSON object validated against the active workflow schema."
-            id="submit-payload"
-            label="Payload JSON"
-            required
-            spellCheck={false}
-            {...register('payloadText')}
-          />
+        <form
+          className="qf-form-stack"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submit();
+          }}
+          noValidate
+        >
+          <div className="qf-field">
+            <label className="qf-field__label" htmlFor="submit-workflow">
+              What do you want to do? <span aria-hidden="true">*</span>
+            </label>
+            <select
+              className="qf-input qf-input--large"
+              disabled={workflowsQuery.isLoading}
+              id="submit-workflow"
+              onChange={(event) => {
+                setSelectedWorkflowId(event.currentTarget.value);
+                setPayloadValues({});
+                setPayloadErrors({});
+                setSubmissionError(null);
+                submissionKey.clear();
+              }}
+              value={selectedWorkflowId}
+            >
+              <option value="">Choose a workflow</option>
+              {selectableWorkflows.map((workflow) => (
+                <option key={workflow.id} value={workflow.id}>
+                  {workflow.name}
+                </option>
+              ))}
+            </select>
+            <p className="qf-field__message">
+              {workflowsQuery.isLoading
+                ? 'Loading available workflows…'
+                : selectableWorkflows.length === 0
+                  ? 'No active workflows are accepting requests.'
+                  : 'Only active workflows that accept new requests are shown.'}
+            </p>
+          </div>
+          {selectedWorkflow === undefined ? (
+            <div className="qf-guidance-card">
+              <strong>Start by choosing a workflow</strong>
+              <p>
+                QueueForge will show the right form automatically—no JSON or workflow key needed.
+              </p>
+            </div>
+          ) : (
+            <div className="qf-workflow-choice-summary">
+              <div>
+                <span>Selected workflow</span>
+                <strong>{selectedWorkflow.name}</strong>
+                <p>{selectedWorkflow.description ?? 'No description provided.'}</p>
+              </div>
+              <span className="qf-route-chip">
+                {selectedWorkflow.requiresApproval ? 'Approval required' : 'Runs automatically'}
+              </span>
+            </div>
+          )}
+          {workflowDetailQuery.isLoading ? (
+            <div className="qf-form-skeleton" aria-label="Loading request form" role="status">
+              <span />
+              <span />
+              <span />
+            </div>
+          ) : guidedSchema?.supported === true ? (
+            <GuidedRequestForm
+              errors={payloadErrors}
+              fields={guidedSchema.fields}
+              onChange={(key, value) => {
+                setPayloadValues((current) => ({ ...current, [key]: value }));
+                setPayloadErrors((current) => {
+                  const next = { ...current };
+                  delete next[key];
+                  return next;
+                });
+              }}
+              values={payloadValues}
+            />
+          ) : guidedSchema === null ? null : (
+            <details className="qf-advanced-disclosure" open>
+              <summary>This workflow uses an advanced form</summary>
+              <p>
+                {guidedSchema.reason} Ask an administrator to simplify it, or enter advanced data
+                below.
+              </p>
+              <label className="qf-field">
+                <span className="qf-field__label">Advanced request data (JSON)</span>
+                <textarea
+                  className="qf-input qf-json-editor"
+                  onChange={(event) => setAdvancedPayloadText(event.currentTarget.value)}
+                  spellCheck={false}
+                  value={advancedPayloadText}
+                />
+              </label>
+            </details>
+          )}
         </form>
       </Dialog>
     </AppShell>

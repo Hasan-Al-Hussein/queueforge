@@ -24,10 +24,12 @@ import { routes } from '../../api/routes';
 import { AppShell } from '../../components/app-shell';
 import { DataTable } from '../../components/data-table';
 import { DateTime } from '../../components/format';
+import { HumanReadablePayload } from '../../components/human-readable-payload';
 import { PageHeader } from '../../components/page-header';
 import { PaginationControls } from '../../components/pagination-controls';
 import { QueryState } from '../../components/query-state';
 import { PagedApprovalsSchema, type ApprovalTask } from '../../domain/models';
+import { WorkflowRequestViewSchema } from '@queueforge/contracts';
 import { useIdempotencyKeyLease } from '../../hooks/use-idempotency-key-lease';
 import { pageSearchParams, usePagination } from '../../hooks/use-pagination';
 import { useAuth } from '../../providers/auth-provider';
@@ -54,6 +56,17 @@ export function ApprovalsScreen(): React.JSX.Element {
         schema: PagedApprovalsSchema,
         signal,
       }),
+  });
+  const selectedRequestQuery = useQuery({
+    enabled: selected !== null,
+    queryKey: ['request', selected?.task.requestId],
+    queryFn: ({ signal }) => {
+      if (selected === null) throw new Error('No approval request is selected.');
+      return apiRequest(routes.request(selected.task.requestId), {
+        schema: WorkflowRequestViewSchema,
+        signal,
+      });
+    },
   });
   const {
     control,
@@ -191,9 +204,9 @@ export function ApprovalsScreen(): React.JSX.Element {
             Refresh
           </Button>
         }
-        description="Make attributable decisions against the exact request, workflow version, payload hash, and revision."
-        eyebrow="Human gate"
-        title="Approvals"
+        description="Review the request in plain language, then approve or reject it with confidence."
+        eyebrow="Needs a decision"
+        title="Approval inbox"
       />
       {!can('approve') ? (
         <div className="qf-inline-alert" role="note">
@@ -268,11 +281,23 @@ export function ApprovalsScreen(): React.JSX.Element {
           </div>
         ) : null}
         <form onSubmit={(event) => void submit(event)} noValidate>
+          {selectedRequestQuery.isLoading ? (
+            <div className="qf-form-skeleton" aria-label="Loading request details" role="status">
+              <span />
+              <span />
+              <span />
+            </div>
+          ) : selectedRequestQuery.data === undefined ? null : (
+            <HumanReadablePayload
+              payload={selectedRequestQuery.data.payload}
+              title={selected?.task.workflowName ?? 'Request information'}
+            />
+          )}
           <TextareaField
             error={errors.note?.message}
-            helper="Optional context for the audit trail (2,000 characters maximum)."
+            helper="Optional: explain the reason for your decision in plain language."
             id="approval-note"
-            label="Decision note"
+            label="Note for the requester"
             maxLength={2000}
             {...register('note')}
           />

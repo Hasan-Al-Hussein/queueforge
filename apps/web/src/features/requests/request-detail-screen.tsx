@@ -28,6 +28,7 @@ import { routes } from '../../api/routes';
 import { AppShell } from '../../components/app-shell';
 import { stripGraphqlTypenames } from '../../api/graphql-response';
 import { CompactId, DateTime } from '../../components/format';
+import { HumanReadablePayload } from '../../components/human-readable-payload';
 import { PageHeader } from '../../components/page-header';
 import { QueryState } from '../../components/query-state';
 import { RequestDetailSchema, type RequestDetail } from '../../domain/models';
@@ -316,12 +317,16 @@ export function RequestDetailScreen(): React.JSX.Element {
                 </div>
                 <Panel
                   className="qf-span-full"
-                  title="Immutable payload"
-                  description="Captured against the activated workflow version at submission."
+                  title="What was requested"
+                  description="A readable copy of the information submitted with this request."
                 >
-                  <pre className="qf-code-block">
-                    {JSON.stringify(parsed.request.payload, null, 2)}
-                  </pre>
+                  <HumanReadablePayload payload={parsed.request.payload} />
+                  <details className="qf-advanced-disclosure">
+                    <summary>Technical JSON</summary>
+                    <pre className="qf-code-block">
+                      {JSON.stringify(parsed.request.payload, null, 2)}
+                    </pre>
+                  </details>
                 </Panel>
                 <Panel className="qf-span-full" title="Authorization note">
                   <div className="qf-control-note__content">

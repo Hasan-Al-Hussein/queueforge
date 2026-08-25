@@ -88,9 +88,9 @@ export function AuditScreen(): React.JSX.Element {
             Refresh
           </Button>
         }
-        description="Correlate tenant actions across HTTP, transactions, queue work, decisions, notifications, and deliveries."
-        eyebrow="Append-only evidence"
-        title="Audit trail"
+        description="See who did what, when it happened, and how each request moved through the system."
+        eyebrow="Complete traceability"
+        title="Activity history"
       />
       <div className="qf-inline-alert" role="note">
         <FileLock2 size={18} />

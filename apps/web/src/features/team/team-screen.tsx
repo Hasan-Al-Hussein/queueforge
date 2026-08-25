@@ -190,9 +190,9 @@ export function TeamScreen(): React.JSX.Element {
             </PermissionGate>
           </>
         }
-        description="Review tenant memberships and apply deny-by-default roles without implying client-side authority."
-        eyebrow="Tenant access"
-        title="Team & RBAC"
+        description="Invite people, understand their responsibilities, and control what each role can do."
+        eyebrow="Manage your organization"
+        title="People & access"
       />
       {!can('manage_team') ? (
         <div className="qf-inline-alert" role="note">
@@ -238,8 +238,8 @@ export function TeamScreen(): React.JSX.Element {
           )}
         </Panel>
         <Panel
-          title="Role boundaries"
-          description="Compact tenant roles; platform administration is global and separately audited."
+          title="What each role can do"
+          description="Permissions stay limited by default, and every administrative change is recorded."
         >
           <dl className="qf-role-list">
             {TenantRoleSchema.options.map((role) => (

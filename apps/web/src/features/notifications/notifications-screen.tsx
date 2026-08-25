@@ -69,8 +69,8 @@ export function NotificationsScreen(): React.JSX.Element {
             Refresh
           </Button>
         }
-        description="Tenant-scoped operational notices for approvals, retries, failures, and completed work."
-        eyebrow="Operator inbox"
+        description="Important updates about approvals, retries, failures, and completed work."
+        eyebrow="Stay informed"
         title="Notifications"
       />
       {markRead.error !== null ? (
