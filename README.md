@@ -9,6 +9,7 @@
 Define a versioned request, collect structured input, require an independent human decision, process it through a transactional outbox, and deliver a signed result without losing the causal trail.
 
 [![Demo](https://img.shields.io/badge/DEMO-83_SECONDS-E86F2B?style=for-the-badge)](docs/media/queueforge-pipeline-demo.webm)
+[![Download](https://img.shields.io/badge/DOWNLOAD-WINDOWS_ZIP-64D7C6?style=for-the-badge&logo=windows&logoColor=102A3D)](https://github.com/Hasan-Al-Hussein/queueforge/releases/latest)
 ![Runtime](https://img.shields.io/badge/RUNTIME-LOOPBACK_ONLY-16435F?style=for-the-badge)
 ![PostgreSQL](https://img.shields.io/badge/STATE-POSTGRESQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 [![MIT License](https://img.shields.io/badge/LICENSE-MIT-64D7C6?style=for-the-badge)](LICENSE)
@@ -139,6 +140,8 @@ A durably idempotent command transaction commits domain state, bounded audit met
 The standard target is a 16 GB Windows laptop with Node.js `>=24.13.0 <25`, Corepack, pnpm `11.23.0`, Docker Compose v2, Git, and PowerShell 7. PostgreSQL and Redis can stay in Docker while the Node.js processes run on the host.
 
 ### Private Windows package
+
+**[Download the latest QueueForge Windows ZIP and checksum →](https://github.com/Hasan-Al-Hussein/queueforge/releases/latest)**
 
 1. Open Docker Desktop and wait for the engine.
 2. Extract the private distribution and double-click `START-QUEUEFORGE.cmd`.
