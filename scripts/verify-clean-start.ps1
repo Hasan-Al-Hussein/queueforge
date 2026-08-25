@@ -11,6 +11,10 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path -LiteralPath (Split-Path -Parent $PSScriptRoot)).Path
 $artifactDirectory = Join-Path $projectRoot 'artifacts\verification'
 $artifactPath = Join-Path $artifactDirectory 'clean-start.json'
+$builderCpuCount = [Math]::Min(4, [Environment]::ProcessorCount)
+$builderCpuSet = if ($builderCpuCount -eq 1) { '0' } else { "0-$($builderCpuCount - 1)" }
+$builderMemoryLimit = '2560m'
+$composeParallelLimit = '1'
 [System.IO.Directory]::CreateDirectory($artifactDirectory) | Out-Null
 
 function Invoke-Checked {
@@ -188,6 +192,7 @@ try {
     $temporaryEnvironment['E2E_BASE_URL'] = "http://127.0.0.1:$webPort"
     $temporaryEnvironment['E2E_API_URL'] = "http://127.0.0.1:$apiPort"
     $temporaryEnvironment['E2E_SINK_URL'] = "http://127.0.0.1:$sinkPort"
+    $temporaryEnvironment['COMPOSE_PARALLEL_LIMIT'] = $composeParallelLimit
     if (-not $SkipTopology) {
       $temporaryEnvironment['BUILDX_BUILDER'] = $builderName
     }
@@ -206,12 +211,24 @@ try {
         Sort-Object -Unique
     )
     if (-not $SkipTopology) {
-      Invoke-Checked docker @('buildx', 'create', '--name', $builderName, '--driver', 'docker-container')
+      Invoke-Checked docker @(
+        'buildx', 'create', '--name', $builderName, '--driver', 'docker-container',
+        '--driver-opt', "cpuset-cpus=$builderCpuSet",
+        '--driver-opt', "memory=$builderMemoryLimit"
+      )
       $builderCreated = $true
       $started = $true
+      Invoke-Checked docker @('buildx', 'inspect', $builderName, '--bootstrap')
       Invoke-Checked docker @(
         'compose', '-p', $composeProject, '--profile', 'full',
-        'up', '-d', '--build', '--wait'
+        'build', '--builder', $builderName
+      )
+      foreach ($imageReference in $ownedImageReferences) {
+        Invoke-Checked docker @('image', 'inspect', '--format', '{{.Id}}', $imageReference) | Out-Null
+      }
+      Invoke-Checked docker @(
+        'compose', '-p', $composeProject, '--profile', 'full',
+        'up', '-d', '--no-build', '--wait', '--wait-timeout', '240'
       )
       Test-HttpReady "http://127.0.0.1:$apiPort/api/v1/health/ready"
       Test-HttpReady "http://127.0.0.1:$sinkPort/health"
@@ -228,6 +245,11 @@ try {
       topology = if ($SkipTopology) { 'skipped-by-operator' } else { 'healthy' }
       representativeJourney = if ($SkipTopology) { 'skipped-by-operator' } else { 'passed' }
       composeProject = $composeProject
+      buildResourcePolicy = [ordered]@{
+        builderCpuSet = $builderCpuSet
+        builderMemoryLimit = $builderMemoryLimit
+        composeParallelLimit = [int]$composeParallelLimit
+      }
       origins = [ordered]@{
         api = "http://127.0.0.1:$apiPort"
         web = "http://127.0.0.1:$webPort"
