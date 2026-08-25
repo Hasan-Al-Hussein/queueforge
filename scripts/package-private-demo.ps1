@@ -31,7 +31,7 @@ else {
 }
 
 New-Item -ItemType Directory -Path $releaseDirectory -Force | Out-Null
-& git archive --format=zip --output=$OutputPath HEAD
+& git archive --format=zip --output=$OutputPath HEAD -- . ':(exclude)test-results'
 if ($LASTEXITCODE -ne 0) { throw 'Git could not create the private-demo ZIP.' }
 
 Add-Type -AssemblyName System.IO.Compression.FileSystem
