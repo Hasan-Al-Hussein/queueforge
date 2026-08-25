@@ -101,7 +101,41 @@ foreach ($path in $publicClaimFiles) {
   }
 }
 
-$screenshots = @(Get-ChildItem -LiteralPath (Join-Path $projectRoot 'artifacts\screenshots') -Filter '*.png' -File -ErrorAction SilentlyContinue)
+$screenshotDirectory = Join-Path $projectRoot 'artifacts\screenshots'
+$runtimeAuditPath = Join-Path $screenshotDirectory 'runtime-audit-report.json'
+$screenshots = @()
+$screenshotEvidenceFailures = @()
+if (-not (Test-Path -LiteralPath $runtimeAuditPath -PathType Leaf)) {
+  $screenshotEvidenceFailures += 'runtime audit report is missing'
+}
+else {
+  $runtimeAudit = Get-Content -LiteralPath $runtimeAuditPath -Raw | ConvertFrom-Json
+  if ($runtimeAudit.status -ne 'passed') {
+    $screenshotEvidenceFailures += 'runtime audit report status is not passed'
+  }
+  foreach ($entry in @($runtimeAudit.screenshots)) {
+    $fileName = [string]$entry.file
+    if (
+      [string]::IsNullOrWhiteSpace($fileName) -or
+      [System.IO.Path]::GetFileName($fileName) -ne $fileName -or
+      $fileName -notmatch '^[a-z0-9-]+\.png$'
+    ) {
+      $screenshotEvidenceFailures += "runtime audit contains an unsafe screenshot name: $fileName"
+      continue
+    }
+    $screenshotPath = Join-Path $screenshotDirectory $fileName
+    if (-not (Test-Path -LiteralPath $screenshotPath -PathType Leaf)) {
+      $screenshotEvidenceFailures += "runtime audit screenshot is missing: $fileName"
+      continue
+    }
+    & git -C $projectRoot ls-files --error-unmatch -- "artifacts/screenshots/$fileName" *> $null
+    if ($LASTEXITCODE -ne 0) {
+      $screenshotEvidenceFailures += "runtime audit screenshot is not tracked: $fileName"
+      continue
+    }
+    $screenshots += Get-Item -LiteralPath $screenshotPath
+  }
+}
 $e2eResultPath = Join-Path $projectRoot 'tests\e2e\test-results\e2e\.last-run.json'
 $e2eStatus = $null
 if (Test-Path -LiteralPath $e2eResultPath -PathType Leaf) {
@@ -200,6 +234,7 @@ $failures = @()
 $failures += $missingEvidence | ForEach-Object { "missing evidence: $_" }
 $failures += $brokenLinks | ForEach-Object { "broken link: $_" }
 $failures += $unsupportedClaims | ForEach-Object { "unsupported public claim: $_" }
+$failures += $screenshotEvidenceFailures
 if ($screenshots.Count -lt 3) {
   $failures += 'fewer than three real runtime screenshots are present'
 }

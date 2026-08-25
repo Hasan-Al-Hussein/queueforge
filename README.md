@@ -164,24 +164,23 @@ Configured commands are not proof of a passing run. This repository does not cla
 
 ## Local performance evidence
 
-The bounded load result below was measured on **2026-08-24** from committed application revision `f953b2a`, using the full Docker Compose profile on Windows 11 Pro with 12 logical processors and 15.68 GiB RAM. The selected synthetic `acme-demo` tenant began with 3 workflows, 123 requests, and 123 approval tasks. Five scenarios ran at 2 VUs each: 12 submissions, 6 idempotency replays, 36 list reads, 4 concurrent approval races, and 12 signed inbound webhooks.
+The bounded local profile uses the full Docker Compose stack and five scenarios at 2 VUs each: 12 submissions, 6 idempotency replays, 36 list reads, 4 concurrent approval races, and 12 signed inbound webhooks.
 
 ```powershell
 $env:K6_LOAD_VUS='2'; $env:K6_LOAD_ITERATIONS='12'; pwsh scripts/run-k6.ps1 -Scenario load
 ```
 
-The run completed 70/70 iterations and 90 HTTP requests with 232/232 checks, zero HTTP failures, and zero correctness errors across 78 invariants. All configured latency thresholds passed.
+An accepted run must complete 70/70 iterations and 90 HTTP requests with 232/232 checks, zero HTTP failures, zero correctness errors across 78 invariants, and every configured threshold green.
 
-| Operation            | p95 latency | Configured limit |
-| -------------------- | ----------: | ---------------: |
-| All HTTP requests    |   448.76 ms |              n/a |
-| Concurrent approvals |   477.45 ms |         2,000 ms |
-| Idempotency replay   |   542.90 ms |         1,500 ms |
-| Request listing      |   139.99 ms |         1,000 ms |
-| Request submission   |   343.39 ms |         1,500 ms |
-| Signed webhook       |   604.33 ms |         2,000 ms |
+| Operation            | Required p95 |
+| -------------------- | -----------: |
+| Concurrent approvals |   < 2,000 ms |
+| Idempotency replay   |   < 1,500 ms |
+| Request listing      |   < 1,000 ms |
+| Request submission   |   < 1,500 ms |
+| Signed webhook       |   < 2,000 ms |
 
-The final resource gate samples the full Compose profile during the bounded load workload and enforces less than 5 GiB peak memory and less than 4 GiB added disk use. Exact revision-bound peaks, project/image/volume/cache deltas, workload context, and caveats are preserved in [benchmark evidence](test-results/k6/) and [resource evidence](artifacts/verification/resources.json); the claims checker rejects the evidence if either budget is exceeded.
+The committed smoke/load context and summary pair is the authority for the exact revision, capture time, hardware, starting synthetic dataset, effective command, observed p95 values, checks, and threshold outcomes. The resource gate samples the full Compose profile during the bounded load workload and enforces less than 5 GiB peak memory and less than 4 GiB added disk use. Exact revision-bound results, project/image/volume/cache deltas, and caveats are preserved in [benchmark evidence](test-results/k6/) and [resource evidence](artifacts/verification/resources.json); the claims checker rejects stale evidence or any failed threshold or budget.
 
 These are fixed-workload results from one local laptop and synthetic dataset, not capacity guarantees, remote CI evidence, or permission for external exposure.
 
