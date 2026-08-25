@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-08-25",
+  "runtimeProfile": "full Docker Compose, loopback only",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scenario": {
+    "tenant": "Acme Operations",
+    "requestType": "Expense review",
+    "requestId": "ec2a5104-92df-44a3-86d4-3a523e001dd2",
+    "correlationId": "03355893-e8bb-457b-993e-9723ee9731da",
+    "dataClassification": "synthetic local demo"
+  },
+  "sourceRevision": "Resolve the Git HEAD that tracks this manifest.",
+  "files": [
+    {
+      "name": "step_01_admin_workspace_overview.png",
+      "bytes": 151719,
+      "width": 1440,
+      "height": 900,
+      "sha256": "fe4df671dd09deac109cdd6a3f06929522ce4bdd330b8c2d3be5b7126f6b3a26"
+    },
+    {
+      "name": "step_02_people_and_role_boundaries.png",
+      "bytes": 162264,
+      "width": 1440,
+      "height": 900,
+      "sha256": "8a05295e90ee32ce0c9038af3b7067eaae97a644f553cb72c30a7b18ce177ff2"
+    },
+    {
+      "name": "step_03_delivery_connection_ready.png",
+      "bytes": 105654,
+      "width": 1440,
+      "height": 900,
+      "sha256": "94a5e835584d0661b3863e5f823005702690eda8d3e8dcb728c2087572a610d3"
+    },
+    {
+      "name": "step_04_published_request_type.png",
+      "bytes": 287231,
+      "width": 1440,
+      "height": 2536,
+      "sha256": "44da1b5ce4ca2f33b5359155cc7ababdb63c6403afc88dc00e01246bb0b3c72f"
+    },
+    {
+      "name": "step_05_operator_fills_request_form.png",
+      "bytes": 122848,
+      "width": 1440,
+      "height": 900,
+      "sha256": "813178147bf17e12588c7adb4252e22edf0cbe022a43a1a6c45bc82a59044815"
+    },
+    {
+      "name": "step_06_request_waiting_for_approval.png",
+      "bytes": 174077,
+      "width": 1440,
+      "height": 1610,
+      "sha256": "5abd23c70f40e292af63735c0e9937f8af0f704225ac92ce6fda63316f901db3"
+    },
+    {
+      "name": "step_07_approver_reviews_request.png",
+      "bytes": 151306,
+      "width": 1440,
+      "height": 900,
+      "sha256": "e5ca275e25ede2b40f27d5a3334040cf073eb68483fbb934186c3cc3d1d3ebb6"
+    },
+    {
+      "name": "step_08_durable_processing_completed.png",
+      "bytes": 202947,
+      "width": 1440,
+      "height": 1634,
+      "sha256": "6c4be1328a11c2069c9cce1ca7b3dd1769a2fac558d03a9340aed7e65ee5326e"
+    },
+    {
+      "name": "step_09_result_delivery_history.png",
+      "bytes": 121460,
+      "width": 1440,
+      "height": 900,
+      "sha256": "22e9e471b0b538a53fc5b62511df57418cc762aea3c7436276e1209c0947cb84"
+    },
+    {
+      "name": "step_10_receiver_accepted_result.png",
+      "bytes": 57610,
+      "width": 1440,
+      "height": 976,
+      "sha256": "26811a04c8ac143786142977db11e2598c0d0deb366d48255ac259d969e25ddb"
+    },
+    {
+      "name": "step_11_requester_notifications.png",
+      "bytes": 104788,
+      "width": 1440,
+      "height": 900,
+      "sha256": "ec68f31e582f548e119719186b3d43243f1131feb3f80efe2261771add7df73a"
+    },
+    {
+      "name": "step_12_correlated_activity_log.png",
+      "bytes": 122788,
+      "width": 1440,
+      "height": 900,
+      "sha256": "d1d878ca0a401dced1106d33038e8402f964921538d0e6aa65b66e41ba743857"
+    },
+    {
+      "name": "step_13_cross_tenant_access_blocked.png",
+      "bytes": 72854,
+      "width": 1440,
+      "height": 900,
+      "sha256": "a17649751128556c7c126fd365a48e210f55fda5d8071b5ea12d69129e08d780"
+    },
+    {
+      "name": "step_14_processing_health_and_recovery.png",
+      "bytes": 188224,
+      "width": 1440,
+      "height": 1375,
+      "sha256": "b212504e1506da71ae3aab7d9ff24c406e67b2a058ad85558f7e7267b989380b"
+    }
+  ]
+}
