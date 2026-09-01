@@ -60,13 +60,14 @@
     "audit:secrets": "secretlint \"**/*\" --secretlintrc .secretlintrc.json --secretlintignore .secretlintignore",
     "audit:local": "pnpm audit:deps && pnpm audit:secrets && pnpm test:security && pnpm test:load:security",
     "security:next-gate": "tsx scripts/check-next-security-gate.ts",
+    "verify:public-artifact": "tsx scripts/verify-public-showcase-artifact.ts",
     "verify": "pnpm format:check && pnpm bootstrap && pnpm lint:inner && pnpm typecheck:inner && pnpm test:unit:inner",
     "verify:local": "pnpm verify && pnpm test:integration && pnpm test:web",
     "verify:release": "pnpm verify:local && pnpm test:a11y && pnpm test:e2e && pnpm test:load:smoke && pnpm audit:local && pnpm security:next-gate"
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
-    "@next/eslint-plugin-next": "16.3.2",
+    "@next/eslint-plugin-next": "16.3.3",
     "@playwright/test": "1.62.1",
     "@secretlint/secretlint-rule-preset-recommend": "13.0.4",
     "@types/jest": "29.5.14",

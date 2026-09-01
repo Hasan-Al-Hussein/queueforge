@@ -1,0 +1,50 @@
+# Repository and local configuration
+.git/
+.github/
+.vercel/
+.env*
+**/.env*
+*.log
+*.tsbuildinfo
+
+# Dependency and build caches
+node_modules/
+**/node_modules/
+.pnpm-store/
+.tools/
+.next/
+**/.next/
+out/
+**/out/
+dist/
+**/dist/
+coverage/
+**/coverage/
+storybook-static/
+**/storybook-static/
+
+# Non-public evidence and development artifacts
+artifacts/
+demo-video/
+docs/
+output/
+playwright-report/
+test-results/
+tests/
+tools/
+*.deb
+*.blend
+*.mp4
+*.mov
+*.webm
+
+# Server-side QueueForge services are intentionally absent from the static showcase.
+apps/api/
+apps/webhook-sink/
+apps/worker/
+infra/
+packages/persistence/
+packages/queue/
+compose*.yaml
+docker-compose*.yaml
+Dockerfile*

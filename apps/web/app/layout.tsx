@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
 
 import { AppProviders } from '../src/providers/app-providers';
+import { SHOWCASE_MODE } from '../src/demo/mode';
 
 import './globals.css';
 
@@ -37,8 +38,9 @@ const plexMonoFont = localFont({
 });
 
 export const metadata: Metadata = {
-  description:
-    'Local workflow operations console for durable requests, approvals, queues, and webhooks.',
+  description: SHOWCASE_MODE
+    ? 'Explore a synthetic, browser-only QueueForge workflow from intake and independent approval through retained retries and a signed receipt.'
+    : 'Local workflow operations console for durable requests, approvals, queues, and webhooks.',
   title: {
     default: 'QueueForge',
     template: '%s · QueueForge',

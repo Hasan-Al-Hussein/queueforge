@@ -28,6 +28,8 @@ import {
   setAccessToken,
 } from '../api/client';
 import { routes } from '../api/routes';
+import { SHOWCASE_MODE } from '../demo/mode';
+import { showcaseRoleFromEmail, showcaseSession, showcaseSessionForTenant } from '../demo/session';
 
 export type Permission =
   | 'read'
@@ -97,15 +99,20 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): Re
   const [session, setSession] = useState<AuthSession | null>(null);
   const [status, setStatus] = useState<AuthStatus>('bootstrapping');
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
-  const online = useOnlineState();
+  const browserOnline = useOnlineState();
+  const online = SHOWCASE_MODE || browserOnline;
 
   const applySession = useCallback((nextSession: AuthSession | null): void => {
-    setAccessToken(nextSession?.accessToken ?? null);
+    setAccessToken(SHOWCASE_MODE ? null : (nextSession?.accessToken ?? null));
     setSession(nextSession);
     setStatus(nextSession === null ? 'anonymous' : 'authenticated');
   }, []);
 
   const refreshSession = useCallback(async (): Promise<void> => {
+    if (SHOWCASE_MODE) {
+      applySession(null);
+      return;
+    }
     const nextSession = await apiRequest(routes.auth.refresh, {
       csrf: true,
       method: 'POST',
@@ -126,6 +133,10 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): Re
 
   const bootstrap = useCallback(async (): Promise<void> => {
     setBootstrapError(null);
+    if (SHOWCASE_MODE) {
+      applySession(null);
+      return;
+    }
     // Refresh requires the readable double-submit CSRF cookie. When it is absent,
     // a refresh request cannot succeed, which is the normal state on a first visit.
     if (getCsrfToken() === null) {
@@ -154,6 +165,10 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): Re
 
   const login = useCallback(
     async (input: LoginRequest): Promise<void> => {
+      if (SHOWCASE_MODE) {
+        applySession(showcaseSession(showcaseRoleFromEmail(input.email)));
+        return;
+      }
       const validated = LoginRequestSchema.parse(input);
       const nextSession = await apiRequest(routes.auth.login, {
         body: validated,
@@ -167,6 +182,10 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): Re
   );
 
   const logout = useCallback(async (): Promise<void> => {
+    if (SHOWCASE_MODE) {
+      applySession(null);
+      return;
+    }
     await apiRequest<void>(routes.auth.logout, {
       csrf: true,
       method: 'POST',
@@ -177,6 +196,10 @@ export function AuthProvider({ children }: { readonly children: ReactNode }): Re
 
   const selectTenant = useCallback(
     async (tenantId: string): Promise<void> => {
+      if (SHOWCASE_MODE) {
+        applySession(showcaseSessionForTenant(tenantId));
+        return;
+      }
       const nextSession = await apiRequest(routes.auth.selectTenant, {
         body: { tenantId },
         csrf: true,

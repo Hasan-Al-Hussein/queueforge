@@ -14,19 +14,20 @@ import {
 } from '../api/client';
 import { SessionRequired, SessionRestoring } from '../components/app-shell';
 import { CinematicMotionProvider } from '../components/cinematic-motion';
+import { createShowcaseApolloLink } from '../demo/apollo-link';
+import { assertLocalTransportAllowed, SHOWCASE_MODE } from '../demo/mode';
 import { AuthProvider, useAuth } from './auth-provider';
 import { DirtyNavigationProvider } from './dirty-navigation-provider';
 import { ThemeProvider } from './theme-provider';
 import { ToastProvider } from './toast-provider';
 
-const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? 'http://127.0.0.1:3001/graphql';
-
 export function isLoginPath(pathname: string): boolean {
   return pathname.replace(/\/+$/, '') === '/login';
 }
 
-function createApolloClient(): ApolloClient {
-  const httpLink = new HttpLink({
+function createLocalHttpLink(): HttpLink {
+  assertLocalTransportAllowed();
+  return new HttpLink({
     credentials: 'include',
     fetch: (uri, options) =>
       fetchWithAuthRecovery(
@@ -40,16 +41,18 @@ function createApolloClient(): ApolloClient {
         true,
         isGraphqlAuthenticationFailure,
       ),
-    uri: GRAPHQL_URL,
+    uri: process.env.QF_QUERY_ORIGIN ?? '',
   });
+}
 
+function createApolloClient(): ApolloClient {
   return new ApolloClient({
     cache: new InMemoryCache(),
     defaultOptions: {
       query: { fetchPolicy: 'network-only' },
       watchQuery: { fetchPolicy: 'cache-and-network', nextFetchPolicy: 'cache-first' },
     },
-    link: httpLink,
+    link: SHOWCASE_MODE ? createShowcaseApolloLink() : createLocalHttpLink(),
   });
 }
 
@@ -63,7 +66,7 @@ function TenantDataProviders({ children }: { readonly children: ReactNode }): Re
             refetchOnWindowFocus: false,
             retry: (failureCount, error) =>
               failureCount < 1 &&
-              navigator.onLine &&
+              (SHOWCASE_MODE || navigator.onLine) &&
               !(error instanceof TypeError) &&
               !(error instanceof ApiProblem && [401, 403].includes(error.status)),
             staleTime: 10_000,

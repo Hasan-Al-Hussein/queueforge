@@ -25,7 +25,7 @@ Business workflows often split one decision across forms, approvals, queues, wor
 QueueForge treats the workflow as one reliability problem. It binds approval to an immutable request version, commits durable work with business state, tolerates repeated queue delivery, signs outbound results, and retains a linked activity trail that people can inspect.
 
 > [!IMPORTANT]
-> QueueForge is a single-machine engineering demonstration for synthetic data. It is not an internet-facing deployment reference. Next.js `16.3.2` remains behind a tracked upstream security gate, so every published service must stay on loopback until a vendor-fixed version passes the full regression suite.
+> QueueForge's operational stack is a single-machine engineering demonstration for synthetic data, not an internet-facing deployment reference. Its API, worker, PostgreSQL, Redis, and webhook sink remain loopback-only. A separately built static showroom may be hosted only when it contains synthetic client-side fixtures, no backend or secrets, and passes the dedicated static-showcase gates. Next.js `16.3.3` closes the August 2026 dependency advisory gate; it does not expand the operational trust boundary.
 
 ## Why QueueForge exists
 
@@ -140,7 +140,7 @@ See [architecture](docs/architecture.md), [event flow](docs/event-flow.md), and 
 
 | Layer        | Main components                                                                             |
 | ------------ | ------------------------------------------------------------------------------------------- |
-| Web          | Next.js 16.3.2, React 19.2, TypeScript 5.9, Motion, Three.js, static export, Storybook      |
+| Web          | Next.js 16.3.3, React 19.2, TypeScript 5.9, Motion, Three.js, static export, Storybook      |
 | API          | NestJS 11, REST, GraphQL 16, Zod contracts, rotating session families, RBAC                 |
 | State        | PostgreSQL 17, TypeORM migrations, composite tenant constraints, transactional outbox       |
 | Work         | Redis 8, BullMQ, three queues, durable receipts, leases, bounded retry, dead-letter history |
@@ -206,7 +206,7 @@ Every pull request runs two engineering jobs plus CodeQL:
 | `pnpm audit:local`        | Dependency, secret, security, and summary checks                            |
 | `pnpm security:next-gate` | Fail-closed vendor advisory decision                                        |
 
-The public-exposure gate is intentionally separate from ordinary engineering health. It remains nonzero while the tracked Next.js advisory exception is open. See [testing](docs/testing.md), [load testing](docs/load-testing.md), and the [security gate record](scripts/next-security-gate.json).
+The dependency gate is intentionally separate from ordinary engineering health. It records both August 2026 Next.js advisories and verifies the patched `16.3.3` baseline. A passing dependency gate is necessary but not sufficient for a public static showroom; the operational stack remains loopback-only, and the showroom must independently prove synthetic-only data, browser network silence, and absence of backend or secret dependencies. See [testing](docs/testing.md), [load testing](docs/load-testing.md), and the [security gate record](scripts/next-security-gate.json).
 
 <details>
 <summary><strong>Revision-bound local load baseline</strong></summary>
@@ -234,15 +234,15 @@ See [SECURITY.md](SECURITY.md), [security controls](docs/security.md), and the [
 
 ## Engineering tradeoffs
 
-| Decision                    | Benefit                                                       | Limit                                                                 |
-| --------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------- |
-| PostgreSQL as the authority | Durable state, audit, idempotency, and recovery in one system | More operational weight than an in-memory demo                        |
-| Transactional outbox        | Prevents a committed request from losing its queued work      | Adds dispatcher and recovery machinery                                |
-| At-least-once processing    | Tolerates worker interruption and broker redelivery           | Consumers and receivers must be idempotent                            |
-| Static Next.js export       | Small loopback web surface and simple local serving           | Dynamic server rendering is intentionally unavailable                 |
-| Role-specific workspaces    | Clear duties and safer decisions                              | More UI states and authorization tests                                |
-| Local-only deployment       | Keeps synthetic demonstration traffic on one machine          | Not a hosted multi-tenant production architecture                     |
-| Fail-closed vendor gate     | Prevents accidental public exposure on a known exception      | Public deployment remains blocked until the upstream fix is validated |
+| Decision                    | Benefit                                                       | Limit                                                                |
+| --------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------- |
+| PostgreSQL as the authority | Durable state, audit, idempotency, and recovery in one system | More operational weight than an in-memory demo                       |
+| Transactional outbox        | Prevents a committed request from losing its queued work      | Adds dispatcher and recovery machinery                               |
+| At-least-once processing    | Tolerates worker interruption and broker redelivery           | Consumers and receivers must be idempotent                           |
+| Static Next.js export       | Small local UI and a separately gated synthetic showroom      | Dynamic server rendering and operational backends remain unavailable |
+| Role-specific workspaces    | Clear duties and safer decisions                              | More UI states and authorization tests                               |
+| Local-only deployment       | Keeps synthetic demonstration traffic on one machine          | Not a hosted multi-tenant production architecture                    |
+| Fail-closed vendor gate     | Rejects unrecorded or unpatched Next.js advisory baselines    | Passing it does not authorize operational stack exposure             |
 
 ## Documentation
 
@@ -274,12 +274,12 @@ See [SECURITY.md](SECURITY.md), [security controls](docs/security.md), and the [
 
 ## Honest claim boundary
 
-QueueForge demonstrates a transactional outbox, at-least-once processing, and durable deduplication of QueueForge-owned database effects when the relevant tests pass. It does not claim exactly-once queue execution, exactly-once delivery to arbitrary HTTP receivers, PostgreSQL row-level security, cryptographically immutable audit logs, public or cloud readiness, or closed dependency gates that have not been evidenced.
+QueueForge demonstrates a transactional outbox, at-least-once processing, and durable deduplication of QueueForge-owned database effects when the relevant tests pass. It does not claim exactly-once queue execution, exactly-once delivery to arbitrary HTTP receivers, PostgreSQL row-level security, cryptographically immutable audit logs, hosted operational-service or cloud-runtime readiness, or closed dependency gates that have not been evidenced. The static showroom is presentation evidence only, not a hosted QueueForge runtime.
 
 ## Roadmap
 
-- Validate the vendor-fixed Next.js release before changing the loopback-only boundary.
-- Add release signing and a reproducible public package only after the dependency gate closes.
+- Keep the patched Next.js baseline and static-showroom isolation gates current without changing the loopback-only operational boundary.
+- Add release signing and a reproducible operational package before considering any deployment model beyond the local demonstration.
 - Extend operator observability with measured queue-age and receiver-health thresholds.
 - Evaluate row-level security only if a production deployment model requires it.
 - Add backup, restore, TLS, managed identity, and production monitoring before any non-local deployment.

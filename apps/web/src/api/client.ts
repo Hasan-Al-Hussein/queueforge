@@ -1,10 +1,13 @@
 import { ErrorEnvelopeSchema, type ErrorCode } from '@queueforge/contracts';
 import type { ZodType } from 'zod';
 
-const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:3001').replace(
-  /\/$/,
-  '',
-);
+import { assertLocalTransportAllowed, SHOWCASE_MODE } from '../demo/mode';
+import { showcaseApiResponse } from '../demo/transport';
+
+function apiBaseUrl(): string {
+  assertLocalTransportAllowed();
+  return (process.env.QF_DATA_ORIGIN ?? '').replace(/\/$/, '');
+}
 const CSRF_COOKIE_NAME = process.env.NEXT_PUBLIC_CSRF_COOKIE_NAME ?? 'qf_csrf';
 
 let accessToken: string | null = null;
@@ -109,6 +112,7 @@ export async function fetchWithAuthRecovery(
   isAuthenticationFailure: (response: Response) => boolean | Promise<boolean> = (response) =>
     response.status === 401,
 ): Promise<Response> {
+  assertLocalTransportAllowed();
   const tokenAtFirstAttempt = accessToken;
   const response = await fetch(input, createInit());
   if (!(await isAuthenticationFailure(response)) || !retryAuthentication) return response;
@@ -178,12 +182,27 @@ async function readError(response: Response): Promise<ApiProblem> {
 }
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions<T> = {}): Promise<T> {
+  if (SHOWCASE_MODE) {
+    const body = await showcaseApiResponse(path, options);
+    if (options.schema === undefined) return body as T;
+    const parsed = options.schema.safeParse(body);
+    if (!parsed.success) {
+      throw new ApiProblem({
+        code: 'INVALID_RESPONSE',
+        details: { issues: parsed.error.issues },
+        message: 'The simulated response did not match the QueueForge contract.',
+        status: 200,
+      });
+    }
+    return parsed.data;
+  }
+
   const method = options.method ?? 'GET';
 
   let response: Response;
   try {
     response = await fetchWithAuthRecovery(
-      `${API_BASE_URL}${path}`,
+      `${apiBaseUrl()}${path}`,
       () => {
         const headers = new Headers(options.headers);
         headers.set('Accept', 'application/json');

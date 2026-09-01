@@ -688,7 +688,7 @@ export function WebhooksScreen(): React.JSX.Element {
           />
           <InputField
             error={errors.url?.message}
-            helper="For the bundled demo, use http://127.0.0.1:3300/webhooks. Docker installations can use http://webhook-sink:3300/webhooks."
+            helper={process.env.QF_RECEIVER_HELP}
             id="endpoint-url"
             label="Receiving address"
             required

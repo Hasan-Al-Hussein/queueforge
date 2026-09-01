@@ -42,6 +42,7 @@ import { useDirtyNavigation } from '../providers/dirty-navigation-provider';
 import { useTheme } from '../providers/theme-provider';
 import { useToast } from '../providers/toast-provider';
 import { formatProblem } from '../api/client';
+import { SHOWCASE_DISCLOSURE, SHOWCASE_MODE } from '../demo/mode';
 import { BrandMark } from './brand-mark';
 import { PageProgressRail, RouteReveal } from './cinematic-motion';
 import { effectiveWorkspaceRole, WORKSPACE_ROUTE_ROLES } from './workspace-access';
@@ -298,7 +299,11 @@ function SidebarContent({
           <Activity size={14} aria-hidden="true" />
           {online ? 'Browser online' : 'Browser offline'}
         </span>
-        <span className="qf-utility">Local console · evidence retained</span>
+        <span className="qf-utility">
+          {SHOWCASE_MODE
+            ? 'Browser-only simulation · resets on refresh'
+            : 'Local console · evidence retained'}
+        </span>
       </div>
     </>
   );
@@ -430,6 +435,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
   const handleLogout = async (): Promise<void> => {
     try {
       await logout();
+      router.push('/login');
     } catch (error) {
       notify(`Sign out failed: ${formatProblem(error)}`, 'error');
     }
@@ -577,10 +583,10 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
             title="Open navigation"
           />
           <div className="qf-tenant-select">
-            <label htmlFor="tenant-switcher">Workspace</label>
+            <label htmlFor="tenant-switcher">{SHOWCASE_MODE ? 'Explore role' : 'Workspace'}</label>
             <span className="qf-select-wrap">
               <select
-                aria-label="Workspace"
+                aria-label={SHOWCASE_MODE ? 'Explore role' : 'Workspace'}
                 disabled={switchingTenant}
                 id="tenant-switcher"
                 onChange={(event) => {
@@ -590,17 +596,14 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
                 }}
                 value={session.selectedTenant.tenantId}
               >
-                <optgroup label="Your workspaces">
+                <optgroup label={SHOWCASE_MODE ? 'Showcase roles' : 'Your workspaces'}>
                   {session.memberships
                     .filter((membership) => !/^E2E Tenant\b/i.test(membership.tenantName))
                     .map((membership) => (
                       <option key={membership.tenantId} value={membership.tenantId}>
-                        {membership.tenantName} ·{' '}
-                        {
-                          WORKSPACE_CONFIG[
-                            effectiveWorkspaceRole(membership.role, session.user.platformRole)
-                          ].badge
-                        }
+                        {SHOWCASE_MODE
+                          ? `${WORKSPACE_CONFIG[effectiveWorkspaceRole(membership.role, session.user.platformRole)].badge} view`
+                          : `${membership.tenantName} · ${WORKSPACE_CONFIG[effectiveWorkspaceRole(membership.role, session.user.platformRole)].badge}`}
                       </option>
                     ))}
                 </optgroup>
@@ -662,6 +665,13 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
             />
           </div>
         </header>
+        {SHOWCASE_MODE ? (
+          <div className="qf-showcase-banner" data-public-demo-disclosure role="note">
+            <ShieldCheck size={16} aria-hidden="true" />
+            <strong>Interactive portfolio showcase</strong>
+            <span>{SHOWCASE_DISCLOSURE}</span>
+          </div>
+        ) : null}
         {!online ? (
           <div className="qf-offline-banner" role="status">
             <ShieldCheck size={16} aria-hidden="true" />

@@ -45,6 +45,15 @@ The complete trust boundaries, attack paths, controls, and residual risks are do
   signing, and an explicitly supported dependency baseline before adapting the system beyond its
   documented boundary.
 
-Next.js `16.3.2` remains behind the tracked open advisory gate. The gate is intentionally
-fail-closed through `pnpm verify:release` and the dedicated public-exposure workflow; loopback-only
-use is mandatory until a vendor-fixed version is validated with a full regression run.
+Next.js `16.3.3` is the recorded vendor-patched baseline for the two August 2026 critical
+advisories. The `NEXT-01` record and `pnpm security:next-gate` remain fail-closed if either official
+advisory identity, its source URL, or the patched version drifts. Closing that dependency gate does
+not authorize exposure of the operational stack, which remains loopback-only.
+
+## Public static showroom boundary
+
+A separately built static showroom may be hosted for recruiter review only when it contains
+synthetic client-side fixtures and no API, worker, PostgreSQL, Redis, webhook sink, real credentials,
+server-side session, persistence, or external side effects. It must pass the dedicated secret,
+network-silence, asset, and browser gates before publication. The showroom is presentation evidence,
+not a supported hosted QueueForge service.

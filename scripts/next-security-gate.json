@@ -1,9 +1,19 @@
 {
-  "status": "open",
-  "checkedAt": "2026-08-24",
-  "advisoryId": null,
-  "advisoryUrl": null,
-  "publishedAt": null,
-  "safeVersions": [],
-  "note": "The vendor-announced security release is scheduled for 2026-08-26. QueueForge remains loopback-only until the actual advisory and patched version are recorded and fully regressed."
+  "status": "mitigated",
+  "checkedAt": "2026-09-01",
+  "publishedAt": "2026-08-25",
+  "safeVersions": ["16.3.3"],
+  "advisories": [
+    {
+      "id": "GHSA-2xp9-vwfh-vxw4",
+      "aliases": [],
+      "url": "https://github.com/vercel/next.js/security/advisories/GHSA-2xp9-vwfh-vxw4"
+    },
+    {
+      "id": "CVE-2026-75604",
+      "aliases": ["GHSA-p293-qw3h-jr36"],
+      "url": "https://github.com/vercel/next.js/security/advisories/GHSA-p293-qw3h-jr36"
+    }
+  ],
+  "note": "Next.js 16.3.3 is the vendor-patched Active LTS release for both August 2026 critical advisories. This closes the dependency gate only: QueueForge's operational API, worker, database, Redis, and webhook sink remain loopback-only. Public exposure is limited to the separately verified static synthetic showroom."
 }
