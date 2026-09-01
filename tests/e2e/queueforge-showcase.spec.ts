@@ -36,18 +36,17 @@ function expectStaticOnly(evidence: BrowserEvidence): void {
   expect(evidence.consoleErrors).toEqual([]);
 }
 
-test('a recruiter can explore every administrative surface without a backend', async ({
-  page,
-}, testInfo) => {
+test('a recruiter can explore every administrative surface without a backend', async ({ page }) => {
   const evidence = collectEvidence(page);
-  await page.goto('/login/');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
 
   await expect(page.getByRole('heading', { name: 'Explore QueueForge' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Session required' })).toHaveCount(0);
   await expect(page.locator('[data-public-demo-disclosure]')).toHaveText(
     'Public portfolio demo with synthetic data. No uploads, persistence, live AI, or real-world actions.',
   );
   await expect(page.getByRole('button', { name: /Explore as administrator/ })).toBeVisible();
-  await page.screenshot({ fullPage: true, path: testInfo.outputPath('showcase-login.png') });
 
   await page.getByRole('button', { name: /Explore as administrator/ }).click();
   await expect(page).toHaveURL(/\/$/u);
@@ -56,7 +55,6 @@ test('a recruiter can explore every administrative surface without a backend', a
   await expect(page.locator('[data-public-demo-disclosure]')).toContainText(
     'No uploads, persistence, live AI, or real-world actions.',
   );
-  await page.screenshot({ fullPage: true, path: testInfo.outputPath('showcase-admin.png') });
 
   const routes = [
     ['Request types', '/workflows/', 'Request types'],
@@ -90,8 +88,24 @@ test('a recruiter can explore every administrative surface without a backend', a
   expectStaticOnly(evidence);
 });
 
+test('an anonymous deep link renders the disclosed showcase entry', async ({ page }) => {
+  const evidence = collectEvidence(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/audit/');
+
+  await expect(page.getByRole('heading', { name: 'Explore QueueForge' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Session required' })).toHaveCount(0);
+  await expect(page.locator('[data-public-demo-disclosure]')).toHaveText(
+    'Public portfolio demo with synthetic data. No uploads, persistence, live AI, or real-world actions.',
+  );
+
+  expect(await page.context().cookies()).toEqual([]);
+  expectStaticOnly(evidence);
+});
+
 test('the public entry and operator workspace fit a 390px viewport', async ({ page }) => {
   const evidence = collectEvidence(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.setViewportSize({ height: 844, width: 390 });
   await page.goto('/login/');
 

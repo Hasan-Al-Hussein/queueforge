@@ -97,7 +97,7 @@ function useOnlineState(): boolean {
 
 export function AuthProvider({ children }: { readonly children: ReactNode }): React.JSX.Element {
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [status, setStatus] = useState<AuthStatus>('bootstrapping');
+  const [status, setStatus] = useState<AuthStatus>(SHOWCASE_MODE ? 'anonymous' : 'bootstrapping');
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const browserOnline = useOnlineState();
   const online = SHOWCASE_MODE || browserOnline;

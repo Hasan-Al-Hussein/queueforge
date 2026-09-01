@@ -16,6 +16,7 @@ import { SessionRequired, SessionRestoring } from '../components/app-shell';
 import { CinematicMotionProvider } from '../components/cinematic-motion';
 import { createShowcaseApolloLink } from '../demo/apollo-link';
 import { assertLocalTransportAllowed, SHOWCASE_MODE } from '../demo/mode';
+import { LoginScreen } from '../features/auth/login-screen';
 import { AuthProvider, useAuth } from './auth-provider';
 import { DirtyNavigationProvider } from './dirty-navigation-provider';
 import { ThemeProvider } from './theme-provider';
@@ -90,7 +91,11 @@ function TenantDataBoundary({ children }: { readonly children: ReactNode }): Rea
   const pathname = usePathname();
   if (status === 'bootstrapping') return <SessionRestoring />;
   if (status === 'anonymous') {
-    if (isLoginPath(pathname)) return <ToastProvider>{children}</ToastProvider>;
+    const loginPath = isLoginPath(pathname);
+    if (SHOWCASE_MODE) {
+      return <ToastProvider>{loginPath ? children : <LoginScreen />}</ToastProvider>;
+    }
+    if (loginPath) return <ToastProvider>{children}</ToastProvider>;
     return <SessionRequired error={bootstrapError} />;
   }
   const tenantCacheKey = session?.selectedTenant.tenantId ?? 'anonymous';
