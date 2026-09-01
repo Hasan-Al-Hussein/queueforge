@@ -8,6 +8,7 @@
 
 QueueForge turns a structured request into one independently approved, durably processed, signed, and auditable outcome without losing the story between systems.
 
+[![Open live showcase](https://img.shields.io/badge/LIVE_SHOWCASE-OPEN-64D7C6?style=for-the-badge&logo=vercel&logoColor=102A3D)](https://queueforge-portfolio-demo.vercel.app/)
 [![Watch demo](https://img.shields.io/badge/WATCH_DEMO-4m_36s-E86F2B?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/HSDGOt7D5ZM)
 [![Download source](https://img.shields.io/badge/SOURCE-DOWNLOAD_ZIP-64D7C6?style=for-the-badge&logo=github&logoColor=102A3D)](https://github.com/Hasan-Al-Hussein/queueforge/archive/refs/heads/main.zip)
 [![Engineering CI](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/ci.yml)
@@ -16,7 +17,7 @@ QueueForge turns a structured request into one independently approved, durably p
 ![PostgreSQL](https://img.shields.io/badge/STATE-POSTGRESQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 [![MIT License](https://img.shields.io/badge/LICENSE-MIT-64D7C6?style=for-the-badge)](LICENSE)
 
-[Why it exists](#why-queueforge-exists) · [Demo](#watch-the-complete-workflow) · [Product tour](docs/product-tour.md) · [Pipeline](#end-to-end-pipeline) · [Architecture](#architecture) · [Verification](#verification) · [Security](#security-and-privacy-boundaries)
+[Live showcase](https://queueforge-portfolio-demo.vercel.app/) · [Why it exists](#why-queueforge-exists) · [Demo](#watch-the-complete-workflow) · [Product tour](docs/product-tour.md) · [Pipeline](#end-to-end-pipeline) · [Architecture](#architecture) · [Verification](#verification) · [Security](#security-and-privacy-boundaries)
 
 </div>
 
@@ -26,6 +27,28 @@ QueueForge treats the workflow as one reliability problem. It binds approval to 
 
 > [!IMPORTANT]
 > QueueForge is a single-machine engineering demonstration for synthetic data. It is not an internet-facing deployment reference. Next.js `16.3.2` remains behind a tracked upstream security gate, so every published service must stay on loopback until a vendor-fixed version passes the full regression suite.
+
+## Public showcase vs full localhost system
+
+**[Open the interactive QueueForge portfolio showcase](https://queueforge-portfolio-demo.vercel.app/)**
+
+> Public portfolio demo with synthetic data. No uploads, persistence, live AI, or real-world actions.
+
+The hosted showcase exercises the real Next.js interface, typed contracts, routes, forms,
+validation, role-specific navigation, search, filters, responsive layouts, and browser-side
+interactions. It is intentionally safe and deterministic: network transport is disabled;
+requests, request types, approvals, queue metrics, audit events, notifications, deliveries, and
+throughput come from synthetic fixtures; actions change browser memory only and reset on refresh.
+There is no real authentication, API, PostgreSQL, Redis, worker, durable queue, background
+processing, signed outbound webhook, dead-letter recovery, or durable audit storage. The animated
+Proof Forge illustrates the lifecycle and is not live worker telemetry.
+
+The full localhost system is the substantive engineering project. It runs NestJS REST and GraphQL
+APIs, authenticated tenant and role boundaries, PostgreSQL as authoritative state, Redis-backed
+BullMQ work, background processors, immutable version-bound approvals, idempotency, transactional
+outbox delivery, bounded retries, dead-letter recovery, HMAC-signed allowlisted webhooks,
+notifications, and correlated audit evidence. These operational services remain loopback-only and
+are not connected to the public showcase.
 
 ## Why QueueForge exists
 
