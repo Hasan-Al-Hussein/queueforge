@@ -122,3 +122,41 @@ test('the public entry and operator workspace fit a 390px viewport', async ({ pa
 
   expectStaticOnly(evidence);
 });
+
+test('the administrator disclosure keeps a readable mobile measure', async ({ page }) => {
+  const evidence = collectEvidence(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ height: 844, width: 390 });
+  await page.goto('/');
+
+  await page.getByRole('button', { name: /Explore as administrator/ }).click();
+  await expect(page.getByRole('heading', { name: 'Admin overview' })).toBeVisible();
+
+  const banner = page.locator('[data-public-demo-disclosure]');
+  const disclosure = banner.locator('span');
+  await expect(disclosure).toHaveText(
+    'Public portfolio demo with synthetic data. No uploads, persistence, live AI, or real-world actions.',
+  );
+
+  const layout = await banner.evaluate((element) => {
+    const bannerRect = element.getBoundingClientRect();
+    const disclosureElement = element.querySelector('span');
+    if (!(disclosureElement instanceof HTMLElement)) {
+      throw new Error('Public showcase disclosure text is missing.');
+    }
+    const disclosureRect = disclosureElement.getBoundingClientRect();
+    return {
+      bannerWidth: bannerRect.width,
+      disclosureHeight: disclosureRect.height,
+      disclosureWidth: disclosureRect.width,
+      writingMode: getComputedStyle(disclosureElement).writingMode,
+    };
+  });
+
+  expect(layout.disclosureWidth / layout.bannerWidth).toBeGreaterThan(0.8);
+  expect(layout.disclosureHeight).toBeLessThan(64);
+  expect(layout.writingMode).toBe('horizontal-tb');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+
+  expectStaticOnly(evidence);
+});

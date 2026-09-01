@@ -2662,6 +2662,19 @@ td {
   h1 {
     font-size: 36px;
   }
+  .qf-showcase-banner {
+    align-items: start;
+    display: grid;
+    grid-template-columns: 16px minmax(0, 1fr);
+    padding-block: 10px 11px;
+    row-gap: 4px;
+  }
+  .qf-showcase-banner span {
+    flex: none;
+    grid-column: 2;
+    min-width: 0;
+    width: 100%;
+  }
   .qf-main {
     padding: 18px 14px 36px;
   }

@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
-import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 export const ATTESTATION_FORGE_ASSET_URL = '/3d/queueforge/attestation-forge-v1.glb';
 export const ATTESTATION_FORGE_CLIP_NAME = 'ProofCycle';
@@ -158,7 +157,6 @@ export async function loadAttestationForgeModel(
   signal.throwIfAborted();
 
   const loader = new GLTFLoader();
-  loader.setMeshoptDecoder(MeshoptDecoder);
   const gltf: GLTF = await loader.parseAsync(buffer, assetBasePath(assetUrl));
   try {
     signal.throwIfAborted();

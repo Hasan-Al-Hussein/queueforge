@@ -18,6 +18,8 @@ describe('Attestation Forge GLB contract', () => {
     const asset = await readFile(
       resolve(process.cwd(), 'public/3d/queueforge/attestation-forge-v1.glb'),
     );
+    expect(asset.includes(Buffer.from('EXT_meshopt_compression'))).toBe(false);
+    expect(asset.includes(Buffer.from('KHR_draco_mesh_compression'))).toBe(false);
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
