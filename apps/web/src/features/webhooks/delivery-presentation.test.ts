@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
   deliveryAttemptLabel,
+  deliveryPageCounts,
+  initialDeliverySection,
   nextDeliveryAttemptAt,
   receiverReplyLabel,
   webhookDeliveryStatusLabel,
@@ -9,6 +11,11 @@ import {
 } from './delivery-presentation';
 
 describe('webhook delivery presentation', () => {
+  it('opens the section promised by each role workspace', () => {
+    expect(initialDeliverySection(true)).toBe('endpoints');
+    expect(initialDeliverySection(false)).toBe('deliveries');
+  });
+
   it('translates known events and states into user language', () => {
     expect(webhookEventLabel('request.succeeded')).toBe('Request completed');
     expect(webhookDeliveryStatusLabel('dead')).toBe('Needs attention');
@@ -42,5 +49,16 @@ describe('webhook delivery presentation', () => {
     expect(nextDeliveryAttemptAt({ nextAttemptAt: scheduledAt, status: 'delivered' })).toBeNull();
     expect(nextDeliveryAttemptAt({ nextAttemptAt: scheduledAt, status: 'dead' })).toBeNull();
     expect(nextDeliveryAttemptAt({ nextAttemptAt: null, status: 'pending' })).toBeNull();
+  });
+
+  it('summarizes only the exact delivery states supplied for the loaded page', () => {
+    expect(
+      deliveryPageCounts([
+        { status: 'delivered' },
+        { status: 'retry' },
+        { status: 'pending' },
+        { status: 'dead' },
+      ]),
+    ).toEqual({ attention: 1, delivered: 1, moving: 2 });
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Button, Plus, TextareaField, X } from '@queueforge/ui';
+import { ArrowDown, ArrowUp, Button, Plus, SelectControl, TextareaField, X } from '@queueforge/ui';
 
 import {
   fieldKindLabel,
@@ -220,8 +220,7 @@ export function WorkflowFieldBuilder({
                     </label>
                     <label>
                       <span>Answer type</span>
-                      <select
-                        className="qf-input"
+                      <SelectControl
                         disabled={disabled}
                         onChange={(event) =>
                           update(index, {
@@ -236,7 +235,7 @@ export function WorkflowFieldBuilder({
                             {fieldKindLabel(kind)}
                           </option>
                         ))}
-                      </select>
+                      </SelectControl>
                     </label>
                     <label className="qf-builder-field__wide">
                       <span>Help text</span>

@@ -4,6 +4,13 @@ import { cn } from './cn.js';
 
 export type RailState = 'complete' | 'current' | 'pending' | 'failed';
 
+const RAIL_STATE_LABEL: Readonly<Record<RailState, string>> = {
+  complete: 'Completed stage',
+  current: 'Current stage',
+  failed: 'Failed stage',
+  pending: 'Upcoming stage',
+};
+
 export interface QueueRailItem {
   readonly description?: string;
   readonly id: string;
@@ -42,7 +49,10 @@ export function QueueRail({
           </span>
           <div className="qf-queue-rail__content">
             <div className="qf-queue-rail__line">
-              <span className="qf-queue-rail__label">{item.label}</span>
+              <span className="qf-queue-rail__label">
+                {item.label}
+                <span className="qf-queue-rail__state">, {RAIL_STATE_LABEL[item.state]}</span>
+              </span>
               {item.timestamp !== undefined ? (
                 <time className="qf-mono">{item.timestamp}</time>
               ) : null}

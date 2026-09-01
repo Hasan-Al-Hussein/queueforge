@@ -1,6 +1,12 @@
-import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import {
+  forwardRef,
+  type InputHTMLAttributes,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react';
 
 import { cn } from './cn.js';
+import { ChevronDown } from './icons.js';
 
 interface FieldFrameProps {
   readonly children: React.ReactNode;
@@ -56,6 +62,49 @@ export const InputField = forwardRef<HTMLInputElement, InputFieldProps>(function
         aria-describedby={`${id}-message`}
         aria-invalid={error !== undefined}
         className={cn('qf-input', className)}
+        id={id}
+        ref={ref}
+        required={required}
+      />
+    </FieldFrame>
+  );
+});
+
+export type SelectControlProps = SelectHTMLAttributes<HTMLSelectElement>;
+
+export const SelectControl = forwardRef<HTMLSelectElement, SelectControlProps>(
+  function SelectControl({ children, className, ...props }, ref): React.JSX.Element {
+    return (
+      <span className="qf-select-control">
+        <select {...props} className={cn('qf-select', className)} ref={ref}>
+          {children}
+        </select>
+        <span aria-hidden="true" className="qf-select-control__indicator">
+          <ChevronDown size={17} strokeWidth={2.1} />
+        </span>
+      </span>
+    );
+  },
+);
+
+export interface SelectFieldProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> {
+  readonly error?: string;
+  readonly helper?: string;
+  readonly id: string;
+  readonly label: string;
+}
+
+export const SelectField = forwardRef<HTMLSelectElement, SelectFieldProps>(function SelectField(
+  { className, error, helper, id, label, required, ...props },
+  ref,
+): React.JSX.Element {
+  return (
+    <FieldFrame error={error} helper={helper} id={id} label={label} required={required}>
+      <SelectControl
+        {...props}
+        aria-describedby={`${id}-message`}
+        aria-invalid={error !== undefined}
+        className={className}
         id={id}
         ref={ref}
         required={required}

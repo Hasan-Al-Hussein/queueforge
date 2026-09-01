@@ -1,5 +1,11 @@
 import type { WebhookDelivery } from '../../domain/models';
 
+export type DeliverySection = 'deliveries' | 'endpoints';
+
+export function initialDeliverySection(canConfigureConnections: boolean): DeliverySection {
+  return canConfigureConnections ? 'endpoints' : 'deliveries';
+}
+
 const EVENT_LABELS: Readonly<Record<string, string>> = {
   'approval.approved': 'Approval granted',
   'approval.rejected': 'Approval declined',
@@ -58,4 +64,24 @@ export function receiverReplyLabel(statusCode: number | null): string {
     return `Receiver rejected it · HTTP ${String(statusCode)}`;
   if (statusCode >= 500) return `Receiver reported an error · HTTP ${String(statusCode)}`;
   return `Receiver replied · HTTP ${String(statusCode)}`;
+}
+
+export interface DeliveryPageCounts {
+  readonly attention: number;
+  readonly delivered: number;
+  readonly moving: number;
+}
+
+export function deliveryPageCounts(
+  deliveries: readonly Pick<WebhookDelivery, 'status'>[],
+): DeliveryPageCounts {
+  return deliveries.reduce<DeliveryPageCounts>(
+    (counts, delivery) => ({
+      attention: counts.attention + (delivery.status === 'dead' ? 1 : 0),
+      delivered: counts.delivered + (delivery.status === 'delivered' ? 1 : 0),
+      moving:
+        counts.moving + (['pending', 'delivering', 'retry'].includes(delivery.status) ? 1 : 0),
+    }),
+    { attention: 0, delivered: 0, moving: 0 },
+  );
 }

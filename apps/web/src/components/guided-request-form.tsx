@@ -1,5 +1,7 @@
 'use client';
 
+import { SelectControl } from '@queueforge/ui';
+
 import type { WorkflowField } from './workflow-schema';
 
 interface GuidedRequestFormProps {
@@ -64,10 +66,9 @@ export function GuidedRequestForm({
                 {field.label}
                 {field.required ? <span aria-hidden="true"> *</span> : null}
               </label>
-              <select
+              <SelectControl
                 aria-describedby={`${id}-message`}
                 aria-invalid={error !== undefined}
-                className="qf-input"
                 disabled={disabled}
                 id={id}
                 onChange={(event) => onChange(field.key, event.currentTarget.value)}
@@ -80,7 +81,7 @@ export function GuidedRequestForm({
                     {option}
                   </option>
                 ))}
-              </select>
+              </SelectControl>
               <p className="qf-field__message" id={`${id}-message`}>
                 {message !== '' ? message : '\u00a0'}
               </p>

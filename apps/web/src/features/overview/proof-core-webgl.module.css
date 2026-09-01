@@ -1,0 +1,358 @@
+.shell {
+  --proof-canvas: var(--qf-stage);
+  --proof-surface: var(--qf-stage-surface);
+  --proof-raised: var(--qf-stage-raised);
+  --proof-ink: var(--qf-stage-foreground);
+  --proof-muted: var(--qf-stage-muted);
+  --proof-rule: var(--qf-stage-rule);
+  --proof-steel: color-mix(in srgb, var(--qf-stage-steel) 72%, var(--qf-stage));
+  --proof-ember: var(--qf-stage-ember);
+  --proof-verified: var(--qf-signal-on-dark);
+  background:
+    linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--proof-ink) 3%, transparent) 1px,
+        transparent 1px
+      )
+      0 0 / 88px 100%,
+    linear-gradient(180deg, var(--proof-surface), var(--proof-canvas));
+  border-block: 1px solid color-mix(in srgb, var(--proof-rule) 76%, transparent);
+  color: var(--proof-ink);
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 68px;
+  height: 304px;
+  isolation: isolate;
+  min-height: 304px;
+  overflow: hidden;
+  position: relative;
+}
+
+.shell::before,
+.shell::after {
+  border-color: color-mix(in srgb, var(--proof-muted) 52%, transparent);
+  border-style: solid;
+  content: '';
+  height: 12px;
+  pointer-events: none;
+  position: absolute;
+  top: 12px;
+  width: 12px;
+  z-index: 4;
+}
+
+.shell::before {
+  border-width: 1px 0 0 1px;
+  left: 12px;
+}
+
+.shell::after {
+  border-width: 1px 1px 0 0;
+  right: 12px;
+}
+
+.spatial,
+.canvas,
+.fallback {
+  position: absolute;
+}
+
+.spatial,
+.fallback {
+  inset: 0 0 68px;
+}
+
+.spatial {
+  contain: strict;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  z-index: 2;
+}
+
+.shell[data-spatial-active='true'] .spatial {
+  opacity: 1;
+}
+
+.canvas {
+  display: block;
+  height: 100%;
+  inset: 0;
+  pointer-events: none;
+  width: 100%;
+}
+
+.fallback {
+  background:
+    linear-gradient(90deg, transparent, color-mix(in srgb, var(--proof-ember) 5%, transparent)),
+    var(--proof-canvas);
+  overflow: hidden;
+  transition: opacity 220ms ease;
+  z-index: 1;
+}
+
+.shell[data-spatial-active='true'] .fallback {
+  opacity: 0;
+}
+
+.registration {
+  background-image:
+    linear-gradient(var(--proof-rule) 1px, transparent 1px),
+    linear-gradient(90deg, var(--proof-rule) 1px, transparent 1px);
+  background-size: 36px 36px;
+  inset: 10px 2.5% 8px;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  opacity: 0.16;
+  position: absolute;
+}
+
+.forgePoster {
+  background: url('/3d/queueforge/attestation-forge-poster.webp') center / contain no-repeat;
+  filter: saturate(0.94) contrast(1.03);
+  inset: 15px 3.5% 7px;
+  position: absolute;
+}
+
+.posterStages {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  inset: 10px 2.5% 8px;
+  pointer-events: none;
+  position: absolute;
+}
+
+.posterStage {
+  --stage-color: var(--proof-steel);
+  border-block: 1px solid transparent;
+  position: relative;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease;
+}
+
+.posterStage + .posterStage {
+  border-left: 1px solid color-mix(in srgb, var(--proof-rule) 34%, transparent);
+}
+
+.posterStage[data-stage='intake'],
+.posterStage[data-stage='decision'] {
+  --stage-color: var(--proof-ember);
+}
+
+.posterStage[data-stage='delivery'] {
+  --stage-color: var(--proof-verified);
+}
+
+.posterStage[data-selected='true'] {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--stage-color) 7%, transparent),
+    transparent 48%,
+    color-mix(in srgb, var(--stage-color) 4%, transparent)
+  );
+  border-block-color: color-mix(in srgb, var(--stage-color) 56%, transparent);
+}
+
+.posterStage[data-selected='true']::after {
+  background: var(--stage-color);
+  bottom: 0;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--stage-color) 34%, transparent);
+  content: '';
+  height: 2px;
+  inset-inline: 10%;
+  position: absolute;
+}
+
+.stageControls {
+  align-self: stretch;
+  background: color-mix(in srgb, var(--proof-surface) 94%, var(--proof-canvas));
+  border-top: 1px solid var(--proof-rule);
+  display: grid;
+  grid-row: 2;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 3;
+}
+
+.stageControls li {
+  min-width: 0;
+}
+
+.stageControls li + li {
+  border-left: 1px solid var(--proof-rule);
+}
+
+.stageControls button {
+  --stage-control-color: var(--proof-steel);
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--proof-muted);
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  min-height: 67px;
+  padding: 9px 10px;
+  text-align: left;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+  width: 100%;
+}
+
+.stageControls button[data-stage='intake'],
+.stageControls button[data-stage='decision'] {
+  --stage-control-color: var(--proof-ember);
+}
+
+.stageControls button[data-stage='process'] {
+  --stage-control-color: var(--qf-stage-body);
+}
+
+.stageControls button[data-stage='delivery'] {
+  --stage-control-color: var(--proof-verified);
+}
+
+.stageControls button:hover {
+  background: color-mix(in srgb, var(--proof-raised) 92%, var(--proof-ember) 3%);
+  color: var(--proof-ink);
+}
+
+.stageControls button:focus-visible {
+  outline: 2px solid var(--proof-ember);
+  outline-offset: -3px;
+}
+
+.stageControls button[aria-pressed='true'] {
+  background: color-mix(in srgb, var(--proof-raised) 88%, var(--stage-control-color) 6%);
+  box-shadow: inset 0 2px var(--stage-control-color);
+  color: var(--proof-ink);
+}
+
+.stageNumber,
+.stageName,
+.stageState,
+.stageEvidence {
+  min-width: 0;
+}
+
+.stageNumber {
+  color: var(--stage-control-color);
+  font-family: var(--qf-font-mono, monospace);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  grid-row: 1 / 3;
+  line-height: 1.2;
+  margin-right: 8px;
+}
+
+.stageName {
+  color: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  grid-column: 2;
+  grid-row: 1;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stageState {
+  color: var(--stage-control-color);
+  font-size: 0.75rem;
+  grid-column: 2;
+  grid-row: 2;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stageEvidence {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .shell {
+    display: grid !important;
+    grid-template-rows: minmax(0, 1fr) 58px;
+    height: 234px;
+    min-height: 234px;
+  }
+
+  .spatial {
+    display: none;
+  }
+
+  .fallback {
+    bottom: 58px;
+  }
+
+  .forgePoster {
+    inset: 10px 2% 4px;
+  }
+
+  .posterStages {
+    inset: 7px 1.5% 4px;
+  }
+
+  .stageControls button {
+    align-content: center;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    min-height: 57px;
+    padding: 7px 4px;
+    text-align: center;
+  }
+
+  .stageNumber {
+    display: none;
+  }
+
+  .stageName {
+    font-size: 0.75rem;
+    grid-column: 1;
+  }
+
+  .stageState,
+  .stageEvidence {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell {
+    display: grid !important;
+  }
+
+  .fallback,
+  .posterStage,
+  .spatial,
+  .stageControls button {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  .shell,
+  .fallback,
+  .stageControls,
+  .stageControls button[aria-pressed='true'] {
+    background: Canvas;
+  }
+
+  .forgePoster {
+    display: none;
+  }
+
+  .stageControls,
+  .stageControls li + li,
+  .posterStage,
+  .stageControls button[aria-pressed='true'] {
+    border-color: CanvasText;
+  }
+}

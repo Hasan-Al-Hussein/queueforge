@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { DashboardOverview } from '../../domain/models';
-import { roleGuide, roleMetrics } from './overview-screen';
+import { pipelineRail, roleGuide, roleMetrics, rolePriority } from './overview-screen';
 
 const overview: DashboardOverview = {
   queues: [],
@@ -47,5 +47,40 @@ describe('role overview policy', () => {
       '/webhooks',
       '/team',
     ]);
+  });
+
+  it('makes the approval bottleneck the administrator priority without granting approval access', () => {
+    expect(rolePriority('tenant_admin', overview)).toMatchObject({
+      actionHref: '/team',
+      actionLabel: 'Review approver access',
+      metricLabel: 'Waiting for approval',
+      tone: 'warning',
+      value: 4,
+    });
+  });
+
+  it('keeps role priorities inside each role boundary', () => {
+    expect(rolePriority('approver', overview).actionHref).toBe('/approvals');
+    expect(rolePriority('operator', overview).actionHref).toBe('/operations');
+    expect(rolePriority('viewer', overview).actionHref).toBe('/requests');
+  });
+
+  it('does not present an empty workspace as a completed pipeline', () => {
+    const emptyOverview: DashboardOverview = {
+      queues: [],
+      recentRequests: [],
+      statusCounts: [],
+      throughput: [],
+    };
+
+    expect(pipelineRail(emptyOverview).map((item) => item.state)).toEqual([
+      'pending',
+      'pending',
+      'pending',
+      'pending',
+    ]);
+    expect(pipelineRail(emptyOverview)[0]?.description).toBe(
+      'No requests have entered this workspace yet.',
+    );
   });
 });

@@ -1,0 +1,311 @@
+.overviewHero {
+  margin-bottom: 18px;
+}
+
+.overviewHero[data-variant='feature'] {
+  min-height: 258px;
+}
+
+.overviewHero[data-variant='feature']::before {
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--qf-stage-raised) 82%, transparent),
+      transparent
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 47px,
+      color-mix(in srgb, var(--qf-stage-rule) 45%, transparent) 48px
+    ),
+    var(--qf-stage-surface);
+  border-inline-end: 1px solid var(--qf-stage-rule);
+  content: '';
+  inset: 0 auto 0 0;
+  pointer-events: none;
+  position: absolute;
+  width: min(44%, 590px);
+  z-index: 0;
+}
+
+.overviewHero[data-variant='feature'] h1 {
+  font-size: clamp(2.75rem, 3.4vw, 3.25rem);
+  line-height: 1.06;
+  margin-block: 11px 9px;
+  max-width: 14ch;
+}
+
+.overviewHero[data-variant='compact'] h1 {
+  font-size: clamp(2.55rem, 3.2vw, 3rem);
+  line-height: 1.08;
+}
+
+.heroPriority {
+  align-items: center;
+  color: inherit;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.45;
+}
+
+.landscapePrimaryAction {
+  display: none;
+}
+
+.proofScene {
+  height: 100%;
+}
+
+.workStatus {
+  background: var(--qf-surface-raised);
+  border: 1px solid var(--qf-rule-strong);
+  border-radius: 9px;
+  display: grid;
+  grid-template-columns: minmax(340px, 1.45fr) minmax(360px, 1fr);
+  margin-bottom: 18px;
+  min-width: 0;
+  overflow: clip;
+}
+
+.priority {
+  --priority-accent: var(--qf-rule-strong);
+  background:
+    linear-gradient(
+      105deg,
+      color-mix(in srgb, var(--priority-accent) 8%, transparent),
+      transparent 52%
+    ),
+    var(--qf-surface);
+  border-inline-start: 4px solid var(--priority-accent);
+  box-shadow: inset -1px 0 var(--qf-rule);
+  display: grid;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  padding: 19px 21px 19px 20px;
+}
+
+.priority[data-tone='warning'] {
+  --priority-accent: var(--qf-warning);
+}
+
+.priority[data-tone='danger'] {
+  --priority-accent: var(--qf-danger);
+}
+
+.priority[data-tone='signal'] {
+  --priority-accent: var(--qf-proof);
+}
+
+.priorityCopy {
+  min-width: 0;
+}
+
+.priorityCopy > :global(.qf-eyebrow) {
+  color: var(--priority-accent);
+  margin: 0 0 4px;
+}
+
+.priorityCopy h2 {
+  align-items: baseline;
+  color: var(--qf-foreground);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: clamp(1.05rem, 1.45vw, 1.2rem);
+  font-weight: 620;
+  gap: 10px;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.priorityValue {
+  color: color-mix(in srgb, var(--priority-accent) 72%, var(--qf-foreground));
+  font-size: clamp(2.65rem, 4vw, 3.5rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 0.95;
+}
+
+.priorityCopy > p:last-child {
+  color: var(--qf-body);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 7px 0 0;
+  max-width: 62ch;
+}
+
+.priorityAction {
+  align-self: center;
+}
+
+.supportingMetrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  margin: 0;
+  min-width: 0;
+}
+
+.supportingMetric {
+  --metric-accent: var(--qf-rule-strong);
+  background: var(--qf-surface-raised);
+  border-inline-end: 1px solid var(--qf-rule);
+  min-width: 0;
+  padding: 19px 16px;
+  position: relative;
+}
+
+.supportingMetric:last-child {
+  border-inline-end: 0;
+}
+
+.supportingMetric::before {
+  background: var(--metric-accent);
+  content: '';
+  height: 2px;
+  inset: 0 16px auto;
+  opacity: 0.72;
+  position: absolute;
+}
+
+.supportingMetric[data-tone='warning'] {
+  --metric-accent: var(--qf-warning);
+}
+
+.supportingMetric[data-tone='danger'] {
+  --metric-accent: var(--qf-danger);
+}
+
+.supportingMetric[data-tone='signal'] {
+  --metric-accent: var(--qf-proof);
+}
+
+.supportingMetric dt {
+  color: var(--qf-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.supportingMetric dd {
+  color: var(--qf-foreground);
+  font-size: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 620;
+  line-height: 1.1;
+  margin: 6px 0 0;
+}
+
+.supportingMetric dd:last-child:not(:nth-child(2)) {
+  color: var(--qf-muted);
+  font-size: 12.5px;
+  font-weight: 450;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.supportingMetric[data-zero='true'] {
+  background: color-mix(in srgb, var(--qf-surface-inset) 48%, var(--qf-surface-raised));
+}
+
+.supportingMetric[data-zero='true']::before {
+  background: var(--qf-rule-strong);
+  opacity: 0.44;
+}
+
+.supportingMetric[data-zero='true'] dd {
+  color: var(--qf-body);
+}
+
+.supportingMetric[data-zero='true'] dt,
+.supportingMetric[data-zero='true'] dd:last-child:not(:nth-child(2)) {
+  color: var(--qf-body);
+}
+
+.roleGuide {
+  margin-block: 18px 0;
+}
+
+@media (max-width: 1120px) {
+  .workStatus {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .priority {
+    box-shadow: inset 0 -1px var(--qf-rule);
+  }
+}
+
+@media (max-width: 760px) {
+  .overviewHero[data-variant='feature']::before {
+    border-block-end: 1px solid var(--qf-stage-rule);
+    border-inline-end: 0;
+    bottom: auto;
+    height: 230px;
+    right: 0;
+    width: auto;
+  }
+
+  .overviewHero[data-variant='feature'] h1,
+  .overviewHero[data-variant='compact'] h1 {
+    font-size: clamp(2.125rem, 9vw, 2.5rem);
+    line-height: 1.08;
+  }
+
+  .priority {
+    gap: 16px;
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+
+  .priorityAction {
+    justify-self: stretch;
+  }
+
+  .supportingMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .supportingMetric:nth-child(2n) {
+    border-inline-end: 0;
+  }
+
+  .supportingMetric:nth-child(n + 3) {
+    border-block-start: 1px solid var(--qf-rule);
+  }
+}
+
+@media (max-width: 390px) {
+  .priorityCopy h2 {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .supportingMetric {
+    padding-inline: 14px;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) and (min-width: 761px) {
+  .overviewHero[data-variant='feature'] {
+    min-height: 194px;
+    padding-block: 18px;
+  }
+
+  .overviewHero[data-variant='feature'] h1 {
+    font-size: 2.35rem;
+    line-height: 1.06;
+    margin-block: 7px;
+  }
+
+  .landscapePrimaryAction {
+    display: inline-flex;
+  }
+
+  .priorityAction {
+    display: none;
+  }
+}

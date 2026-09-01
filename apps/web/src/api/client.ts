@@ -265,6 +265,14 @@ export function isForbiddenProblem(error: unknown): boolean {
   });
 }
 
+export function isNotFoundProblem(error: unknown): boolean {
+  if (error instanceof ApiProblem) return error.status === 404;
+  if (error instanceof Error && /\bnot found\b/iu.test(error.message)) return true;
+  if (typeof error !== 'object' || error === null) return false;
+  const fields = error as Readonly<Record<string, unknown>>;
+  return fields['status'] === 404 || fields['code'] === 'NOT_FOUND';
+}
+
 export function formatProblem(error: unknown): string {
   if (error instanceof ApiProblem) return error.message;
   if (error instanceof Error) return error.message;

@@ -42,6 +42,8 @@ import { useDirtyNavigation } from '../providers/dirty-navigation-provider';
 import { useTheme } from '../providers/theme-provider';
 import { useToast } from '../providers/toast-provider';
 import { formatProblem } from '../api/client';
+import { BrandMark } from './brand-mark';
+import { PageProgressRail, RouteReveal } from './cinematic-motion';
 import { effectiveWorkspaceRole, WORKSPACE_ROUTE_ROLES } from './workspace-access';
 
 interface NavItem {
@@ -203,14 +205,10 @@ function Brand({
       onClick={onNavigate}
       prefetch={false}
     >
-      <span className="qf-brand__mark" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-      </span>
+      <BrandMark compact />
       <span>
         <strong>QueueForge</strong>
-        <small>workflow control</small>
+        <small>proof in motion</small>
       </span>
     </Link>
   );
@@ -300,7 +298,7 @@ function SidebarContent({
           <Activity size={14} aria-hidden="true" />
           {online ? 'Browser online' : 'Browser offline'}
         </span>
-        <span className="qf-utility">Local console · v0.1</span>
+        <span className="qf-utility">Local console · evidence retained</span>
       </div>
     </>
   );
@@ -316,7 +314,7 @@ export function SessionRequired({ error }: { readonly error: string | null }): R
             Sign in
           </Link>
         }
-        description={error ?? 'Sign in to restore an in-memory access session for your tenant.'}
+        description={error ?? 'Sign in to reopen your QueueForge workspace.'}
         kind={error === null ? 'forbidden' : 'error'}
         title="Session required"
       />
@@ -329,7 +327,7 @@ export function SessionRestoring(): React.JSX.Element {
     <div className="qf-session-gate">
       <Brand />
       <StatePanel
-        description="Checking the local refresh session. Authentication material is never restored from browser storage."
+        description="Checking whether this browser is still signed in."
         kind="loading"
         title="Restoring session"
       />
@@ -559,12 +557,13 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
       ) : null}
 
       <div className="qf-shell__workspace" inert={menuOpen ? true : undefined}>
+        <PageProgressRail />
         <a className="qf-skip-link" href="#main-content">
           Skip to main content
         </a>
         <header className="qf-topbar">
           <Button
-            aria-controls="mobile-navigation-dialog"
+            aria-controls={menuOpen ? 'mobile-navigation-dialog' : undefined}
             aria-expanded={menuOpen}
             aria-haspopup="dialog"
             aria-label="Open navigation"
@@ -575,11 +574,13 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
               setMenuOpen(true);
             }}
             tone="quiet"
+            title="Open navigation"
           />
           <div className="qf-tenant-select">
             <label htmlFor="tenant-switcher">Workspace</label>
             <span className="qf-select-wrap">
               <select
+                aria-label="Workspace"
                 disabled={switchingTenant}
                 id="tenant-switcher"
                 onChange={(event) => {
@@ -622,6 +623,9 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
                   </optgroup>
                 ) : null}
               </select>
+              <span aria-hidden="true" className="qf-tenant-select__mobile-value">
+                {session.selectedTenant.tenantName}
+              </span>
               <ChevronDown aria-hidden="true" size={15} />
             </span>
           </div>
@@ -637,6 +641,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
               href="/notifications"
               onClick={(event) => handleAppLinkClick(event, '/notifications')}
               prefetch={false}
+              title="Notifications"
             >
               <Bell size={18} />
             </Link>
@@ -645,6 +650,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
               icon={theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
               onClick={toggleTheme}
               tone="quiet"
+              title={`Use ${theme === 'light' ? 'dark' : 'light'} theme`}
             />
             <Button
               aria-label="Sign out"
@@ -652,6 +658,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
               icon={<LogOut size={18} />}
               onClick={() => requestExit(() => void handleLogout())}
               tone="quiet"
+              title="Sign out"
             />
           </div>
         </header>
@@ -664,7 +671,7 @@ export function AppShell({ children }: { readonly children: ReactNode }): React.
         ) : null}
         <main id="main-content" className="qf-main" ref={mainRef} tabIndex={-1}>
           {routeAllowed ? (
-            children
+            <RouteReveal routeKey={pathname}>{children}</RouteReveal>
           ) : (
             <StatePanel
               description={`This page is not part of the ${workspaceConfig.title.toLowerCase()}. Taking you back home.`}

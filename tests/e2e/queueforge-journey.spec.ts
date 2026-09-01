@@ -291,12 +291,17 @@ async function createAndActivateWorkflow(
     };
     return body.processingConfig?.failuresBeforeSuccess === input.failuresBeforeSuccess;
   });
+  const setupNavigation = page.getByRole('navigation', { name: 'Request type setup steps' });
+  await setupNavigation.getByRole('link', { name: /Intake form/ }).click();
   await page.getByRole('button', { exact: true, name: 'Advanced JSON' }).click();
   await page.getByLabel('Request schema').fill(JSON.stringify(requestSchema, null, 2));
+  await setupNavigation.getByRole('link', { name: /Processing/ }).click();
   await page.getByText('Advanced processing JSON').click();
   await page.getByLabel('Processing policy JSON').fill(JSON.stringify(processingConfig, null, 2));
+  await setupNavigation.getByRole('link', { name: /Delivery path/ }).click();
   await page.getByText('Advanced delivery configuration').click();
   await page.getByLabel('Execution targets JSON').fill(JSON.stringify(targets, null, 2));
+  await setupNavigation.getByRole('link', { name: /Decision gate/ }).click();
   await page.getByRole('checkbox', { name: 'Accept new requests' }).check();
   await page.getByRole('checkbox', { name: 'Require approval' }).check();
   await page.getByRole('checkbox', { name: 'Prevent self-approval' }).check();
@@ -336,17 +341,17 @@ async function submitFromUi(
     await expect(requestedOption).toHaveCount(1);
   }
   await requestTypeSelect.selectOption({ label: workflowName });
+  const requestDialog = page.getByRole('dialog', { name: 'Start a request' });
+  await requestDialog.getByRole('button', { name: 'Continue to details', exact: true }).click();
   for (const [key, value] of Object.entries(payload)) {
     const label = key === 'caseId' ? 'Case Id' : key.charAt(0).toUpperCase() + key.slice(1);
-    await page.getByLabel(label).fill(String(value));
+    await requestDialog.getByLabel(label).fill(String(value));
   }
+  await requestDialog.getByRole('button', { name: 'Review request', exact: true }).click();
   const responsePromise = page.waitForResponse((response) =>
     isBrowserResponse(response, 'POST', '/api/v1/requests'),
   );
-  await page
-    .getByRole('dialog', { name: 'Start a request' })
-    .getByRole('button', { name: 'Start request', exact: true })
-    .click();
+  await requestDialog.getByRole('button', { name: 'Submit request', exact: true }).click();
   const response = await responsePromise;
   const request = await responseJson<WorkflowRequestView>(response);
   await expect(page).toHaveURL(new RegExp(`/requests/detail/\\?id=${request.id}$`));
@@ -361,7 +366,7 @@ async function approveFromUi(page: Page, workflowName: string): Promise<void> {
   await page.getByRole('button', { name: 'Refresh', exact: true }).click();
   await responseJson<unknown>(await refreshResponsePromise);
   await page.getByLabel('Search approvals').fill(workflowName);
-  const approveButton = page.getByRole('button', { name: /^Approve / }).first();
+  const approveButton = page.getByRole('button', { name: 'Approve', exact: true });
   await expect(approveButton).toBeVisible({
     timeout: 30_000,
   });
@@ -696,7 +701,7 @@ test.describe('QueueForge durable user journey', () => {
         );
         await navigateFromSidebar(page, 'People & access', '/team');
         await page.getByRole('button', { name: 'Add person' }).click();
-        let addPersonDialog = page.getByRole('dialog', { name: 'Add tenant member' });
+        let addPersonDialog = page.getByRole('dialog', { name: 'Add person' });
         await addPersonDialog.getByLabel('Email address').fill(memberEmail);
         await addPersonDialog.getByLabel('Display name').fill(`E2E Viewer ${suffix}`);
         await addPersonDialog.locator('#member-initial-password').fill(memberPassword);
@@ -705,7 +710,7 @@ test.describe('QueueForge durable user journey', () => {
         await expect(addPersonDialog).toBeHidden();
 
         await page.getByRole('button', { name: 'Add person' }).click();
-        addPersonDialog = page.getByRole('dialog', { name: 'Add tenant member' });
+        addPersonDialog = page.getByRole('dialog', { name: 'Add person' });
         await addPersonDialog.getByLabel('Email address').fill(OPERATOR_EMAIL);
         await addPersonDialog.locator('#member-role').selectOption('operator');
         await addPersonDialog.getByRole('button', { name: 'Add person', exact: true }).click();
@@ -787,9 +792,9 @@ test.describe('QueueForge durable user journey', () => {
       });
 
       await test.step('4. Verify the request is visibly pending approval', async () => {
-        await expect(operatorPage.locator('.qf-detail-banner')).toContainText(
-          'Waiting for approval',
-        );
+        await expect(
+          operatorPage.getByText('Waiting for approval', { exact: true }).first(),
+        ).toBeVisible();
         await expect(
           operatorPage.getByRole('list', { name: 'Request status timeline' }),
         ).toContainText('Waiting for approval');
@@ -821,7 +826,7 @@ test.describe('QueueForge durable user journey', () => {
           30_000,
         );
         await operatorPage.getByRole('button', { name: 'Refresh' }).click();
-        await expect(operatorPage.locator('.qf-detail-banner')).toContainText('In progress');
+        await expect(operatorPage.getByText('In progress', { exact: true }).first()).toBeVisible();
         await pollForStatus(
           operatorPage,
           operatorSession.accessToken,
@@ -829,7 +834,7 @@ test.describe('QueueForge durable user journey', () => {
           'succeeded',
         );
         await operatorPage.getByRole('button', { name: 'Refresh' }).click();
-        await expect(operatorPage.locator('.qf-detail-banner')).toContainText('Completed');
+        await expect(operatorPage.getByText('Completed', { exact: true }).first()).toBeVisible();
       });
 
       let deliveredEventId = '';
@@ -852,20 +857,30 @@ test.describe('QueueForge durable user journey', () => {
           )
           .not.toBe('');
         await navigateFromSidebar(page, 'Delivery connections', '/webhooks');
+        await page.getByRole('tab', { name: /^Activity / }).click();
         await page.getByLabel('Search delivery history').fill(deliveredEventId);
-        const table = page.getByRole('table', { name: 'Result delivery history' });
-        await expect(table).toContainText('Request completed');
-        await expect(table).toContainText('Demo recovery check');
-        await expect(table).toContainText('Delivered');
+        const deliveryLedger = page.getByRole('region', {
+          name: 'Result delivery history table',
+        });
+        await expect(deliveryLedger).toContainText('Request completed');
+        await expect(deliveryLedger).toContainText('Demo recovery check');
+        await expect(deliveryLedger).toContainText('Delivered');
       });
 
       await test.step('8. Inspect the correlated append-only audit timeline', async () => {
         await navigateFromSidebar(page, 'Activity log', '/audit');
         await page.getByLabel('Show activity for').selectOption({ label: 'Requests' });
         await page.getByLabel('Search activity on this page').fill(recoveryRequest.correlationId);
-        const table = page.getByRole('table', { name: 'Workspace activity log' });
-        await expect(table).toContainText('Request completed');
-        await expect(table).toContainText(recoveryRequest.correlationId.slice(0, 8));
+        const activityLedger = page.getByRole('list', { name: 'Workspace activity log' });
+        await expect(activityLedger).toContainText('Request completed');
+        await activityLedger
+          .getByRole('button', { name: 'View details for Request completed' })
+          .first()
+          .click();
+        const activityDetails = page.getByRole('dialog', { name: 'Request completed' });
+        await expect(activityDetails).toContainText(recoveryRequest.correlationId.slice(0, 8));
+        await activityDetails.getByRole('button', { name: 'Close dialog' }).click();
+        await expect(activityDetails).toBeHidden();
       });
 
       await test.step('9. Replay the identical request idempotently through the UI', async () => {
@@ -880,8 +895,12 @@ test.describe('QueueForge durable user journey', () => {
         if (createdTenantId === undefined) throw new Error('E2E tenant was not created');
         operatorSession = await selectTenant(operatorPage, createdTenantId, authCorrelationIds);
         await operatorPage.goto(`${WEB_ORIGIN}/requests/detail?id=${recoveryRequest.id}`);
-        await expect(operatorPage.getByText('Could not load this view')).toBeVisible();
-        await expect(operatorPage.getByText(/not found|selected tenant/i).first()).toBeVisible();
+        await expect(
+          operatorPage.getByRole('heading', { name: 'Record unavailable in this workspace' }),
+        ).toBeVisible();
+        await expect(
+          operatorPage.getByText(/not available in the current workspace/i),
+        ).toBeVisible();
         operatorSession = await selectTenant(operatorPage, ACME_TENANT_ID, authCorrelationIds);
       });
 
@@ -933,11 +952,11 @@ test.describe('QueueForge durable user journey', () => {
 
         await navigateFromSidebar(page, 'Processing health', '/operations');
         await page.getByLabel('Search requests that need attention').fill(submission.request.id);
-        const deadLetterTable = page.getByRole('table', {
+        const recoveryLedger = page.getByRole('list', {
           name: 'Requests that need attention',
         });
-        await expect(deadLetterTable).toContainText('Demo processing-failure check');
-        await deadLetterTable.getByRole('button', { name: 'Try again', exact: true }).click();
+        await expect(recoveryLedger).toContainText('Demo processing-failure check');
+        await recoveryLedger.getByRole('button', { name: 'Try again', exact: true }).click();
         const retryResponsePromise = page.waitForResponse(
           (response) =>
             response.request().method() === 'POST' &&
