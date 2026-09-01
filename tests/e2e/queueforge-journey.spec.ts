@@ -895,8 +895,12 @@ test.describe('QueueForge durable user journey', () => {
         if (createdTenantId === undefined) throw new Error('E2E tenant was not created');
         operatorSession = await selectTenant(operatorPage, createdTenantId, authCorrelationIds);
         await operatorPage.goto(`${WEB_ORIGIN}/requests/detail?id=${recoveryRequest.id}`);
-        await expect(operatorPage.getByText('Could not load this view')).toBeVisible();
-        await expect(operatorPage.getByText(/not found|selected tenant/i).first()).toBeVisible();
+        await expect(
+          operatorPage.getByRole('heading', { name: 'Record unavailable in this workspace' }),
+        ).toBeVisible();
+        await expect(
+          operatorPage.getByText(/not available in the current workspace/i),
+        ).toBeVisible();
         operatorSession = await selectTenant(operatorPage, ACME_TENANT_ID, authCorrelationIds);
       });
 
