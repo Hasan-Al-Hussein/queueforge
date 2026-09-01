@@ -1,3 +1,7 @@
+import type { QueueSnapshot } from '../../domain/models';
+
+export const MOBILE_RECOVERY_PREVIEW_SIZE = 5;
+
 const QUEUE_LABELS: Readonly<Record<string, string>> = {
   'queueforge.notifications': 'Notifications',
   'queueforge.other': 'Other background work',
@@ -50,4 +54,62 @@ export function failureExplanation(reason: string): string {
 
 export function automaticTryLabel(attemptCount: number): string {
   return `${String(attemptCount)} automatic ${attemptCount === 1 ? 'try' : 'tries'}`;
+}
+
+export function recoveryPreviewToggleLabel(loadedCount: number, expanded: boolean): string {
+  return expanded
+    ? 'Show fewer requests'
+    : `Show ${String(Math.max(loadedCount - MOBILE_RECOVERY_PREVIEW_SIZE, 0))} more on this page`;
+}
+
+export interface QueueStatePresentation {
+  readonly label: string;
+  readonly status: string;
+  readonly workerLabel: string;
+}
+
+export function queueStatePresentation(
+  queue: Pick<
+    QueueSnapshot,
+    | 'active'
+    | 'delayed'
+    | 'failed'
+    | 'outboxDead'
+    | 'paused'
+    | 'telemetryAvailable'
+    | 'waiting'
+    | 'workerState'
+  >,
+): QueueStatePresentation {
+  const workerLabel =
+    queue.workerState === 'offline'
+      ? 'not responding'
+      : queue.workerState === 'draining'
+        ? 'finishing current work'
+        : queue.workerState === 'unavailable'
+          ? 'not visible in this workspace'
+          : queue.paused
+            ? 'paused'
+            : 'available';
+
+  if (!queue.telemetryAvailable) {
+    return {
+      label: queue.outboxDead > 0 ? 'handoff needs attention' : 'accepted safely',
+      status: queue.outboxDead > 0 ? 'failed' : 'queued',
+      workerLabel,
+    };
+  }
+  if (queue.workerState === 'offline') {
+    return { label: 'processor offline', status: 'failed', workerLabel };
+  }
+  if (queue.workerState === 'draining') {
+    return { label: 'finishing work', status: 'retry', workerLabel };
+  }
+  if (queue.paused) return { label: 'paused', status: 'retired', workerLabel };
+  if (queue.failed > 0) return { label: 'needs attention', status: 'failed', workerLabel };
+  if (queue.active > 0) return { label: 'working', status: 'processing', workerLabel };
+  if (queue.waiting + queue.delayed > 0) {
+    return { label: 'work queued', status: 'queued', workerLabel };
+  }
+  return { label: 'clear', status: 'healthy', workerLabel };
 }

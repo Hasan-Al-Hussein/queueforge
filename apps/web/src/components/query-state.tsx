@@ -4,7 +4,13 @@ import type { ReactNode } from 'react';
 
 import { Button, StatePanel } from '@queueforge/ui';
 
-import { formatProblem, isForbiddenProblem, isOfflineProblem } from '../api/client';
+import {
+  formatProblem,
+  isForbiddenProblem,
+  isNotFoundProblem,
+  isOfflineProblem,
+} from '../api/client';
+import { WorkspaceRecoveryActions } from './workspace-recovery-actions';
 
 export function QueryState({
   children,
@@ -28,7 +34,7 @@ export function QueryState({
   if (isLoading) {
     return (
       <StatePanel
-        description="Fetching the latest tenant-scoped data from QueueForge."
+        description="Loading the latest workspace data."
         kind="loading"
         title="Loading current state"
       />
@@ -37,11 +43,15 @@ export function QueryState({
 
   if (error !== null && error !== undefined) {
     const forbidden = isForbiddenProblem(error);
+    const notFound = isNotFoundProblem(error);
     const offline = isOfflineProblem(error);
+    const workspaceBoundary = forbidden || notFound;
     return (
       <StatePanel
         action={
-          onRetry === undefined ? undefined : (
+          workspaceBoundary ? (
+            <WorkspaceRecoveryActions />
+          ) : onRetry === undefined ? undefined : (
             <Button onClick={onRetry} tone="secondary">
               Try again
             </Button>
@@ -49,12 +59,20 @@ export function QueryState({
         }
         description={
           forbidden
-            ? 'The server denied this request for the selected tenant. Client controls never override server authorization.'
-            : `${formatProblem(error)}${offline ? ' Check that the local API is running on port 3001.' : ''}`
+            ? 'This page is not available in your current workspace. Use the navigation to return to an area assigned to your role.'
+            : notFound
+              ? 'This record is not available in the current workspace. Switch workspace or go back to a page you can access.'
+              : `${formatProblem(error)}${offline ? ' Check that the local API is running on port 3001.' : ''}`
         }
-        kind={forbidden ? 'forbidden' : offline ? 'offline' : 'error'}
+        kind={workspaceBoundary ? 'forbidden' : offline ? 'offline' : 'error'}
         title={
-          forbidden ? 'Access denied' : offline ? 'API unavailable' : 'Could not load this view'
+          forbidden
+            ? 'Access denied'
+            : notFound
+              ? 'Record unavailable in this workspace'
+              : offline
+                ? 'API unavailable'
+                : 'Could not load this view'
         }
       />
     );

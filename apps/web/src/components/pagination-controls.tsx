@@ -1,7 +1,7 @@
 'use client';
 
 import type { PageMeta } from '@queueforge/contracts';
-import { ArrowLeft, ArrowRight, Button } from '@queueforge/ui';
+import { ArrowLeft, ArrowRight, Button, SelectControl } from '@queueforge/ui';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
@@ -43,7 +43,7 @@ export function PaginationControls({
       <div className="qf-pagination__controls">
         <label className="qf-pagination__page-size">
           Rows per page
-          <select
+          <SelectControl
             aria-label={`${ariaLabel} rows per page`}
             disabled={disabled}
             onChange={(event) => onPageSizeChange(Number(event.currentTarget.value))}
@@ -54,7 +54,7 @@ export function PaginationControls({
                 {option}
               </option>
             ))}
-          </select>
+          </SelectControl>
         </label>
         <Button
           aria-label={`Previous ${ariaLabel.toLowerCase()} page`}

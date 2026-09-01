@@ -2,13 +2,13 @@
   "name": "@queueforge/ui",
   "version": "0.1.0",
   "private": true,
-  "type": "commonjs",
+  "type": "module",
+  "sideEffects": false,
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "development": "./src/index.ts",
       "default": "./dist/index.js"
     }
   },

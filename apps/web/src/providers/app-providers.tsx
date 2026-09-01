@@ -13,6 +13,7 @@ import {
   isGraphqlAuthenticationFailure,
 } from '../api/client';
 import { SessionRequired, SessionRestoring } from '../components/app-shell';
+import { CinematicMotionProvider } from '../components/cinematic-motion';
 import { AuthProvider, useAuth } from './auth-provider';
 import { DirtyNavigationProvider } from './dirty-navigation-provider';
 import { ThemeProvider } from './theme-provider';
@@ -95,12 +96,14 @@ function TenantDataBoundary({ children }: { readonly children: ReactNode }): Rea
 
 export function AppProviders({ children }: { readonly children: ReactNode }): React.JSX.Element {
   return (
-    <ThemeProvider>
-      <DirtyNavigationProvider>
-        <AuthProvider>
-          <TenantDataBoundary>{children}</TenantDataBoundary>
-        </AuthProvider>
-      </DirtyNavigationProvider>
-    </ThemeProvider>
+    <CinematicMotionProvider>
+      <ThemeProvider>
+        <DirtyNavigationProvider>
+          <AuthProvider>
+            <TenantDataBoundary>{children}</TenantDataBoundary>
+          </AuthProvider>
+        </DirtyNavigationProvider>
+      </ThemeProvider>
+    </CinematicMotionProvider>
   );
 }

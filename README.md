@@ -4,83 +4,101 @@
 
 # QueueForge
 
-**Local-first workflow automation where every decision, queue handoff, delivery attempt, and recovery action stays inspectable.**
+**Local-first workflow automation that keeps every request, decision, retry, delivery, and recovery action inspectable.**
 
-Define a versioned request, collect structured input, require an independent human decision, process it through a transactional outbox, and deliver a signed result without losing the causal trail.
+QueueForge turns a structured request into one independently approved, durably processed, signed, and auditable outcome without losing the story between systems.
 
-[![Demo](https://img.shields.io/badge/DEMO-83_SECONDS-E86F2B?style=for-the-badge)](docs/media/queueforge-pipeline-demo.webm)
-[![Download](https://img.shields.io/badge/DOWNLOAD-WINDOWS_ZIP-64D7C6?style=for-the-badge&logo=windows&logoColor=102A3D)](https://github.com/Hasan-Al-Hussein/queueforge/releases/latest)
+[![Watch demo](https://img.shields.io/badge/WATCH_DEMO-4m_36s-E86F2B?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/HSDGOt7D5ZM)
+[![Download source](https://img.shields.io/badge/SOURCE-DOWNLOAD_ZIP-64D7C6?style=for-the-badge&logo=github&logoColor=102A3D)](https://github.com/Hasan-Al-Hussein/queueforge/archive/refs/heads/main.zip)
 [![Engineering CI](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/codeql.yml/badge.svg)](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/codeql.yml)
 ![Runtime](https://img.shields.io/badge/RUNTIME-LOOPBACK_ONLY-16435F?style=for-the-badge)
 ![PostgreSQL](https://img.shields.io/badge/STATE-POSTGRESQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 [![MIT License](https://img.shields.io/badge/LICENSE-MIT-64D7C6?style=for-the-badge)](LICENSE)
 
-[Product tour](#see-the-complete-workflow) · [Pipeline](#end-to-end-pipeline) · [Architecture](#architecture) · [Security](SECURITY.md) · [Verification](#verification) · [Windows start](#run-locally)
+[Why it exists](#why-queueforge-exists) · [Demo](#watch-the-complete-workflow) · [Product tour](docs/product-tour.md) · [Pipeline](#end-to-end-pipeline) · [Architecture](#architecture) · [Verification](#verification) · [Security](#security-and-privacy-boundaries)
 
 </div>
 
+Business workflows often split one decision across forms, approvals, queues, workers, webhooks, and audit screens. That fragmentation can approve the wrong version, lose work between a database commit and queue publication, duplicate effects during retries, or make a failure impossible to explain.
+
+QueueForge treats the workflow as one reliability problem. It binds approval to an immutable request version, commits durable work with business state, tolerates repeated queue delivery, signs outbound results, and retains a linked activity trail that people can inspect.
+
 > [!IMPORTANT]
-> QueueForge is a single-machine engineering demonstration for synthetic data, not an internet-facing deployment reference. Next.js `16.3.2` remains behind an open upstream security gate; the application must stay loopback-only until a vendor-fixed version passes the full regression suite.
+> QueueForge is a single-machine engineering demonstration for synthetic data. It is not an internet-facing deployment reference. Next.js `16.3.2` remains behind a tracked upstream security gate, so every published service must stay on loopback until a vendor-fixed version passes the full regression suite.
 
-## The problem
+## Why QueueForge exists
 
-Business workflows often split one decision across forms, approvals, queues, workers, webhooks, and audit screens. A naive implementation can approve the wrong version, lose work between a database commit and queue publish, duplicate effects during retries, or leave operators unable to explain what happened.
+The project is built around six invariants:
 
-QueueForge treats the workflow as one reliability problem:
-
-- **Administrators** publish immutable request types, approval policy, retry budgets, and delivery targets.
-- **Operators** submit ordinary fields without handling internal workflow JSON.
-- **Approvers** review the exact bound revision without receiving operator permissions.
-- **PostgreSQL** commits domain state, idempotency results, audit metadata, and outbox work atomically.
-- **Workers** tolerate at-least-once delivery through stable IDs, durable receipts, bounded retry, and recovery controls.
-- **Reviewers** can follow one correlation ID across the request, decision, attempts, delivery, notifications, and audit history.
+1. **A published request type is immutable.** A changed request needs a new version and a new decision.
+2. **Approval is independent.** An approver reviews the exact bound revision, and the submitter cannot approve their own request.
+3. **Approval and execution are separate guarantees.** A valid decision authorizes work, but a worker, dependency, database lock, receiver, or rate limit can still fail later.
+4. **A failed attempt stays visible.** QueueForge retries the same approved version with stable identities and a bounded budget. Exhausted work moves to deliberate recovery.
+5. **PostgreSQL is authoritative.** Business state, audit metadata, idempotency results, and outbox work commit together.
+6. **The outcome remains explainable.** Request, decision, attempts, delivery, notifications, and recovery share one linked activity trail.
 
 ## Evidence at a glance
 
-| Signal                    | Verified evidence                                                                                                                                                                                 |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Product journey           | **14 labeled real-UI steps** and an **83-second** silent walkthrough using synthetic local data                                                                                                   |
-| Runtime UI audit          | **40 role-aware checks**, including **six forbidden-route redirects**, with no observed console, page, request, GraphQL, layout, navigation, or sensitive-data findings                           |
-| Remote quality gate       | [Formatting, linting, typing, unit/build, accessibility, Storybook, migrations, integration, and secret scanning passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176376) |
-| Browser and load smoke    | [The real role-aware Playwright journey and bounded k6 smoke passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176376)                                                     |
-| Static security analysis  | [The standalone CodeQL JavaScript/TypeScript workflow passed](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176199); no open alerts remain after documented triage             |
-| Exposure boundary         | A separate callable workflow retains the fail-closed Next.js advisory gate without misrepresenting ordinary engineering health                                                                    |
-| Revision-bound local load | **70/70 iterations**, **90 HTTP requests**, **232/232 checks**, and zero recorded correctness or HTTP failures under the documented fixed workload                                                |
+| Signal                       | Bounded evidence                                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Guided product demo          | [4 minute 36 second narrated walkthrough](https://youtu.be/HSDGOt7D5ZM) using synthetic local data                                                                                    |
+| Complete visual journey      | 14 desktop stages in both light and dark themes, plus 8 mobile captures, for **36 approved screenshots**                                                                              |
+| Asset integrity              | Every screenshot records its path, viewport, byte count, alt text, and SHA-256 digest in the [machine-readable manifest](docs/media/screenshots/final-e4de0d2-b17918e5/manifest.json) |
+| Role and tenant boundaries   | Separate administrator, operator, and approver workspaces, self-approval denial, and a visible cross-tenant block                                                                     |
+| Durable work evidence        | Retained attempts, bounded retry, receiver acceptance, requester notification, correlated activity, and authorized recovery                                                           |
+| Engineering gate             | Pull requests run formatting, lint, strict types, unit/build, accessibility, Storybook, PostgreSQL/Redis integration, browser, load-smoke, secret, and CodeQL checks                  |
+| Revision-bound load baseline | At revision `26fa7c8`, 70/70 iterations, 90 HTTP requests, and 232/232 checks completed with no recorded HTTP or correctness failures                                                 |
 
-Results are bounded to their linked revision, synthetic fixtures, local environment, and recorded workload. They are not capacity guarantees or evidence of public-exposure readiness.
+These results apply only to the linked revision, synthetic fixtures, local environment, and recorded workload. They are not capacity guarantees or evidence of public-exposure readiness.
 
-## See the complete workflow
+## Watch the complete workflow
 
 <div align="center">
-  <a href="docs/media/queueforge-pipeline-demo.webm"><img src="artifacts/screenshots/desktop-overview-1440x900.png" width="900" alt="Open the 83-second QueueForge product demo" /></a>
+  <a href="https://youtu.be/HSDGOt7D5ZM">
+    <img src="docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/08-processing-completed.png" width="900" alt="Open the complete QueueForge guided product demo on YouTube" />
+  </a>
   <br />
-  <strong><a href="docs/media/queueforge-pipeline-demo.webm">▶ Watch the 83-second product tour</a></strong>
+  <strong><a href="https://youtu.be/HSDGOt7D5ZM">▶ Watch the complete 4:36 guided product demo</a></strong>
+  <br />
+  <a href="docs/media/queueforge-product-demo.srt">Read or download the 78-cue captions</a>
 </div>
 
-The recording follows administration, role boundaries, guided request intake, independent approval, durable processing, signed result delivery, notifications, correlated audit history, tenant isolation, and recovery visibility. Authentication happens before recording, so no generated local password appears.
+The demo begins with the problem and role model, tours every main workspace, and follows one realistic Expense review through submission, independent approval, a retained failed attempt, successful retry, signed delivery, notification, and correlated audit evidence.
 
-These ten equally framed captures show the core journey. Select any image for full resolution, or open the [complete 14-step walkthrough](docs/project-handoff/queueforge-pipeline-walkthrough/README.md) for every intermediate state.
+## Product journey
 
-| **01: Role boundaries**                                                                                                                                                                                                                                          | **02: Signed delivery connection**                                                                                                                                                                                                                                         |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [![QueueForge people administration showing explicit role boundaries](docs/project-handoff/queueforge-pipeline-walkthrough/step_02_people_and_role_boundaries.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_02_people_and_role_boundaries.png) | [![QueueForge allowlisted delivery connection with signed receiver configuration](docs/project-handoff/queueforge-pipeline-walkthrough/step_03_delivery_connection_ready.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_03_delivery_connection_ready.png) |
-| **03: Guided request intake**                                                                                                                                                                                                                                    | **04: Independent approval**                                                                                                                                                                                                                                               |
-| [![QueueForge operator completing a guided request form](docs/project-handoff/queueforge-pipeline-walkthrough/step_05_operator_fills_request_form.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_05_operator_fills_request_form.png)            | [![QueueForge approver reviewing a bound request](docs/project-handoff/queueforge-pipeline-walkthrough/step_07_approver_reviews_request.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_07_approver_reviews_request.png)                                   |
-| **05: Completed request history**                                                                                                                                                                                                                                | **06: Result delivery history**                                                                                                                                                                                                                                            |
-| [![QueueForge completed request with readable progress and approval history](artifacts/screenshots/desktop-request-detail-1440x900.png)](artifacts/screenshots/desktop-request-detail-1440x900.png)                                                              | [![QueueForge signed result delivery history](docs/project-handoff/queueforge-pipeline-walkthrough/step_09_result_delivery_history.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_09_result_delivery_history.png)                                         |
-| **07: Requester notifications**                                                                                                                                                                                                                                  | **08: Correlated activity proof**                                                                                                                                                                                                                                          |
-| [![QueueForge requester notification for completed work](docs/project-handoff/queueforge-pipeline-walkthrough/step_11_requester_notifications.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_11_requester_notifications.png)                    | [![QueueForge activity log with correlated request events](docs/project-handoff/queueforge-pipeline-walkthrough/step_12_correlated_activity_log.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_12_correlated_activity_log.png)                            |
-| **09: Cross-tenant denial**                                                                                                                                                                                                                                      | **10: Processing health and recovery**                                                                                                                                                                                                                                     |
-| [![QueueForge deny-by-default cross-tenant access result](docs/project-handoff/queueforge-pipeline-walkthrough/step_13_cross_tenant_access_blocked.png)](docs/project-handoff/queueforge-pipeline-walkthrough/step_13_cross_tenant_access_blocked.png)           | [![QueueForge processing health with operator recovery controls](artifacts/screenshots/desktop-operations-1440x900.png)](artifacts/screenshots/desktop-operations-1440x900.png)                                                                                            |
+These six equally framed captures show the core workflow. Select any image for its full-resolution evidence.
 
-**[Watch the complete demo →](docs/media/queueforge-pipeline-demo.webm)** · **[Open all 14 labeled steps →](docs/project-handoff/queueforge-pipeline-walkthrough/README.md)**
+| **01: Configure a versioned request type**                                                                                                                                                                                                          | **02: Submit a readable request**                                                                                                                                                                                                            |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![Published Expense review request type](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/04-published-request-type.png)](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/04-published-request-type.png)                    | [![Operator completing the Expense review request form](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/05-submit-expense-review.png)](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/05-submit-expense-review.png) |
+| **03: Make an independent decision**                                                                                                                                                                                                                | **04: Preserve the processing outcome**                                                                                                                                                                                                      |
+| [![Approver reviewing the bound Expense review request](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/07-approver-review.png)](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/07-approver-review.png)                    | [![Completed request with durable processing history](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/08-processing-completed.png)](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/08-processing-completed.png)     |
+| **05: Notify the requester**                                                                                                                                                                                                                        | **06: Explain who changed what**                                                                                                                                                                                                             |
+| [![Requester notification linked to the completed request](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/11-requester-notifications.png)](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/11-requester-notifications.png) | [![Correlated activity record for the completed request](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/12-correlated-activity.png)](docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/12-correlated-activity.png)    |
+
+Open the complete evidence without mixing unequal image formats:
+
+- [Light desktop contact sheet](docs/media/readme/queueforge-light-contact-sheet.png)
+- [Dark desktop contact sheet](docs/media/readme/queueforge-dark-contact-sheet.png)
+- [Mobile contact sheet](docs/media/readme/queueforge-mobile-contact-sheet.png)
+- [Full 14-step product tour](docs/product-tour.md)
+- [Human-readable screenshot index](docs/media/screenshots/manifest.md)
 
 ## End-to-end pipeline
 
-[![QueueForge complete request-to-recovery pipeline](docs/media/queueforge-pipeline.svg)](docs/project-handoff/queueforge-pipeline-walkthrough/README.md)
+[![QueueForge complete request-to-recovery pipeline](docs/media/queueforge-pipeline.svg)](docs/product-tour.md)
 
-One request moves through explicit role boundaries, immutable configuration, evidence-bound approval, an atomic PostgreSQL outbox, durable BullMQ processing, signed delivery, correlated proof, and operator recovery. The linked walkthrough connects every visible stage to its implementation and verification surface.
+One request moves through explicit role boundaries, immutable configuration, approval bound to the exact request version, an atomic PostgreSQL outbox, durable BullMQ processing, signed delivery, correlated proof, and operator recovery. The [product tour](docs/product-tour.md) connects every visible stage to the final light, dark, and mobile evidence.
+
+## Architecture
+
+[![QueueForge static local architecture diagram](docs/media/queueforge-architecture.svg)](docs/architecture.md)
+
+The browser uses the static Next.js interface to call one Nest application layer. PostgreSQL owns durable state. The transactional outbox transfers committed work to the worker path, while Redis and BullMQ coordinate replaceable at-least-once execution. The worker signs delivery to an allowlisted receiver, and the UI exposes the resulting audit, notification, health, and recovery records.
+
+See [architecture](docs/architecture.md), [event flow](docs/event-flow.md), and [database design](docs/database.md).
 
 ## What I engineered
 
@@ -89,71 +107,50 @@ One request moves through explicit role boundaries, immutable configuration, evi
 - Designed optimistic workflow drafting with immutable activated versions, canonical target ordering, and request-to-version binding.
 - Made submission and approval idempotent, revision-aware, self-approval-safe, and atomic with audit and transactional-outbox insertion.
 - Connected a PostgreSQL outbox to three BullMQ queues with durable receipts, bounded retry, lease recovery, and separate dead-letter history.
-- Secured inbound and outbound webhooks with raw-body HMAC verification, nonce/replay controls, destination allowlisting, DNS/address pinning, and redirect denial.
-- Built accessible role-specific Next.js workspaces for intake, approval, processing health, recovery, delivery history, notifications, and correlated audit review.
-- Added real PostgreSQL/Redis concurrency probes, Playwright role journeys, k6 thresholds, CodeQL, secret scanning, evidence freshness checks, and a fail-closed vendor gate.
+- Secured inbound and outbound webhooks with raw-body HMAC verification, replay controls, destination allowlisting, DNS and address pinning, and redirect denial.
+- Built responsive, accessible role-specific Next.js workspaces with light and dark themes, guided forms, recovery states, and reduced-motion support.
+- Added real PostgreSQL and Redis concurrency probes, Playwright role journeys, k6 thresholds, CodeQL, secret scanning, evidence checks, and a fail-closed vendor gate.
+- Authored and integrated the QueueForge Attestation Forge 3D asset with deterministic fallback behavior and lifecycle cleanup.
 
-## Architecture
+## System capabilities
 
-```mermaid
-flowchart LR
-    Browser["Static Next.js dashboard\n127.0.0.1:3100"]
-    API["Nest API\nREST + GraphQL\n127.0.0.1:3001"]
-    DB[("PostgreSQL\nauthoritative state")]
-    Redis[("Redis\nBullMQ coordination")]
-    Worker["Nest worker\noutbox + consumers"]
-    Sink["Signed local webhook sink\n127.0.0.1:3300"]
-
-    Browser --> API
-    API --> DB
-    Worker --> DB
-    Worker --> Redis
-    Redis --> Worker
-    Worker --> Sink
-```
-
-A durably idempotent command transaction commits domain state, bounded audit metadata, its idempotency result, and an outbox row together where the command emits an event. Redis coordinates at-least-once processing; PostgreSQL remains the durable source of truth. See [architecture](docs/architecture.md) and [event flow](docs/event-flow.md).
+| Capability               | What it provides                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Versioned request types  | Human-readable forms, approval rules, processing steps, delivery targets, and immutable activation           |
+| Role-specific workspaces | Separate administration, request, approval, operation, delivery, notification, and audit surfaces            |
+| Tenant isolation         | Membership-derived tenant context, scoped stores, composite tenant constraints, and forbidden-route handling |
+| Independent approval     | Exact revision binding, self-approval prevention, replay protection, and retained decision history           |
+| Durable processing       | Transactional outbox, BullMQ coordination, stable event IDs, bounded retry, leases, and recovery controls    |
+| Signed delivery          | Allowlisted destinations, raw-body HMAC signatures, retained attempts, and receiver acceptance evidence      |
+| Explainable operations   | Linked status, attempt, delivery, notification, audit, worker-freshness, and recovery records                |
+| Responsive product UI    | Desktop, mobile, light, dark, keyboard, focus, reduced-motion, and accessibility-tested states               |
 
 ## Reliability by design
 
 | Failure mode                                                            | Guardrail                                                                                               | Evidence surface                                                     |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | A caller changes a tenant identifier                                    | Membership-derived context, tenant-scoped stores, and composite tenant foreign keys                     | Cross-tenant integration probes and visible forbidden-route behavior |
-| Two clients submit or approve concurrently                              | Stable idempotency keys, uniqueness, resource locks, exact revision checks, and bounded transient retry | Concurrency integration suites and replay assertions                 |
+| Two clients submit or approve concurrently                              | Stable idempotency keys, uniqueness, resource locks, exact revision checks, and bounded transient retry | Concurrency suites and replay assertions                             |
 | The database commits but queue publication fails                        | Domain state and outbox row commit in one PostgreSQL transaction                                        | Outbox persistence, dispatcher, and crash-recovery tests             |
-| BullMQ redelivers work                                                  | Stable event IDs, durable consumer receipts, replay-safe QueueForge effects, and lease recovery         | Worker recovery and duplicate-receipt tests                          |
-| A webhook is forged, replayed, redirected, or targets a private address | Raw-body HMAC, nonce/timestamp receipts, allowlisting, DNS/address pinning, and no redirects            | Inbound/outbound webhook security suites                             |
-| An operator needs to explain a failure                                  | Correlation-bound timeline, attempts, delivery history, audit, worker freshness, and authorized retry   | Role-aware Playwright journey and processing-health UI audit         |
+| BullMQ redelivers work                                                  | Stable event IDs, durable consumer receipts, replay-safe database effects, and lease recovery           | Worker recovery and duplicate-receipt tests                          |
+| A webhook is forged, replayed, redirected, or targets a private address | Raw-body HMAC, nonce and timestamp receipts, allowlisting, address pinning, and redirect denial         | Inbound and outbound webhook security suites                         |
+| An operator needs to explain a failure                                  | Linked timeline, attempts, delivery history, audit, worker freshness, and authorized retry              | Product tour and role-aware browser journey                          |
 
 ## Technology
 
-| Layer        | Main components                                                                           |
-| ------------ | ----------------------------------------------------------------------------------------- |
-| Web          | Next.js 16.3.2, React 19.2, TypeScript 5.9, static export, accessible role workspaces     |
-| API          | NestJS 11, REST, GraphQL 16, Zod contracts, rotating session families, RBAC               |
-| State        | PostgreSQL, TypeORM migrations, composite tenant constraints, transactional outbox        |
-| Work         | Redis, BullMQ, three queues, durable receipts, leases, bounded retry, dead-letter history |
-| Delivery     | Raw-body HMAC verification, signed allowlisted webhooks, local failure-injection sink     |
-| Verification | Jest, Vitest, Testing Library, axe-core, Playwright, k6 2.2, secretlint, CodeQL           |
-| Runtime      | Node.js 24.13, pnpm 11.23, Docker Compose, PowerShell 7, loopback-only published ports    |
+| Layer        | Main components                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------- |
+| Web          | Next.js 16.3.2, React 19.2, TypeScript 5.9, Motion, Three.js, static export, Storybook      |
+| API          | NestJS 11, REST, GraphQL 16, Zod contracts, rotating session families, RBAC                 |
+| State        | PostgreSQL 17, TypeORM migrations, composite tenant constraints, transactional outbox       |
+| Work         | Redis 8, BullMQ, three queues, durable receipts, leases, bounded retry, dead-letter history |
+| Delivery     | Raw-body HMAC verification, signed allowlisted webhooks, local failure-injection sink       |
+| Verification | Jest, Vitest, Testing Library, axe-core, Playwright, k6, secretlint, CodeQL                 |
+| Runtime      | Node.js 24, pnpm 11.23, Docker Compose, PowerShell 7, loopback-only published ports         |
 
 ## Run locally
 
 The standard target is a 16 GB Windows laptop with Node.js `>=24.13.0 <25`, Corepack, pnpm `11.23.0`, Docker Compose v2, Git, and PowerShell 7. PostgreSQL and Redis can stay in Docker while the Node.js processes run on the host.
-
-### Private Windows package
-
-**[Download the latest QueueForge Windows ZIP and checksum →](https://github.com/Hasan-Al-Hussein/queueforge/releases/latest)**
-
-1. Open Docker Desktop and wait for the engine.
-2. Extract the private distribution and double-click `START-QUEUEFORGE.cmd`.
-3. Keep the first-start window open while the capped build prepares the stack.
-4. When <http://127.0.0.1:3100> opens, use `admin@queueforge.test`; the generated local password is copied without being printed.
-5. Double-click `STOP-QUEUEFORGE.cmd` to stop the stack while preserving its private database.
-
-The package creates fresh secrets for each machine and does not require a paid cloud service. The revision-bound packager, `pnpm package:private`, refuses dirty source and excludes `.env`, Git metadata, dependencies, runtime state, and test output.
-
-### Source development
 
 ```powershell
 corepack enable
@@ -168,145 +165,133 @@ pnpm dev
 
 `pnpm env:generate` creates an ignored `.env` with random local-only secrets and leaves an existing file unchanged. Never commit or print those values. Stop the Node.js processes with `Ctrl+C`, then run `pnpm dev:services:down`.
 
-| Local surface               | Address                                     |
-| --------------------------- | ------------------------------------------- |
-| Dashboard                   | <http://127.0.0.1:3100>                     |
-| REST/OpenAPI development UI | <http://127.0.0.1:3001/api/docs>            |
-| GraphQL development UI      | <http://127.0.0.1:3001/graphql>             |
-| API readiness               | <http://127.0.0.1:3001/api/v1/health/ready> |
-| Demonstration sink history  | <http://127.0.0.1:3300/history>             |
+| Local surface                   | Address                                     |
+| ------------------------------- | ------------------------------------------- |
+| Dashboard                       | <http://127.0.0.1:3100>                     |
+| REST and OpenAPI development UI | <http://127.0.0.1:3001/api/docs>            |
+| GraphQL development UI          | <http://127.0.0.1:3001/graphql>             |
+| API readiness                   | <http://127.0.0.1:3001/api/v1/health/ready> |
+| Demonstration sink history      | <http://127.0.0.1:3300/history>             |
 
-<details>
-<summary><strong>Open the full local Compose route</strong></summary>
+The [environment guide](docs/environment.md) covers the inspected laptop baseline, port overrides, low-memory guidance, full-Compose route, and non-mutating prerequisite check.
 
-<br />
+## Reproduce the approval and execution invariant
 
-```powershell
-pnpm install --frozen-lockfile
-pnpm env:generate
-docker compose --profile full up --build
-```
+1. Sign in as the seeded operator and submit the synthetic Expense review request.
+2. Confirm the request is waiting for approval and names a separate approver.
+3. Sign in as the approver and review the exact submitted values.
+4. Approve the bound revision, then observe background processing begin.
+5. Inspect the retained failed attempt and the successful retry of the same approved version.
+6. Confirm the signed receiver accepted the result and the requester received a completion notification.
+7. Open the correlated activity record and follow who changed what, when, and why.
+8. Attempt cross-tenant access and confirm QueueForge denies it.
 
-The profile runs PostgreSQL, Redis, migration, seed, API, worker, sink, and the static web export with explicit resource caps and loopback-only published ports. Stop it without deleting data using `docker compose --profile full down`.
-
-</details>
-
-<details>
-<summary><strong>Open the seeded roles and reviewer journey</strong></summary>
-
-<br />
-
-| Identity                    | Access                                     | Demonstration                                           |
-| --------------------------- | ------------------------------------------ | ------------------------------------------------------- |
-| `admin@queueforge.test`     | Platform admin; Acme and Beta tenant admin | Configure request types, connections, health, and audit |
-| `operator@queueforge.local` | Acme operator                              | Submit, follow, cancel, and retry requests              |
-| `approver@queueforge.local` | Acme approver                              | Decide a bound request without operator controls        |
-| `outsider@queueforge.local` | Beta operator only                         | Demonstrate tenant isolation                            |
-
-All identities use the locally generated `BOOTSTRAP_ADMIN_PASSWORD`; never replace it with a shared portfolio password. The clearest review uses separate admin, operator, and approver sessions. Follow the [demo script](docs/demo-script.md) for the exact safe journey and failure-injection notes.
-
-</details>
-
-See the [environment guide](docs/environment.md) for the inspected laptop baseline, port overrides, low-memory guidance, and the non-mutating environment check.
+The [demo script](docs/demo-script.md) provides the exact safe role journey and failure-injection notes.
 
 ## Verification
 
-At revision `26fa7c8`, the [engineering workflow](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176376) passed quality/build/integration plus the real browser journey and bounded k6 smoke, while the independent [CodeQL workflow](https://github.com/Hasan-Al-Hussein/queueforge/actions/runs/32860176199) passed with no unresolved alerts after evidence-backed triage. Continuous engineering CI and CodeQL remain separate from the deployment-only exposure workflow; `pnpm verify:release` and the callable public-exposure workflow still fail closed while the tracked Next.js exception remains open.
+Every pull request runs two engineering jobs plus CodeQL:
 
-| Command                   | Coverage                                                                |
-| ------------------------- | ----------------------------------------------------------------------- |
-| `pnpm verify`             | Formatting, linting, type checking, unit tests, and builds              |
-| `pnpm verify:local`       | Core verification plus real PostgreSQL/Redis integration and web suites |
-| `pnpm test:a11y`          | Accessibility checks                                                    |
-| `pnpm test:e2e`           | Role-aware browser journey against a running local topology             |
-| `pnpm test:load:smoke`    | Bounded loopback-only k6 smoke                                          |
-| `pnpm audit:local`        | Dependency, secret, security, and summary checks                        |
-| `pnpm security:next-gate` | Fail-closed vendor advisory decision                                    |
+- **Quality, build, and integration:** formatting, lint, strict types, unit tests, builds, accessibility, Storybook, migrations, PostgreSQL and Redis integration, dependency audit, secret scan, and load-summary security.
+- **Browser journey and bounded load smoke:** a real seeded role journey against the loopback topology and a pinned k6 smoke run.
+- **CodeQL:** JavaScript and TypeScript analysis with the security-extended query suite.
 
-Start isolated test services before the local integration path:
+| Command                   | Coverage                                                                    |
+| ------------------------- | --------------------------------------------------------------------------- |
+| `pnpm verify`             | Formatting, builds, lint, type checking, and unit tests                     |
+| `pnpm verify:local`       | Core verification plus real PostgreSQL and Redis integration and web suites |
+| `pnpm test:a11y`          | Accessibility checks                                                        |
+| `pnpm test:e2e`           | Role-aware browser journey against a running local topology                 |
+| `pnpm test:load:smoke`    | Bounded loopback-only k6 smoke                                              |
+| `pnpm audit:local`        | Dependency, secret, security, and summary checks                            |
+| `pnpm security:next-gate` | Fail-closed vendor advisory decision                                        |
 
-```powershell
-pnpm test:services
-pnpm verify:local
-pnpm test:a11y
-```
+The public-exposure gate is intentionally separate from ordinary engineering health. It remains nonzero while the tracked Next.js advisory exception is open. See [testing](docs/testing.md), [load testing](docs/load-testing.md), and the [security gate record](scripts/next-security-gate.json).
 
-Reset only the labeled synthetic test database when a clean integration fixture is needed:
+<details>
+<summary><strong>Revision-bound local load baseline</strong></summary>
 
-```powershell
-pnpm test:services:reset
-```
+<br />
 
-The broader release command also invokes end-to-end, load-smoke, dependency, secret, security, and the final Next.js gate:
+At revision `26fa7c8`, the fixed local profile completed 70/70 iterations and 90 HTTP requests with 232/232 checks, zero recorded HTTP failures, and zero recorded correctness errors across 78 invariants. The five scenarios covered submissions, idempotency replays, list reads, concurrent approval races, and signed inbound webhooks.
 
-```powershell
-pnpm verify:release
-```
+This is evidence from one local laptop and synthetic dataset, not a capacity guarantee, remote CI result, or permission for external exposure.
 
-`verify:release` does not start the web/API/worker/sink topology required by E2E and load smoke. Keep a migrated, seeded host-first or full-Compose instance running separately before invoking it. The Next.js check runs last and is expected to make the command nonzero while the exception remains open. See [testing](docs/testing.md) for the evidence rules and exact suite boundaries.
+</details>
 
-## Local performance evidence
+## Security and privacy boundaries
 
-The bounded local profile uses the full Docker Compose stack and five scenarios at 2 VUs each: 12 submissions, 6 idempotency replays, 36 list reads, 4 concurrent approval races, and 12 signed inbound webhooks.
+- Authentication uses rotating refresh-token families, short-lived access tokens, hashed API keys, and server-side role checks.
+- Tenant context comes from authenticated membership rather than caller-controlled identifiers.
+- Submission and approval bind to exact request revisions and reject unsafe replay or self-approval.
+- PostgreSQL commits business state, audit metadata, idempotency results, and outbox work atomically.
+- Inbound and outbound webhooks use raw-body HMAC verification, replay controls, allowlisted destinations, address pinning, and redirect denial.
+- Local credentials, `.env`, database and Redis state, runtime logs, browser state, private archives, and generated test evidence are excluded from source control.
+- All committed screenshots and fixtures use synthetic local demonstration data.
+- Every service stays on `127.0.0.1`. The current HTTP topology has no TLS and must not be exposed to another machine.
 
-```powershell
-$env:K6_LOAD_VUS='2'; $env:K6_LOAD_ITERATIONS='12'; pwsh scripts/run-k6.ps1 -Scenario load
-```
+See [SECURITY.md](SECURITY.md), [security controls](docs/security.md), and the [threat model](docs/threat-model.md).
 
-An accepted run must complete 70/70 iterations and 90 HTTP requests with 232/232 checks, zero HTTP failures, zero correctness errors across 78 invariants, and every configured threshold green.
+## Engineering tradeoffs
 
-| Operation            | Required p95 |
-| -------------------- | -----------: |
-| Concurrent approvals |   < 2,000 ms |
-| Idempotency replay   |   < 1,500 ms |
-| Request listing      |   < 1,000 ms |
-| Request submission   |   < 1,500 ms |
-| Signed webhook       |   < 2,000 ms |
-
-The committed smoke/load context and summary pair is the authority for the exact revision, capture time, hardware, starting synthetic dataset, effective command, observed p95 values, checks, and threshold outcomes. The resource gate samples the full Compose profile during the bounded load workload and enforces less than 5 GiB peak memory and less than 4 GiB added disk use. Exact revision-bound results, project/image/volume/cache deltas, and caveats are preserved in [benchmark evidence](test-results/k6/) and [resource evidence](artifacts/verification/resources.json); the claims checker rejects stale evidence or any failed threshold or budget.
-
-These are fixed-workload results from one local laptop and synthetic dataset, not capacity guarantees, remote CI evidence, or permission for external exposure.
+| Decision                    | Benefit                                                       | Limit                                                                 |
+| --------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------- |
+| PostgreSQL as the authority | Durable state, audit, idempotency, and recovery in one system | More operational weight than an in-memory demo                        |
+| Transactional outbox        | Prevents a committed request from losing its queued work      | Adds dispatcher and recovery machinery                                |
+| At-least-once processing    | Tolerates worker interruption and broker redelivery           | Consumers and receivers must be idempotent                            |
+| Static Next.js export       | Small loopback web surface and simple local serving           | Dynamic server rendering is intentionally unavailable                 |
+| Role-specific workspaces    | Clear duties and safer decisions                              | More UI states and authorization tests                                |
+| Local-only deployment       | Keeps synthetic demonstration traffic on one machine          | Not a hosted multi-tenant production architecture                     |
+| Fail-closed vendor gate     | Prevents accidental public exposure on a known exception      | Public deployment remains blocked until the upstream fix is validated |
 
 ## Documentation
 
-| Area      | Guides                                                                                                                                                          |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Product   | [Demo script](docs/demo-script.md) · [14-step walkthrough](docs/project-handoff/queueforge-pipeline-walkthrough/README.md) · [Career pack](docs/career-pack.md) |
-| Design    | [Architecture](docs/architecture.md) · [API design](docs/api-design.md) · [Database](docs/database.md) · [Event flow](docs/event-flow.md)                       |
-| Contracts | [Event contracts](docs/event-contracts.md) · [TypeORM ADR](docs/adr/0001-typeorm.md) · [API split ADR](docs/adr/0002-api-split.md)                              |
-| Assurance | [Security controls](docs/security.md) · [Threat model](docs/threat-model.md) · [Testing](docs/testing.md) · [Load testing](docs/load-testing.md)                |
-| Operation | [Environment baseline](docs/environment.md) · [Troubleshooting](docs/troubleshooting.md) · [Responsible disclosure](SECURITY.md)                                |
+| Area      | Guides                                                                                                                                                                     |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Product   | [Product tour](docs/product-tour.md) · [Screenshot manifest](docs/media/screenshots/manifest.md) · [Demo script](docs/demo-script.md) · [Career pack](docs/career-pack.md) |
+| Design    | [Architecture](docs/architecture.md) · [API design](docs/api-design.md) · [Database](docs/database.md) · [Event flow](docs/event-flow.md)                                  |
+| Contracts | [Event contracts](docs/event-contracts.md) · [TypeORM ADR](docs/adr/0001-typeorm.md) · [API split ADR](docs/adr/0002-api-split.md)                                         |
+| Assurance | [Security controls](docs/security.md) · [Threat model](docs/threat-model.md) · [Testing](docs/testing.md) · [Load testing](docs/load-testing.md)                           |
+| Operation | [Environment baseline](docs/environment.md) · [Troubleshooting](docs/troubleshooting.md) · [Responsible disclosure](SECURITY.md)                                           |
 
-## Repository layout
+## Repository map
 
-```text
-apps/
-  api/              Nest REST, GraphQL, auth, health, and inbound webhooks
-  worker/           Outbox dispatcher and BullMQ consumers
-  web/              Static-export Next.js operator dashboard
-  webhook-sink/     Local signed receiver and failure injector
-packages/
-  application/      Use cases and authorization policy
-  config/           Environment schemas
-  contracts/        Zod transport/event contracts and constants
-  domain/           Pure invariants, hashing, state machine, retry policy
-  observability/    Structured logging and Prometheus metrics
-  persistence/      TypeORM, migrations, stores, seed, and lock queries
-  testkit/          Synthetic test helpers
-  ui/               Accessible React primitives
-docs/               Design, operation, testing, and interview evidence
-tests/integration/  Real PostgreSQL/Redis integration probes
-load-tests/         Bounded loopback-only k6 scenarios
-scripts/            Environment, security-gate, test-service, and k6 helpers
-.github/            Commit-pinned engineering CI, CodeQL, and exposure-gate automation
-```
+| Path                   | Purpose                                                               |
+| ---------------------- | --------------------------------------------------------------------- |
+| `apps/api`             | Nest REST, GraphQL, authentication, health, and inbound webhooks      |
+| `apps/worker`          | Outbox dispatcher and BullMQ consumers                                |
+| `apps/web`             | Responsive static-export Next.js product interface                    |
+| `apps/webhook-sink`    | Local signed receiver and failure injector                            |
+| `packages/application` | Use cases and authorization policy                                    |
+| `packages/domain`      | Pure invariants, hashing, state machine, and retry policy             |
+| `packages/persistence` | TypeORM, migrations, stores, seed data, and lock queries              |
+| `packages/contracts`   | Zod transport and event contracts                                     |
+| `packages/ui`          | Accessible React primitives                                           |
+| `tests/integration`    | Real PostgreSQL and Redis integration probes                          |
+| `load-tests`           | Bounded loopback-only k6 scenarios                                    |
+| `tools/queueforge-3d`  | Source and deterministic build tool for the Attestation Forge asset   |
+| `docs`                 | Product evidence, architecture, security, operation, and verification |
 
-## Claim boundary
+## Honest claim boundary
 
-QueueForge demonstrates a transactional outbox, at-least-once processing, and durable deduplication of QueueForge-owned database effects when the relevant tests pass. It does not claim exactly-once queue execution, exactly-once delivery to arbitrary HTTP receivers, PostgreSQL row-level security, cryptographically immutable audit logs, public/cloud readiness, or closed dependency gates that have not been evidenced.
+QueueForge demonstrates a transactional outbox, at-least-once processing, and durable deduplication of QueueForge-owned database effects when the relevant tests pass. It does not claim exactly-once queue execution, exactly-once delivery to arbitrary HTTP receivers, PostgreSQL row-level security, cryptographically immutable audit logs, public or cloud readiness, or closed dependency gates that have not been evidenced.
 
-The current Next.js security exception is recorded in `scripts/next-security-gate.json`. `pnpm security:next-gate`, `pnpm verify:release`, and the dedicated public-exposure workflow are expected to fail while that record remains open; loopback-only use is mandatory.
+## Roadmap
+
+- Validate the vendor-fixed Next.js release before changing the loopback-only boundary.
+- Add release signing and a reproducible public package only after the dependency gate closes.
+- Extend operator observability with measured queue-age and receiver-health thresholds.
+- Evaluate row-level security only if a production deployment model requires it.
+- Add backup, restore, TLS, managed identity, and production monitoring before any non-local deployment.
 
 ## License
 
-QueueForge is released under the [MIT License](LICENSE). See [NOTICE.md](NOTICE.md) for the project boundary and third-party attribution statement.
+QueueForge is released under the [MIT License](LICENSE). See [NOTICE.md](NOTICE.md) and [third-party licenses](THIRD_PARTY_LICENSES/) for attribution.
+
+<div align="center">
+
+Designed and engineered by **[Hasan Ahmed Al Hussein](https://github.com/Hasan-Al-Hussein)**.
+
+[LinkedIn](https://www.linkedin.com/in/hasan-al-hussein) · [GitHub portfolio](https://github.com/Hasan-Al-Hussein)
+
+</div>

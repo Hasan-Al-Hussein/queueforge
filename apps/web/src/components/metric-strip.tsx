@@ -13,7 +13,7 @@ export function MetricStrip({ items }: { readonly items: readonly Metric[] }): R
         <div className="qf-metric" key={item.label}>
           <dt>{item.label}</dt>
           <dd className="qf-mono">{item.value}</dd>
-          {item.detail !== undefined ? <span>{item.detail}</span> : null}
+          {item.detail !== undefined ? <dd className="qf-metric__detail">{item.detail}</dd> : null}
         </div>
       ))}
     </dl>

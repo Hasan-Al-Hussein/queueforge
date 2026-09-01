@@ -6,6 +6,12 @@ export interface NotificationPresentation {
   readonly status: string;
 }
 
+export interface NotificationPageCounts {
+  readonly action: number;
+  readonly problems: number;
+  readonly unread: number;
+}
+
 export function notificationPresentation(
   notification: Pick<Notification, 'body' | 'kind' | 'title'>,
 ): NotificationPresentation {
@@ -33,4 +39,20 @@ export function notificationPresentation(
     return { heading: notification.title, label: 'Delivered', status: 'succeeded' };
   }
   return { heading: notification.title, label: 'Update', status: 'active' };
+}
+
+export function notificationPageCounts(
+  notifications: readonly Pick<Notification, 'body' | 'kind' | 'readAt' | 'title'>[],
+): NotificationPageCounts {
+  return notifications.reduce<NotificationPageCounts>(
+    (counts, notification) => {
+      const presentation = notificationPresentation(notification);
+      return {
+        action: counts.action + (presentation.label === 'Action needed' ? 1 : 0),
+        problems: counts.problems + (presentation.label === 'Problem' ? 1 : 0),
+        unread: counts.unread + (notification.readAt === null ? 1 : 0),
+      };
+    },
+    { action: 0, problems: 0, unread: 0 },
+  );
 }

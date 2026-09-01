@@ -1,5 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" fill="#132b3d" />
-  <path d="M15 13h34v38H15z" fill="none" stroke="#365064" stroke-width="2" />
-  <path d="M23 37v8M32 26v19M41 17v28" stroke="#f26a2e" stroke-linecap="square" stroke-width="6" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <rect width="48" height="48" rx="6" fill="#050d11" />
+  <path
+    d="M4.5 7.75v5.5m0 8v5.5m0 8v5.5M21 11.5h8v25h-8"
+    fill="none"
+    stroke="#91a2a6"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="1.25"
+  />
+  <path
+    d="M4.5 10.5h8.75L21 18.75M4.5 24H21M4.5 37.5h8.75L21 29.25M29 24h5"
+    fill="none"
+    stroke="#f3f1e9"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2.1"
+  />
+  <path
+    d="M25 5.5v12m-3 0h6L25 21.5ZM25 21.5l2.5 2.5-2.5 2.5-2.5-2.5Z"
+    fill="none"
+    stroke="#e4a84b"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="3"
+  />
+  <path d="m40 17.75 6.25 6.25L40 30.25 33.75 24Z" fill="#42ceb5" />
+  <path
+    d="M38 21.75h4m-4 2.25h4m-3 2.25h2"
+    fill="none"
+    stroke="#f3f1e9"
+    stroke-linecap="round"
+    stroke-width="1.25"
+  />
 </svg>

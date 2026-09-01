@@ -1,8 +1,8 @@
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import axe from 'axe-core';
 import { describe, expect, it } from 'vitest';
 
-import { Button, InputField, Panel, QueueRail, StatusBadge } from '@queueforge/ui';
+import { Button, InputField, Panel, QueueRail, SelectField, StatusBadge } from '@queueforge/ui';
 
 import { PaginationControls } from '../components/pagination-controls';
 
@@ -26,6 +26,15 @@ describe('Control desk accessibility', () => {
             label="Request type key"
             required
           />
+          <SelectField
+            defaultValue="all"
+            helper="Narrow the visible records."
+            id="status-filter-a11y"
+            label="Status"
+          >
+            <option value="all">All statuses</option>
+            <option value="waiting">Waiting</option>
+          </SelectField>
           <StatusBadge status="pending_approval" />
           <Button type="submit" tone="primary">
             Save draft
@@ -40,6 +49,11 @@ describe('Control desk accessibility', () => {
           pageSize={25}
         />
       </main>,
+    );
+    expect(screen.getByText(/Current stage/)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Status' })).toHaveAttribute(
+      'aria-describedby',
+      'status-filter-a11y-message',
     );
     const results = await axe.run(container, {
       rules: { 'color-contrast': { enabled: false } },

@@ -1,0 +1,311 @@
+1
+00:00:00,352 --> 00:00:04,452
+An expense request passes through several hands.
+
+2
+00:00:04,656 --> 00:00:08,031
+Omar submits it, Amina makes the decision,
+
+3
+00:00:08,108 --> 00:00:10,886
+background processing prepares the outcome,
+
+4
+00:00:11,176 --> 00:00:13,031
+and another system receives it.
+
+5
+00:00:13,250 --> 00:00:16,439
+If those handoffs live in separate tools,
+
+6
+00:00:16,489 --> 00:00:21,369
+a delay or failure becomes difficult to trace and explain.
+
+7
+00:00:23,381 --> 00:00:27,011
+QueueForge keeps those handoffs connected on one record.
+
+8
+00:00:27,216 --> 00:00:30,293
+It is not chat or a general project tracker.
+
+9
+00:00:30,511 --> 00:00:34,623
+It controls approval, background processing, delivery,
+
+10
+00:00:34,673 --> 00:00:37,097
+and the history people need to inspect.
+
+11
+00:00:38,395 --> 00:00:41,216
+The work is divided among three roles.
+
+12
+00:00:41,420 --> 00:00:44,454
+Omar, the operator, starts requests.
+
+13
+00:00:44,659 --> 00:00:48,858
+Amina, the approver, makes the independent decision.
+
+14
+00:00:49,048 --> 00:00:53,389
+An administrator configures the workspace and watches its health.
+
+15
+00:00:53,608 --> 00:00:57,521
+After sign-in, each person sees only the pages
+
+16
+00:00:57,571 --> 00:00:59,724
+and actions their role allows.
+
+17
+00:00:59,915 --> 00:01:03,531
+Everything here uses local demonstration data.
+
+18
+00:01:05,395 --> 00:01:07,349
+Here is the workspace map.
+
+19
+00:01:07,582 --> 00:01:12,902
+Home shows priorities and current status.
+
+20
+00:01:12,952 --> 00:01:14,778
+and work that needs attention.
+
+21
+00:01:14,983 --> 00:01:18,797
+Request types is where administrators build forms.
+
+22
+00:01:18,847 --> 00:01:23,115
+They set approval rules, processing steps, and the delivery path.
+
+23
+00:01:23,165 --> 00:01:24,835
+that each request follows.
+
+24
+00:01:25,054 --> 00:01:29,024
+Delivery connections shows where finished results go
+
+25
+00:01:29,074 --> 00:01:30,531
+and whether they arrived.
+
+26
+00:01:30,750 --> 00:01:33,670
+People and access controls who can enter.
+
+27
+00:01:33,747 --> 00:01:35,318
+It controls what each role may do.
+
+28
+00:01:35,509 --> 00:01:39,281
+Processing health separates work that is waiting, running,
+
+29
+00:01:39,599 --> 00:01:41,937
+retrying, or needs help.
+
+30
+00:01:42,128 --> 00:01:45,373
+Activity log preserves important changes
+
+31
+00:01:45,423 --> 00:01:48,727
+and lets administrators inspect the details.
+
+32
+00:01:48,932 --> 00:01:52,987
+Notifications is each person's inbox for decisions,
+
+33
+00:01:53,037 --> 00:01:56,526
+completed work, retries, and problems.
+
+34
+00:01:56,744 --> 00:02:02,491
+Together, these seven pages follow one request from setup to proof.
+
+35
+00:02:03,381 --> 00:02:04,227
+Step one.
+
+36
+00:02:04,432 --> 00:02:07,450
+Omar opens Start and track requests,
+
+37
+00:02:07,500 --> 00:02:12,253
+chooses Expense review and enters 1,250 dirhams.
+
+38
+00:02:12,472 --> 00:02:15,902
+He selects cost center OPS-42.
+
+39
+00:02:15,952 --> 00:02:17,778
+Then he adds the summary:
+
+40
+00:02:17,955 --> 00:02:22,281
+Dubai client workshop airfare, September 2026
+
+41
+00:02:22,500 --> 00:02:27,137
+Before he sends it, the review page shows who will approve the request
+
+42
+00:02:27,187 --> 00:02:28,687
+and what happens next.
+
+43
+00:02:28,906 --> 00:02:33,075
+Omar submits, and QueueForge marks it Waiting for approval
+
+44
+00:02:33,125 --> 00:02:34,682
+with the next person named.
+
+45
+00:02:36,381 --> 00:02:37,256
+Step two.
+
+46
+00:02:37,460 --> 00:02:39,939
+Amina opens the Approval inbox
+
+47
+00:02:39,989 --> 00:02:42,923
+and searches Dubai client workshop.
+
+48
+00:02:43,128 --> 00:02:46,801
+Omar's request appears with the same details he submitted.
+
+49
+00:02:47,020 --> 00:02:49,315
+She reviews them and approves.
+
+50
+00:02:49,520 --> 00:02:52,185
+Omar cannot approve his own request,
+
+51
+00:02:52,418 --> 00:02:55,905
+so QueueForge saves Amina's independent decision
+
+52
+00:02:55,955 --> 00:02:58,079
+before processing begins.
+
+53
+00:02:59,381 --> 00:03:00,454
+Step three.
+
+54
+00:03:00,659 --> 00:03:03,210
+QueueForge starts the background work.
+
+55
+00:03:03,415 --> 00:03:07,131
+The first attempt fails, but it remains visible.
+
+56
+00:03:07,349 --> 00:03:11,832
+QueueForge tries again, and the second attempt succeeds.
+
+57
+00:03:12,037 --> 00:03:16,520
+It creates a signed receipt so the completed result can be verified,
+
+58
+00:03:16,724 --> 00:03:17,841
+then delivers it.
+
+59
+00:03:18,045 --> 00:03:22,470
+In Delivery connections, the administrator searches Expense review
+
+60
+00:03:22,520 --> 00:03:24,716
+and finds the matching send.
+
+61
+00:03:24,935 --> 00:03:28,253
+The delivery record confirms it was accepted,
+
+62
+00:03:28,443 --> 00:03:32,088
+and Omar's request now reads Completed.
+
+63
+00:03:33,381 --> 00:03:36,102
+Omar receives a completion notification.
+
+64
+00:03:36,307 --> 00:03:40,690
+In Activity log, the administrator searches Request completed
+
+65
+00:03:40,753 --> 00:03:43,957
+and finds the matching 12:42 entry.
+
+66
+00:03:44,148 --> 00:03:47,707
+Opening that row reveals who changed the request,
+
+67
+00:03:47,912 --> 00:03:50,618
+when it happened, and the saved evidence needed
+
+68
+00:03:50,668 --> 00:03:53,645
+to understand the retry and final outcome.
+
+69
+00:03:53,878 --> 00:03:57,864
+One request now reads as one clear story.
+
+70
+00:04:01,395 --> 00:04:05,409
+Behind the screen, QueueForge confirms Omar may act
+
+71
+00:04:05,543 --> 00:04:08,335
+and saves the request in its database.
+
+72
+00:04:08,540 --> 00:04:11,361
+A background worker performs the task,
+
+73
+00:04:11,594 --> 00:04:14,685
+then passes the result to the receiving system.
+
+74
+00:04:14,889 --> 00:04:18,674
+As each step finishes, the website updates the status
+
+75
+00:04:18,724 --> 00:04:20,239
+and keeps the history.
+
+76
+00:04:22,409 --> 00:04:27,601
+From the request, to the independent decision, retry, delivery,
+
+77
+00:04:27,651 --> 00:04:32,487
+and final record, QueueForge keeps every handoff understandable
+
+78
+00:04:32,537 --> 00:04:34,165
+and leaves proof behind.

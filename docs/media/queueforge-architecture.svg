@@ -1,0 +1,214 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1600 720"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">QueueForge local architecture</title>
+  <desc id="desc">
+    A static architecture diagram showing the loopback browser, Next.js interface, Nest API,
+    PostgreSQL authority, transactional outbox, Redis and BullMQ coordination, workers, signed
+    receiver, and audit surfaces.
+  </desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071826" />
+      <stop offset="1" stop-color="#12384e" />
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#173f5e" />
+      <stop offset="1" stop-color="#102f49" />
+    </linearGradient>
+    <marker id="arrow" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto">
+      <path d="M0 0 L11 5.5 L0 11 Z" fill="#64d7c6" />
+    </marker>
+    <style>
+      .box {
+        fill: url(#panel);
+        stroke: #416982;
+        stroke-width: 2;
+      }
+      .proof {
+        fill: #153f3c;
+        stroke: #4f8178;
+        stroke-width: 2;
+      }
+      .work {
+        fill: #3b3453;
+        stroke: #756891;
+        stroke-width: 2;
+      }
+      .title {
+        fill: #ffffff;
+        font:
+          700 24px 'Segoe UI',
+          Arial,
+          sans-serif;
+      }
+      .body {
+        fill: #b9cdd9;
+        font:
+          400 17px 'Segoe UI',
+          Arial,
+          sans-serif;
+      }
+      .label {
+        fill: #90adbf;
+        font:
+          700 15px 'Segoe UI',
+          Arial,
+          sans-serif;
+        letter-spacing: 1.4px;
+      }
+      .flow {
+        fill: none;
+        stroke: #64d7c6;
+        stroke-width: 4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        marker-end: url(#arrow);
+      }
+      .return {
+        fill: none;
+        stroke: #e86f2b;
+        stroke-width: 3;
+        stroke-dasharray: 9 9;
+        marker-end: url(#arrow);
+      }
+    </style>
+  </defs>
+
+  <rect width="1600" height="720" rx="30" fill="url(#bg)" />
+  <path d="M0 112 H1600" stroke="#315169" stroke-width="1" />
+  <text
+    x="54"
+    y="58"
+    fill="#ffffff"
+    font-family="Segoe UI, Arial, sans-serif"
+    font-size="38"
+    font-weight="700"
+  >
+    QueueForge architecture
+  </text>
+  <text x="54" y="91" fill="#9fb6c8" font-family="Segoe UI, Arial, sans-serif" font-size="18">
+    PostgreSQL owns durable state. Redis and BullMQ coordinate replaceable work. Every published
+    port stays on loopback.
+  </text>
+  <rect
+    x="1308"
+    y="34"
+    width="238"
+    height="42"
+    rx="21"
+    fill="#15394f"
+    stroke="#e86f2b"
+    stroke-width="2"
+  />
+  <circle cx="1334" cy="55" r="6" fill="#e86f2b" />
+  <text
+    x="1352"
+    y="62"
+    fill="#ffffff"
+    font-family="Segoe UI, Arial, sans-serif"
+    font-size="16"
+    font-weight="700"
+  >
+    LOCAL MACHINE ONLY
+  </text>
+
+  <text class="label" x="54" y="151">REQUEST PATH</text>
+
+  <g transform="translate(54 176)">
+    <rect class="box" width="220" height="134" rx="18" />
+    <text class="title" x="24" y="49">Browser</text>
+    <text class="body" x="24" y="82">Role workspace</text>
+    <text class="body" x="24" y="107">127.0.0.1:3100</text>
+  </g>
+
+  <g transform="translate(336 176)">
+    <rect class="box" width="242" height="134" rx="18" />
+    <text class="title" x="24" y="49">Next.js UI</text>
+    <text class="body" x="24" y="82">Static export</text>
+    <text class="body" x="24" y="107">Accessible workflows</text>
+  </g>
+
+  <g transform="translate(640 176)">
+    <rect class="box" width="242" height="134" rx="18" />
+    <text class="title" x="24" y="49">Nest API</text>
+    <text class="body" x="24" y="82">REST and GraphQL</text>
+    <text class="body" x="24" y="107">RBAC and idempotency</text>
+  </g>
+
+  <g transform="translate(944 176)">
+    <rect class="proof" width="264" height="134" rx="18" />
+    <text class="title" x="24" y="49">PostgreSQL</text>
+    <text class="body" x="24" y="82">Authoritative state</text>
+    <text class="body" x="24" y="107">Audit and durable receipts</text>
+  </g>
+
+  <g transform="translate(1270 176)">
+    <rect class="proof" width="276" height="134" rx="18" />
+    <text class="title" x="24" y="49">Audit surfaces</text>
+    <text class="body" x="24" y="82">Timeline and notifications</text>
+    <text class="body" x="24" y="107">Health and recovery</text>
+  </g>
+
+  <path class="flow" d="M274 243 H322" />
+  <path class="flow" d="M578 243 H626" />
+  <path class="flow" d="M882 243 H930" />
+  <path class="flow" d="M1208 243 H1256" />
+
+  <text class="label" x="54" y="390">DURABLE WORK PATH</text>
+
+  <g transform="translate(336 416)">
+    <rect class="work" width="242" height="154" rx="18" />
+    <text class="title" x="24" y="50">Redis + BullMQ</text>
+    <text class="body" x="24" y="84">Queue coordination</text>
+    <text class="body" x="24" y="109">Leases and bounded retry</text>
+    <text class="body" x="24" y="134">Replaceable state</text>
+  </g>
+
+  <g transform="translate(640 416)">
+    <rect class="work" width="242" height="154" rx="18" />
+    <text class="title" x="24" y="50">Nest worker</text>
+    <text class="body" x="24" y="84">Outbox dispatch</text>
+    <text class="body" x="24" y="109">Idempotent consumers</text>
+    <text class="body" x="24" y="134">Recovery controls</text>
+  </g>
+
+  <g transform="translate(944 416)">
+    <rect class="proof" width="264" height="154" rx="18" />
+    <text class="title" x="24" y="50">Transactional outbox</text>
+    <text class="body" x="24" y="84">State and event commit</text>
+    <text class="body" x="24" y="109">in one transaction</text>
+    <text class="body" x="24" y="134">Stable event identity</text>
+  </g>
+
+  <g transform="translate(1270 416)">
+    <rect class="box" width="276" height="154" rx="18" />
+    <text class="title" x="24" y="50">Signed receiver</text>
+    <text class="body" x="24" y="84">Allowlisted destination</text>
+    <text class="body" x="24" y="109">Raw-body HMAC proof</text>
+    <text class="body" x="24" y="134">Retained delivery attempt</text>
+  </g>
+
+  <path class="flow" d="M1076 310 V402" />
+  <path class="flow" d="M944 493 H896" />
+  <path class="flow" d="M640 493 H592" />
+  <path class="flow" d="M882 493 H930" />
+  <path class="flow" d="M1208 493 H1256" />
+  <path class="return" d="M776 570 V628 H1076 V584" />
+
+  <rect x="54" y="624" width="1154" height="52" rx="14" fill="#0d2a40" stroke="#31566d" />
+  <circle cx="80" cy="650" r="7" fill="#64d7c6" />
+  <text
+    x="99"
+    y="656"
+    fill="#dceaf2"
+    font-family="Segoe UI, Arial, sans-serif"
+    font-size="17"
+    font-weight="700"
+  >
+    Approval authorizes one immutable request version; execution remains separately observable.
+  </text>
+</svg>

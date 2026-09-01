@@ -12,7 +12,6 @@ import {
   Button,
   GitPullRequestArrow,
   Panel,
-  QueueRail,
   RefreshCw,
   StatusBadge,
   type QueueRailItem,
@@ -20,11 +19,12 @@ import {
 
 import { AppShell } from '../../components/app-shell';
 import { stripGraphqlTypenames } from '../../api/graphql-response';
+import { RevealGroup, RevealItem, ScrollReveal } from '../../components/cinematic-motion';
 import { DataTable } from '../../components/data-table';
 import { CompactId, DateTime } from '../../components/format';
-import { MetricStrip, type Metric } from '../../components/metric-strip';
-import { PageHeader } from '../../components/page-header';
+import type { Metric } from '../../components/metric-strip';
 import { QueryState } from '../../components/query-state';
+import { RouteHero } from '../../components/route-hero';
 import { effectiveWorkspaceRole } from '../../components/workspace-access';
 import { DashboardOverviewSchema, type DashboardOverview } from '../../domain/models';
 import {
@@ -35,6 +35,8 @@ import {
 } from '../../domain/presentation';
 import { useAuth } from '../../providers/auth-provider';
 
+import styles from './overview-screen.module.css';
+
 const ThroughputChart = dynamic(
   () => import('./throughput-chart').then((module) => module.ThroughputChart),
   {
@@ -43,6 +45,16 @@ const ThroughputChart = dynamic(
         className="qf-throughput-chart qf-chart-placeholder"
         aria-label="Loading throughput chart"
       />
+    ),
+    ssr: false,
+  },
+);
+
+const DurablePipelineScene = dynamic(
+  () => import('./durable-pipeline-scene').then((module) => module.DurablePipelineScene),
+  {
+    loading: () => (
+      <div className="qf-durable-scene qf-durable-scene--loading" aria-hidden="true" />
     ),
     ssr: false,
   },
@@ -137,11 +149,42 @@ function countFor(overview: DashboardOverview, status: string): number {
   return overview.statusCounts.find((item) => item.status === status)?.count ?? 0;
 }
 
-function pipelineRail(overview: DashboardOverview): readonly QueueRailItem[] {
+export function pipelineRail(overview: DashboardOverview): readonly QueueRailItem[] {
   const pending = countFor(overview, 'pending_approval');
   const queued = countFor(overview, 'queued');
   const processing = countFor(overview, 'processing');
   const failed = countFor(overview, 'failed') + countFor(overview, 'dead_lettered');
+  const hasRequestActivity = overview.statusCounts.some((item) => item.count > 0);
+
+  if (!hasRequestActivity) {
+    return [
+      {
+        id: 'intake',
+        label: 'Request accepted',
+        description: 'No requests have entered this workspace yet.',
+        state: 'pending',
+      },
+      {
+        id: 'approval',
+        label: 'Human decision',
+        description: 'This stage begins when a submitted request needs approval.',
+        state: 'pending',
+      },
+      {
+        id: 'queue',
+        label: 'Processing',
+        description: 'Approved work will be processed here.',
+        state: 'pending',
+      },
+      {
+        id: 'delivery',
+        label: 'Completion and delivery',
+        description: 'Completed results will be delivered and recorded here.',
+        state: 'pending',
+      },
+    ];
+  }
+
   return [
     {
       id: 'intake',
@@ -175,13 +218,26 @@ function pipelineRail(overview: DashboardOverview): readonly QueueRailItem[] {
 
 interface RoleOverviewCopy {
   readonly actionHref:
-    '/' | '/approvals' | '/notifications' | '/operations' | '/requests' | '/workflows';
+    '/' | '/approvals' | '/notifications' | '/operations' | '/requests' | '/team' | '/workflows';
   readonly actionLabel: string;
   readonly description: string;
   readonly eyebrow: string;
   readonly nextDescription: string;
   readonly nextTitle: string;
   readonly title: string;
+}
+
+type PriorityTone = 'danger' | 'neutral' | 'signal' | 'warning';
+
+export interface OverviewPriority {
+  readonly actionHref:
+    '/approvals' | '/notifications' | '/operations' | '/requests' | '/team' | '/workflows';
+  readonly actionLabel: string;
+  readonly description: string;
+  readonly label: string;
+  readonly metricLabel?: string;
+  readonly tone: PriorityTone;
+  readonly value: number;
 }
 
 export interface RoleGuideStep {
@@ -359,84 +415,222 @@ export function roleMetrics(role: TenantRole, overview: DashboardOverview): read
   ];
 }
 
-function roleOverviewCopy(role: TenantRole, overview: DashboardOverview): RoleOverviewCopy {
+export function rolePriority(role: TenantRole, overview: DashboardOverview): OverviewPriority {
   const pending = countFor(overview, 'pending_approval');
+  const queued = countFor(overview, 'queued');
+  const processing = countFor(overview, 'processing');
   const attention = countFor(overview, 'failed') + countFor(overview, 'dead_lettered');
+
   if (role === 'approver') {
     return pending > 0
       ? {
           actionHref: '/approvals',
-          actionLabel: 'Review decisions',
-          description: 'Focus on the requests that need your judgment and stay up to date.',
-          eyebrow: 'Approval workspace',
-          nextDescription: 'Open each request, check the important facts, then approve or decline.',
-          nextTitle: `${String(pending)} decision${pending === 1 ? '' : 's'} waiting for you`,
-          title: 'Approval overview',
+          actionLabel: 'Review approval inbox',
+          description:
+            'Open the next request, verify the important facts, then approve or decline it.',
+          label: `request${pending === 1 ? '' : 's'} waiting for your decision`,
+          metricLabel: 'Waiting for you',
+          tone: 'warning',
+          value: pending,
         }
       : {
           actionHref: '/notifications',
           actionLabel: 'View notifications',
-          description: 'Focus on the requests that need your judgment and stay up to date.',
-          eyebrow: 'Approval workspace',
-          nextDescription: 'There are no requests waiting for your decision right now.',
-          nextTitle: 'You are all caught up',
-          title: 'Approval overview',
+          description: 'There are no requests waiting for your decision right now.',
+          label: 'decisions waiting',
+          metricLabel: 'Waiting for you',
+          tone: 'signal',
+          value: 0,
         };
   }
+
   if (role === 'operator') {
-    return attention > 0
+    if (attention > 0) {
+      return {
+        actionHref: '/operations',
+        actionLabel: 'Review processing issues',
+        description: 'QueueForge kept this work safe so you can inspect it before trying again.',
+        label: `item${attention === 1 ? '' : 's'} need recovery`,
+        metricLabel: 'Needs attention',
+        tone: 'danger',
+        value: attention,
+      };
+    }
+
+    const activeWork = queued + processing;
+    return activeWork > 0
       ? {
-          actionHref: '/operations',
-          actionLabel: 'Review processing issues',
-          description: 'Start requests, keep work moving, and recover anything that needs help.',
-          eyebrow: 'Operations workspace',
-          nextDescription: 'QueueForge kept the work safe so you can inspect it and try again.',
-          nextTitle: `${String(attention)} item${attention === 1 ? '' : 's'} need attention`,
-          title: 'Operations overview',
+          actionHref: '/requests',
+          actionLabel: 'Track active requests',
+          description: 'Follow the requests that are waiting to start or processing now.',
+          label: `request${activeWork === 1 ? '' : 's'} in motion`,
+          metricLabel: 'Ready to start',
+          tone: 'signal',
+          value: activeWork,
         }
       : {
           actionHref: '/requests',
-          actionLabel: 'Start or track requests',
-          description: 'Start requests, keep work moving, and recover anything that needs help.',
-          eyebrow: 'Operations workspace',
-          nextDescription:
-            'Choose a request type, answer the simple questions, and follow progress here.',
-          nextTitle: 'Start or track a request',
-          title: 'Operations overview',
+          actionLabel: 'Start a request',
+          description: 'Processing is clear. Start the next request when the work is ready.',
+          label: 'processing issues',
+          metricLabel: 'Needs attention',
+          tone: 'signal',
+          value: 0,
         };
   }
+
   if (role === 'tenant_admin') {
+    if (pending > 0) {
+      return {
+        actionHref: '/team',
+        actionLabel: 'Review approver access',
+        description:
+          'The requests are safe, but an assigned approver must decide before processing can begin.',
+        label: `request${pending === 1 ? '' : 's'} waiting for approval`,
+        metricLabel: 'Waiting for approval',
+        tone: 'warning',
+        value: pending,
+      };
+    }
+
     return attention > 0
       ? {
           actionHref: '/operations',
           actionLabel: 'Review system health',
-          description: 'Configure how work runs, manage access, and monitor the system.',
-          eyebrow: 'Admin workspace',
-          nextDescription:
-            'Review the safe recovery options without mixing them into daily request work.',
-          nextTitle: `${String(attention)} processing issue${attention === 1 ? '' : 's'} to review`,
-          title: 'Administration overview',
+          description: 'Inspect the recorded failure and choose the safe recovery path.',
+          label: `processing issue${attention === 1 ? '' : 's'} to review`,
+          metricLabel: 'Needs attention',
+          tone: 'danger',
+          value: attention,
         }
       : {
           actionHref: '/workflows',
           actionLabel: 'Manage request types',
-          description: 'Configure how work runs, manage access, and monitor the system.',
-          eyebrow: 'Admin workspace',
-          nextDescription:
-            'Keep forms, approval rules, and delivery steps easy for each role to use.',
-          nextTitle: 'Review your request types',
-          title: 'Administration overview',
+          description: 'The operational queue is clear. Review forms, rules, and delivery steps.',
+          label: 'processing issues',
+          metricLabel: 'Needs attention',
+          tone: 'signal',
+          value: 0,
         };
   }
+
+  const activeWork = pending + queued + processing;
   return {
     actionHref: '/requests',
     actionLabel: 'View request history',
+    description:
+      activeWork > 0
+        ? 'Open a request to understand its current status and latest recorded change.'
+        : 'There is no active work in this workspace right now.',
+    label: `active request${activeWork === 1 ? '' : 's'}`,
+    tone: activeWork > 0 ? 'neutral' : 'signal',
+    value: activeWork,
+  };
+}
+
+function roleOverviewCopy(role: TenantRole, overview: DashboardOverview): RoleOverviewCopy {
+  const priority = rolePriority(role, overview);
+
+  if (role === 'approver') {
+    return {
+      actionHref: priority.actionHref,
+      actionLabel: priority.actionLabel,
+      description: 'Focus on decisions that need your judgment and the updates that follow.',
+      eyebrow: 'Approval workspace',
+      nextDescription: priority.description,
+      nextTitle: `${String(priority.value)} ${priority.label}`,
+      title: 'Approval overview',
+    };
+  }
+
+  if (role === 'operator') {
+    return {
+      actionHref: priority.actionHref,
+      actionLabel: priority.actionLabel,
+      description: 'Start requests, keep work moving, and recover anything that needs help.',
+      eyebrow: 'Operations workspace',
+      nextDescription: priority.description,
+      nextTitle: `${String(priority.value)} ${priority.label}`,
+      title: 'Operations overview',
+    };
+  }
+
+  if (role === 'tenant_admin') {
+    return {
+      actionHref: priority.actionHref,
+      actionLabel: priority.actionLabel,
+      description: 'Monitor bottlenecks, manage access, and keep request types healthy.',
+      eyebrow: 'Admin workspace',
+      nextDescription: priority.description,
+      nextTitle: `${String(priority.value)} ${priority.label}`,
+      title: 'Admin overview',
+    };
+  }
+
+  return {
+    actionHref: priority.actionHref,
+    actionLabel: priority.actionLabel,
     description: 'See what is happening without changing operational or configuration settings.',
     eyebrow: 'Read-only workspace',
-    nextDescription: 'Open recent requests to understand their latest status and progress.',
-    nextTitle: 'Review recent activity',
+    nextDescription: priority.description,
+    nextTitle: `${String(priority.value)} ${priority.label}`,
     title: 'Workspace overview',
   };
+}
+
+function supportingMetricTone(label: string): PriorityTone {
+  const normalized = label.toLowerCase();
+  if (normalized.includes('attention') || normalized.includes('declined')) return 'danger';
+  if (normalized.includes('waiting')) return 'warning';
+  if (normalized.includes('completed') || normalized.includes('running')) return 'signal';
+  return 'neutral';
+}
+
+function OverviewWorkStatus({
+  metrics,
+  priority,
+}: {
+  readonly metrics: readonly Metric[];
+  readonly priority: OverviewPriority;
+}): React.JSX.Element {
+  const supportingMetrics = metrics.filter((metric) => metric.label !== priority.metricLabel);
+
+  return (
+    <section className={styles.workStatus} aria-labelledby="overview-priority-title">
+      <div className={styles.priority} data-tone={priority.tone}>
+        <div className={styles.priorityCopy}>
+          <p className="qf-eyebrow">Priority now</p>
+          <h2 id="overview-priority-title">
+            <span className={styles.priorityValue}>{priority.value}</span>
+            <span>{priority.label}</span>
+          </h2>
+          <p>{priority.description}</p>
+        </div>
+        <Link
+          className={`qf-button qf-button--primary ${styles.priorityAction}`}
+          href={priority.actionHref}
+          prefetch={false}
+        >
+          {priority.actionLabel}
+          <ArrowRight aria-hidden="true" size={16} />
+        </Link>
+      </div>
+      <dl className={styles.supportingMetrics} aria-label="Other workspace status">
+        {supportingMetrics.map((metric) => (
+          <div
+            className={styles.supportingMetric}
+            data-tone={supportingMetricTone(metric.label)}
+            data-zero={metric.value === 0 ? 'true' : 'false'}
+            key={metric.label}
+          >
+            <dt>{metric.label}</dt>
+            <dd>{metric.value}</dd>
+            {metric.detail === undefined ? null : <dd>{metric.detail}</dd>}
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
 }
 
 export function OverviewScreen(): React.JSX.Element {
@@ -467,22 +661,54 @@ export function OverviewScreen(): React.JSX.Element {
       : effectiveWorkspaceRole(session.selectedTenant.role, session.user.platformRole);
   const copy = parsed === null ? null : roleOverviewCopy(workspaceRole, parsed);
   const guide = roleGuide(workspaceRole);
+  const showOperationalRail = workspaceRole === 'operator' || workspaceRole === 'tenant_admin';
+  const railItems = useMemo(() => (parsed === null ? [] : pipelineRail(parsed)), [parsed]);
+  const priority = parsed === null ? null : rolePriority(workspaceRole, parsed);
+  const metrics = parsed === null ? [] : roleMetrics(workspaceRole, parsed);
 
   return (
     <AppShell>
-      <PageHeader
+      <RouteHero
+        className={styles.overviewHero}
         actions={
-          <Button
-            icon={<RefreshCw size={16} />}
-            loading={query.networkStatus === NetworkStatus.refetch}
-            onClick={() => void query.refetch()}
-          >
-            Refresh
-          </Button>
+          <>
+            {copy === null ? null : (
+              <Link
+                className={`qf-button qf-button--primary ${styles.landscapePrimaryAction}`}
+                href={copy.actionHref}
+                prefetch={false}
+              >
+                {copy.actionLabel}
+                <ArrowRight aria-hidden="true" size={16} />
+              </Link>
+            )}
+            <Button
+              icon={<RefreshCw size={16} />}
+              loading={query.networkStatus === NetworkStatus.refetch}
+              onClick={() => void query.refetch()}
+              tone="quiet"
+            >
+              Refresh
+            </Button>
+          </>
         }
         description={copy?.description ?? 'See the most important work for your role.'}
         eyebrow={copy?.eyebrow ?? 'QueueForge'}
+        icon={<GitPullRequestArrow size={19} />}
+        meta={
+          copy === null ? undefined : (
+            <span className={styles.heroPriority}>Priority now · {copy.nextTitle}</span>
+          )
+        }
         title={copy?.title ?? 'Workspace overview'}
+        variant={showOperationalRail ? 'feature' : 'compact'}
+        visual={
+          parsed !== null && showOperationalRail ? (
+            <div className={styles.proofScene}>
+              <DurablePipelineScene items={railItems} />
+            </div>
+          ) : undefined
+        }
       />
       <QueryState
         empty={
@@ -505,69 +731,15 @@ export function OverviewScreen(): React.JSX.Element {
       >
         {parsed !== null ? (
           <>
-            <section className="qf-next-step" aria-labelledby="next-step-title">
-              <div>
-                <p className="qf-eyebrow">Your next step</p>
-                <h2 id="next-step-title">{copy?.nextTitle}</h2>
-                <p>{copy?.nextDescription}</p>
-              </div>
-              <Link
-                className="qf-button qf-button--primary"
-                href={copy?.actionHref ?? '/'}
-                prefetch={false}
-              >
-                {copy?.actionLabel}
-                <ArrowRight size={16} />
-              </Link>
-            </section>
-            <MetricStrip items={roleMetrics(workspaceRole, parsed)} />
-            <Panel
-              className="qf-getting-started"
-              title={guide.title}
-              description={guide.description}
-            >
-              <ol className="qf-journey-guide">
-                {guide.steps.map((step, index) => (
-                  <li key={`${step.href}-${step.label}`}>
-                    <span>{String(index + 1)}</span>
-                    <div>
-                      <strong>{step.label}</strong>
-                      <p>{step.description}</p>
-                      <Link className="qf-guide-link" href={step.href} prefetch={false}>
-                        Open this step <ArrowRight aria-hidden="true" size={14} />
-                      </Link>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </Panel>
-            <div className="qf-content-grid qf-content-grid--overview">
-              {workspaceRole === 'operator' || workspaceRole === 'tenant_admin' ? (
+            {priority === null ? null : (
+              <ScrollReveal>
+                <OverviewWorkStatus metrics={metrics} priority={priority} />
+              </ScrollReveal>
+            )}
+            <RevealGroup className="qf-content-grid qf-content-grid--overview">
+              <RevealItem className="qf-span-full">
                 <Panel
-                  title="Completed work"
-                  description="Successful and failed requests over the visible period."
-                >
-                  {parsed.throughput.length > 0 ? (
-                    <ThroughputChart points={parsed.throughput} />
-                  ) : (
-                    <p className="qf-chart-summary">
-                      No throughput points are available for this interval.
-                    </p>
-                  )}
-                </Panel>
-              ) : null}
-              {workspaceRole === 'operator' || workspaceRole === 'tenant_admin' ? (
-                <Panel
-                  title="How work is moving"
-                  description="A simple view of the request journey right now."
-                >
-                  <QueueRail items={pipelineRail(parsed)} ariaLabel="Current request journey" />
-                </Panel>
-              ) : null}
-              {workspaceRole === 'tenant_admin' ? null : (
-                <Panel
-                  className="qf-span-full"
-                  title="Recent requests"
+                  title="Recent request activity"
                   description="Latest status changes across this workspace."
                   actions={
                     workspaceRole === 'operator' || workspaceRole === 'viewer' ? (
@@ -576,7 +748,15 @@ export function OverviewScreen(): React.JSX.Element {
                         href="/requests"
                         prefetch={false}
                       >
-                        Open history <ArrowRight size={15} />
+                        Open request history <ArrowRight aria-hidden="true" size={15} />
+                      </Link>
+                    ) : workspaceRole === 'approver' ? (
+                      <Link
+                        className="qf-button qf-button--quiet"
+                        href="/approvals"
+                        prefetch={false}
+                      >
+                        Open approval inbox <ArrowRight aria-hidden="true" size={15} />
                       </Link>
                     ) : undefined
                   }
@@ -593,19 +773,88 @@ export function OverviewScreen(): React.JSX.Element {
                     }}
                   />
                 </Panel>
-              )}
-              <details className="qf-span-full qf-technical-note">
-                <summary>
-                  <GitPullRequestArrow size={18} aria-hidden="true" />
-                  How QueueForge keeps work safe
-                </summary>
-                <p>
-                  Requests are saved before background processing starts. Stable event IDs and
-                  durable receipts prevent QueueForge from repeating its own database effects, even
-                  when a worker retries.
-                </p>
-              </details>
-            </div>
+              </RevealItem>
+              {showOperationalRail ? (
+                <RevealItem>
+                  <Panel
+                    title="Request throughput"
+                    description="Successful and failed requests in the visible period."
+                  >
+                    {parsed.throughput.length > 0 ? (
+                      <ThroughputChart points={parsed.throughput} />
+                    ) : (
+                      <p className="qf-chart-summary">
+                        No throughput points are available for this interval.
+                      </p>
+                    )}
+                  </Panel>
+                </RevealItem>
+              ) : null}
+              {showOperationalRail ? (
+                <RevealItem>
+                  <Panel
+                    className="qf-evidence-panel"
+                    title="Durability controls"
+                    description="The record stays authoritative if processing or delivery repeats."
+                  >
+                    <dl className="qf-evidence-ledger">
+                      <div>
+                        <dt>Before dispatch</dt>
+                        <dd>Request state and outbox event commit together.</dd>
+                      </div>
+                      <div>
+                        <dt>During retries</dt>
+                        <dd>Stable event IDs and receipts prevent repeated QueueForge effects.</dd>
+                      </div>
+                      <div>
+                        <dt>After delivery</dt>
+                        <dd>The signed attempt and correlation trail remain inspectable.</dd>
+                      </div>
+                    </dl>
+                  </Panel>
+                </RevealItem>
+              ) : null}
+              <RevealItem className="qf-span-full">
+                <details className="qf-technical-note">
+                  <summary>
+                    <GitPullRequestArrow size={18} aria-hidden="true" />
+                    How QueueForge keeps work safe
+                  </summary>
+                  <p>
+                    Requests are saved before background processing starts. Stable event IDs and
+                    durable receipts prevent QueueForge from repeating its own database effects,
+                    even when a worker retries.
+                  </p>
+                </details>
+              </RevealItem>
+            </RevealGroup>
+            {workspaceRole === 'tenant_admin' ? null : (
+              <ScrollReveal>
+                <details className={`qf-getting-started ${styles.roleGuide}`}>
+                  <summary>
+                    <span>
+                      <strong>{guide.title}</strong>
+                      <small>{guide.description}</small>
+                    </span>
+                    <span aria-hidden="true">Role guide</span>
+                  </summary>
+                  <ol className="qf-journey-guide">
+                    {guide.steps.map((step, index) => (
+                      <li key={`${step.href}-${step.label}`}>
+                        <span>{String(index + 1)}</span>
+                        <div>
+                          <strong>{step.label}</strong>
+                          <p>{step.description}</p>
+                          <Link className="qf-guide-link" href={step.href} prefetch={false}>
+                            Open this step <ArrowRight aria-hidden="true" size={14} />
+                          </Link>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              </ScrollReveal>
+            )}
           </>
         ) : null}
       </QueryState>
