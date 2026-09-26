@@ -1,0 +1,58 @@
+[
+  {
+    "text": " Step two.",
+    "startMs": 114,
+    "endMs": 989,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Amina opens the Approval inbox",
+    "startMs": 1193,
+    "endMs": 3672,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and searches Dubai client workshop.",
+    "startMs": 3722,
+    "endMs": 6656,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Omar's request appears with the same details he submitted.",
+    "startMs": 6861,
+    "endMs": 10534,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " She reviews them and approves.",
+    "startMs": 10753,
+    "endMs": 13048,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Omar cannot approve his own request,",
+    "startMs": 13253,
+    "endMs": 15918,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " so QueueForge saves Amina's independent decision",
+    "startMs": 16151,
+    "endMs": 19638,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " before processing begins.",
+    "startMs": 19688,
+    "endMs": 21812,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

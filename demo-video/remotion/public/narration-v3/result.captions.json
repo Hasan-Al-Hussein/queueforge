@@ -1,0 +1,51 @@
+[
+  {
+    "text": " Omar receives a completion notification.",
+    "startMs": 114,
+    "endMs": 2835,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " In Activity log, the administrator searches Request completed",
+    "startMs": 3040,
+    "endMs": 7423,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and finds the matching 12:42 entry.",
+    "startMs": 7486,
+    "endMs": 10690,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Opening that row reveals who changed the request,",
+    "startMs": 10881,
+    "endMs": 14440,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " when it happened, and the saved evidence needed",
+    "startMs": 14645,
+    "endMs": 17351,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " to understand the retry and final outcome.",
+    "startMs": 17401,
+    "endMs": 20378,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " One request now reads as one clear story.",
+    "startMs": 20611,
+    "endMs": 24597,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

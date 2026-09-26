@@ -1,0 +1,170 @@
+[
+  {
+    "id": "problem",
+    "text": "An expense request passes through several hands. Omar submits it, Amina makes the decision, background processing prepares the outcome, and another system receives it. If those handoffs live in separate tools, a delay or failure becomes difficult to trace and explain.",
+    "captions": [
+      "An expense request passes through several hands.",
+      "Omar submits it, Amina makes the decision,",
+      "background processing prepares the outcome,",
+      "and another system receives it.",
+      "If those handoffs live in separate tools,",
+      "a delay or failure becomes difficult to trace and explain."
+    ]
+  },
+  {
+    "id": "solution",
+    "text": "QueueForge keeps those handoffs connected on one record. It is not chat or a general project tracker. It controls approval, background processing, delivery, and the history people need to inspect.",
+    "captions": [
+      "QueueForge keeps those handoffs connected on one record.",
+      "It is not chat or a general project tracker.",
+      "It controls approval, background processing, delivery,",
+      "and the history people need to inspect."
+    ]
+  },
+  {
+    "id": "roles",
+    "text": "The work is divided among three roles. Omar, the operator, starts requests. Amina, the approver, makes the independent decision. An administrator configures the workspace and watches its health. After sign-in, each person sees only the pages and actions their role allows. Everything here uses local demonstration data.",
+    "captions": [
+      "The work is divided among three roles.",
+      "Omar, the operator, starts requests.",
+      "Amina, the approver, makes the independent decision.",
+      "An administrator configures the workspace and watches its health.",
+      "After sign-in, each person sees only the pages",
+      "and actions their role allows.",
+      "Everything here uses local demonstration data."
+    ]
+  },
+  {
+    "id": "admin-tour",
+    "text": "Here is the workspace map. Home is the starting point, showing priorities, current status, and work that needs attention. Request types is where administrators build the forms, approval rules, processing steps, and delivery path that each request follows. Delivery connections shows where finished results go and whether they arrived. People and access controls who can enter and what each role may do. Processing health separates work that is waiting, running, retrying, or needs help. Activity log preserves important changes and lets administrators inspect the details. Notifications is each person's inbox for decisions, completed work, retries, and problems. Together, these seven pages follow one request from setup to proof.",
+    "captions": [
+      "Here is the workspace map.",
+      {
+        "spoken": "Home is the starting point, showing priorities, current status,",
+        "text": "Home shows priorities and current status."
+      },
+      "and work that needs attention.",
+      {
+        "spoken": "Request types is where administrators build the forms,",
+        "text": "Request types is where administrators build forms."
+      },
+      {
+        "spoken": "approval rules, processing steps, and delivery path",
+        "text": "They set approval rules, processing steps, and the delivery path."
+      },
+      "that each request follows.",
+      "Delivery connections shows where finished results go",
+      "and whether they arrived.",
+      {
+        "spoken": "People and access controls who can enter",
+        "text": "People and access controls who can enter."
+      },
+      {
+        "spoken": "and what each role may do.",
+        "text": "It controls what each role may do."
+      },
+      "Processing health separates work that is waiting, running,",
+      "retrying, or needs help.",
+      "Activity log preserves important changes",
+      "and lets administrators inspect the details.",
+      "Notifications is each person's inbox for decisions,",
+      "completed work, retries, and problems.",
+      "Together, these seven pages follow one request from setup to proof."
+    ]
+  },
+  {
+    "id": "submit",
+    "text": "Step one. Omar opens Start and track requests, chooses Expense review, and enters twelve hundred fifty dirhams. He selects cost center O P S forty-two and adds the summary, Dubai client workshop airfare, September twenty twenty-six. Before he sends it, the review page shows who will approve the request and what happens next. Omar submits, and QueueForge marks it Waiting for approval with the next person named.",
+    "captions": [
+      "Step one.",
+      "Omar opens Start and track requests,",
+      {
+        "spoken": "chooses Expense review, and enters twelve hundred fifty dirhams.",
+        "text": "chooses Expense review and enters 1,250 dirhams."
+      },
+      {
+        "spoken": "He selects cost center O P S forty-two",
+        "text": "He selects cost center OPS-42."
+      },
+      {
+        "spoken": "and adds the summary,",
+        "text": "Then he adds the summary:"
+      },
+      {
+        "spoken": "Dubai client workshop airfare, September twenty twenty-six.",
+        "text": "Dubai client workshop airfare — September 2026"
+      },
+      "Before he sends it, the review page shows who will approve the request",
+      "and what happens next.",
+      "Omar submits, and QueueForge marks it Waiting for approval",
+      "with the next person named."
+    ]
+  },
+  {
+    "id": "approve",
+    "text": "Step two. Amina opens the Approval inbox and searches Dubai client workshop. Omar's request appears with the same details he submitted. She reviews them and approves. Omar cannot approve his own request, so QueueForge saves Amina's independent decision before processing begins.",
+    "captions": [
+      "Step two.",
+      "Amina opens the Approval inbox",
+      "and searches Dubai client workshop.",
+      "Omar's request appears with the same details he submitted.",
+      "She reviews them and approves.",
+      "Omar cannot approve his own request,",
+      "so QueueForge saves Amina's independent decision",
+      "before processing begins."
+    ]
+  },
+  {
+    "id": "process-deliver",
+    "text": "Step three. QueueForge starts the background work. The first attempt fails, but it remains visible. QueueForge tries again, and the second attempt succeeds. It creates a signed receipt so the completed result can be verified, then delivers it. In Delivery connections, the administrator searches Expense review and finds the matching send. The delivery record confirms it was accepted, and Omar's request now reads Completed.",
+    "captions": [
+      "Step three.",
+      "QueueForge starts the background work.",
+      "The first attempt fails, but it remains visible.",
+      "QueueForge tries again, and the second attempt succeeds.",
+      "It creates a signed receipt so the completed result can be verified,",
+      "then delivers it.",
+      "In Delivery connections, the administrator searches Expense review",
+      "and finds the matching send.",
+      "The delivery record confirms it was accepted,",
+      "and Omar's request now reads Completed."
+    ]
+  },
+  {
+    "id": "result",
+    "text": "Omar receives a completion notification. In Activity log, the administrator searches Request completed and finds the matching entry at twelve forty-two. Opening that row reveals who changed the request, when it happened, and the saved evidence needed to understand the retry and final outcome. One request now reads as one clear story.",
+    "captions": [
+      "Omar receives a completion notification.",
+      "In Activity log, the administrator searches Request completed",
+      {
+        "spoken": "and finds the matching entry at twelve forty-two.",
+        "text": "and finds the matching 12:42 entry."
+      },
+      "Opening that row reveals who changed the request,",
+      "when it happened, and the saved evidence needed",
+      "to understand the retry and final outcome.",
+      "One request now reads as one clear story."
+    ]
+  },
+  {
+    "id": "pipeline",
+    "text": "Behind the screen, QueueForge confirms Omar may act and saves the request in its database. A background worker performs the task, then passes the result to the receiving system. As each step finishes, the website updates the status and keeps the history.",
+    "captions": [
+      "Behind the screen, QueueForge confirms Omar may act",
+      "and saves the request in its database.",
+      "A background worker performs the task,",
+      "then passes the result to the receiving system.",
+      "As each step finishes, the website updates the status",
+      "and keeps the history."
+    ]
+  },
+  {
+    "id": "close",
+    "text": "From the request, to the independent decision, retry, delivery, and final record, QueueForge keeps every handoff understandable and leaves proof behind.",
+    "captions": [
+      "From the request, to the independent decision, retry, delivery,",
+      "and final record, QueueForge keeps every handoff understandable",
+      "and leaves proof behind."
+    ]
+  }
+]

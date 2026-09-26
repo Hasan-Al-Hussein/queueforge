@@ -1,0 +1,10 @@
+export { ApproveScene } from './ApproveScene';
+export { AdminTourScene } from './AdminTourScene';
+export { CloseScene } from './CloseScene';
+export { PipelineScene } from './PipelineScene';
+export { ProblemScene } from './ProblemScene';
+export { ProcessDeliverScene } from './ProcessDeliverScene';
+export { ResultScene } from './ResultScene';
+export { SolutionScene } from './SolutionScene';
+export { RolesScene } from './StartingPointScene';
+export { SubmitScene } from './SubmitScene';

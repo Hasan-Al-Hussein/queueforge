@@ -1,0 +1,39 @@
+1
+00:00:00,114 --> 00:00:00,960
+Step one.
+
+2
+00:00:01,165 --> 00:00:04,183
+Omar opens Start and track requests,
+
+3
+00:00:04,233 --> 00:00:08,986
+chooses Expense review and enters 1,250 dirhams.
+
+4
+00:00:09,205 --> 00:00:12,635
+He selects cost center OPS-42.
+
+5
+00:00:12,685 --> 00:00:14,511
+Then he adds the summary:
+
+6
+00:00:14,688 --> 00:00:19,014
+Dubai client workshop airfare — September 2026
+
+7
+00:00:19,233 --> 00:00:23,870
+Before he sends it, the review page shows who will approve the request
+
+8
+00:00:23,920 --> 00:00:25,420
+and what happens next.
+
+9
+00:00:25,639 --> 00:00:29,808
+Omar submits, and QueueForge marks it Waiting for approval
+
+10
+00:00:29,858 --> 00:00:31,415
+with the next person named.

@@ -1,0 +1,27 @@
+1
+00:00:00,128 --> 00:00:02,949
+The work is divided among three roles.
+
+2
+00:00:03,153 --> 00:00:06,187
+Omar, the operator, starts requests.
+
+3
+00:00:06,392 --> 00:00:10,591
+Amina, the approver, makes the independent decision.
+
+4
+00:00:10,781 --> 00:00:15,122
+An administrator configures the workspace and watches its health.
+
+5
+00:00:15,341 --> 00:00:19,254
+After sign-in, each person sees only the pages
+
+6
+00:00:19,304 --> 00:00:21,457
+and actions their role allows.
+
+7
+00:00:21,648 --> 00:00:25,264
+Everything here uses local demonstration data.

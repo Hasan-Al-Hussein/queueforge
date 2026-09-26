@@ -1,0 +1,23 @@
+[
+  {
+    "text": " From the request, to the independent decision, retry, delivery,",
+    "startMs": 142,
+    "endMs": 5334,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and final record, QueueForge keeps every handoff understandable",
+    "startMs": 5384,
+    "endMs": 10220,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and leaves proof behind.",
+    "startMs": 10270,
+    "endMs": 11898,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

@@ -1,0 +1,51 @@
+[
+  {
+    "text": " The work is divided among three roles.",
+    "startMs": 128,
+    "endMs": 2949,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Omar, the operator, starts requests.",
+    "startMs": 3153,
+    "endMs": 6187,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Amina, the approver, makes the independent decision.",
+    "startMs": 6392,
+    "endMs": 10591,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " An administrator configures the workspace and watches its health.",
+    "startMs": 10781,
+    "endMs": 15122,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " After sign-in, each person sees only the pages",
+    "startMs": 15341,
+    "endMs": 19254,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and actions their role allows.",
+    "startMs": 19304,
+    "endMs": 21457,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Everything here uses local demonstration data.",
+    "startMs": 21648,
+    "endMs": 25264,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

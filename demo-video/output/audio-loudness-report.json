@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-09-01T00:06:09.0277871Z",
+  "target": {
+    "integratedLoudnessLufs": -16.8,
+    "truePeakDbtp": -2.2,
+    "loudnessRangeLu": 11
+  },
+  "firstPass": {
+    "input_i": "-21.73",
+    "input_tp": "-3.35",
+    "input_lra": "5.10",
+    "input_thresh": "-32.34",
+    "output_i": "-17.03",
+    "output_tp": "-2.20",
+    "output_lra": "4.80",
+    "output_thresh": "-27.62",
+    "normalization_type": "dynamic",
+    "target_offset": "0.23"
+  },
+  "finalMeasurement": {
+    "input_i": "-16.87",
+    "input_tp": "-2.14",
+    "input_lra": "5.00",
+    "input_thresh": "-27.46",
+    "output_i": "-16.79",
+    "output_tp": "-2.20",
+    "output_lra": "4.70",
+    "output_thresh": "-27.37",
+    "normalization_type": "dynamic",
+    "target_offset": "-0.01"
+  }
+}

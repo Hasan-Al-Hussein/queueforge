@@ -1,0 +1,44 @@
+[
+  {
+    "text": " Behind the screen, QueueForge confirms Omar may act",
+    "startMs": 128,
+    "endMs": 4142,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and saves the request in its database.",
+    "startMs": 4276,
+    "endMs": 7068,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " A background worker performs the task,",
+    "startMs": 7273,
+    "endMs": 10094,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " then passes the result to the receiving system.",
+    "startMs": 10327,
+    "endMs": 13418,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " As each step finishes, the website updates the status",
+    "startMs": 13622,
+    "endMs": 17407,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and keeps the history.",
+    "startMs": 17457,
+    "endMs": 18972,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

@@ -1,0 +1,121 @@
+[
+  {
+    "text": " Here is the workspace map.",
+    "startMs": 128,
+    "endMs": 2082,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Home shows priorities and current status.",
+    "startMs": 2315,
+    "endMs": 7635,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and work that needs attention.",
+    "startMs": 7685,
+    "endMs": 9511,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Request types is where administrators build forms.",
+    "startMs": 9716,
+    "endMs": 13530,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " They set approval rules, processing steps, and the delivery path.",
+    "startMs": 13580,
+    "endMs": 17848,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " that each request follows.",
+    "startMs": 17898,
+    "endMs": 19568,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Delivery connections shows where finished results go",
+    "startMs": 19787,
+    "endMs": 23757,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and whether they arrived.",
+    "startMs": 23807,
+    "endMs": 25264,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " People and access controls who can enter.",
+    "startMs": 25483,
+    "endMs": 28403,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " It controls what each role may do.",
+    "startMs": 28480,
+    "endMs": 30051,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Processing health separates work that is waiting, running,",
+    "startMs": 30242,
+    "endMs": 34014,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " retrying, or needs help.",
+    "startMs": 34332,
+    "endMs": 36670,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Activity log preserves important changes",
+    "startMs": 36861,
+    "endMs": 40106,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and lets administrators inspect the details.",
+    "startMs": 40156,
+    "endMs": 43460,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Notifications is each person's inbox for decisions,",
+    "startMs": 43665,
+    "endMs": 47720,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " completed work, retries, and problems.",
+    "startMs": 47770,
+    "endMs": 51259,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Together, these seven pages follow one request from setup to proof.",
+    "startMs": 51477,
+    "endMs": 57224,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

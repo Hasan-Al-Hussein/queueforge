@@ -9,7 +9,6 @@
 QueueForge turns a structured request into one independently approved, durably processed, signed, and auditable outcome without losing the story between systems.
 
 [![Open live showcase](https://img.shields.io/badge/LIVE_SHOWCASE-OPEN-64D7C6?style=for-the-badge&logo=vercel&logoColor=102A3D)](https://queueforge-portfolio-demo.vercel.app/)
-[![Watch demo](https://img.shields.io/badge/WATCH_DEMO-4m_36s-E86F2B?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/HSDGOt7D5ZM)
 [![Download source](https://img.shields.io/badge/SOURCE-DOWNLOAD_ZIP-64D7C6?style=for-the-badge&logo=github&logoColor=102A3D)](https://github.com/Hasan-Al-Hussein/queueforge/archive/refs/heads/main.zip)
 [![Engineering CI](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/ci.yml/badge.svg)](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/codeql.yml/badge.svg)](https://github.com/Hasan-Al-Hussein/queueforge/actions/workflows/codeql.yml)
@@ -17,7 +16,7 @@ QueueForge turns a structured request into one independently approved, durably p
 ![PostgreSQL](https://img.shields.io/badge/STATE-POSTGRESQL-336791?style=for-the-badge&logo=postgresql&logoColor=white)
 [![MIT License](https://img.shields.io/badge/LICENSE-MIT-64D7C6?style=for-the-badge)](LICENSE)
 
-[Live showcase](https://queueforge-portfolio-demo.vercel.app/) · [Why it exists](#why-queueforge-exists) · [Demo](#watch-the-complete-workflow) · [Product tour](docs/product-tour.md) · [Pipeline](#end-to-end-pipeline) · [Architecture](#architecture) · [Verification](#verification) · [Security](#security-and-privacy-boundaries)
+[Live showcase](https://queueforge-portfolio-demo.vercel.app/) · [Why it exists](#why-queueforge-exists) · [Visual journey](#watch-the-complete-workflow) · [Product tour](docs/product-tour.md) · [Pipeline](#end-to-end-pipeline) · [Architecture](#architecture) · [Verification](#verification) · [Security](#security-and-privacy-boundaries)
 
 </div>
 
@@ -50,6 +49,16 @@ outbox delivery, bounded retries, dead-letter recovery, HMAC-signed allowlisted 
 notifications, and correlated audit evidence. These operational services remain loopback-only and
 are not connected to the public showcase.
 
+## Preserved project record
+
+[Completion, source snapshots, and evidence catalog](docs/portfolio-record.md) connects
+the full implementation, separate synthetic showcase, editable 3D and video sources,
+and historical verification. The [editable 4:36 film source and production record](demo-video/README.md)
+preserve the timeline, silent browser clips, captions, screenshots, scripts, and receipts.
+Generated narration audio and the narrated local master remain local pending verified
+redistribution rights. This is an achievement record, not a backup of private credentials,
+database contents, or Docker runtime state.
+
 ## Why QueueForge exists
 
 The project is built around six invariants:
@@ -65,7 +74,7 @@ The project is built around six invariants:
 
 | Signal                       | Bounded evidence                                                                                                                                                                      |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Guided product demo          | [4 minute 36 second narrated walkthrough](https://youtu.be/HSDGOt7D5ZM) using synthetic local data                                                                                    |
+| Narration-free visual proof  | [Fourteen silent browser clips](demo-video/README.md), 36 approved screenshots, and a complete [product tour](docs/product-tour.md) using synthetic local data                        |
 | Complete visual journey      | 14 desktop stages in both light and dark themes, plus 8 mobile captures, for **36 approved screenshots**                                                                              |
 | Asset integrity              | Every screenshot records its path, viewport, byte count, alt text, and SHA-256 digest in the [machine-readable manifest](docs/media/screenshots/final-e4de0d2-b17918e5/manifest.json) |
 | Role and tenant boundaries   | Separate administrator, operator, and approver workspaces, self-approval denial, and a visible cross-tenant block                                                                     |
@@ -78,13 +87,13 @@ These results apply only to the linked revision, synthetic fixtures, local envir
 ## Watch the complete workflow
 
 <div align="center">
-  <a href="https://youtu.be/HSDGOt7D5ZM">
-    <img src="docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/08-processing-completed.png" width="900" alt="Open the complete QueueForge guided product demo on YouTube" />
+  <a href="docs/product-tour.md">
+    <img src="docs/media/screenshots/final-e4de0d2-b17918e5/light/desktop/08-processing-completed.png" width="900" alt="Open the complete QueueForge product tour" />
   </a>
   <br />
-  <strong><a href="https://youtu.be/HSDGOt7D5ZM">▶ Watch the complete 4:36 guided product demo</a></strong>
+  <strong><a href="docs/product-tour.md">Open the complete product tour</a></strong>
   <br />
-  <a href="docs/media/queueforge-product-demo.srt">Read or download the 78-cue captions</a>
+  <a href="docs/media/screenshots/manifest.md">Browse the screenshot evidence manifest</a>
 </div>
 
 The demo begins with the problem and role model, tours every main workspace, and follows one realistic Expense review through submission, independent approval, a retained failed attempt, successful retry, signed delivery, notification, and correlated audit evidence.

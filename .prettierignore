@@ -12,3 +12,5 @@ pnpm-lock.yaml
 apps/web/next-env.d.ts
 .env*
 *.ps1
+docs/evidence/preservation-20260926
+demo-video/production-snapshot

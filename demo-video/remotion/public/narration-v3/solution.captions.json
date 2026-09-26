@@ -1,0 +1,30 @@
+[
+  {
+    "text": " QueueForge keeps those handoffs connected on one record.",
+    "startMs": 114,
+    "endMs": 3744,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " It is not chat or a general project tracker.",
+    "startMs": 3949,
+    "endMs": 7026,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " It controls approval, background processing, delivery,",
+    "startMs": 7244,
+    "endMs": 11356,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and the history people need to inspect.",
+    "startMs": 11406,
+    "endMs": 13830,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

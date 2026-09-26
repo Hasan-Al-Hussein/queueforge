@@ -1,0 +1,72 @@
+[
+  {
+    "text": " Step three.",
+    "startMs": 114,
+    "endMs": 1187,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " QueueForge starts the background work.",
+    "startMs": 1392,
+    "endMs": 3943,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " The first attempt fails, but it remains visible.",
+    "startMs": 4148,
+    "endMs": 7864,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " QueueForge tries again, and the second attempt succeeds.",
+    "startMs": 8082,
+    "endMs": 12565,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " It creates a signed receipt so the completed result can be verified,",
+    "startMs": 12770,
+    "endMs": 17253,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " then delivers it.",
+    "startMs": 17457,
+    "endMs": 18574,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " In Delivery connections, the administrator searches Expense review",
+    "startMs": 18778,
+    "endMs": 23203,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and finds the matching send.",
+    "startMs": 23253,
+    "endMs": 25449,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " The delivery record confirms it was accepted,",
+    "startMs": 25668,
+    "endMs": 28986,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and Omar's request now reads Completed.",
+    "startMs": 29176,
+    "endMs": 32821,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

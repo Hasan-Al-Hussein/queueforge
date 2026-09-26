@@ -1,0 +1,67 @@
+1
+00:00:00,128 --> 00:00:02,082
+Here is the workspace map.
+
+2
+00:00:02,315 --> 00:00:07,635
+Home shows priorities and current status.
+
+3
+00:00:07,685 --> 00:00:09,511
+and work that needs attention.
+
+4
+00:00:09,716 --> 00:00:13,530
+Request types is where administrators build forms.
+
+5
+00:00:13,580 --> 00:00:17,848
+They set approval rules, processing steps, and the delivery path.
+
+6
+00:00:17,898 --> 00:00:19,568
+that each request follows.
+
+7
+00:00:19,787 --> 00:00:23,757
+Delivery connections shows where finished results go
+
+8
+00:00:23,807 --> 00:00:25,264
+and whether they arrived.
+
+9
+00:00:25,483 --> 00:00:28,403
+People and access controls who can enter.
+
+10
+00:00:28,480 --> 00:00:30,051
+It controls what each role may do.
+
+11
+00:00:30,242 --> 00:00:34,014
+Processing health separates work that is waiting, running,
+
+12
+00:00:34,332 --> 00:00:36,670
+retrying, or needs help.
+
+13
+00:00:36,861 --> 00:00:40,106
+Activity log preserves important changes
+
+14
+00:00:40,156 --> 00:00:43,460
+and lets administrators inspect the details.
+
+15
+00:00:43,665 --> 00:00:47,720
+Notifications is each person's inbox for decisions,
+
+16
+00:00:47,770 --> 00:00:51,259
+completed work, retries, and problems.
+
+17
+00:00:51,477 --> 00:00:57,224
+Together, these seven pages follow one request from setup to proof.

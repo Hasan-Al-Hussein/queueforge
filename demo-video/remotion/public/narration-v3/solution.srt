@@ -1,0 +1,15 @@
+1
+00:00:00,114 --> 00:00:03,744
+QueueForge keeps those handoffs connected on one record.
+
+2
+00:00:03,949 --> 00:00:07,026
+It is not chat or a general project tracker.
+
+3
+00:00:07,244 --> 00:00:11,356
+It controls approval, background processing, delivery,
+
+4
+00:00:11,406 --> 00:00:13,830
+and the history people need to inspect.

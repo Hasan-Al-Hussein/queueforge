@@ -1,0 +1,23 @@
+1
+00:00:00,128 --> 00:00:04,142
+Behind the screen, QueueForge confirms Omar may act
+
+2
+00:00:04,276 --> 00:00:07,068
+and saves the request in its database.
+
+3
+00:00:07,273 --> 00:00:10,094
+A background worker performs the task,
+
+4
+00:00:10,327 --> 00:00:13,418
+then passes the result to the receiving system.
+
+5
+00:00:13,622 --> 00:00:17,407
+As each step finishes, the website updates the status
+
+6
+00:00:17,457 --> 00:00:18,972
+and keeps the history.
