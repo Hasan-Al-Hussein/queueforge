@@ -1,0 +1,72 @@
+[
+  {
+    "text": " Step one.",
+    "startMs": 114,
+    "endMs": 960,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Omar opens Start and track requests,",
+    "startMs": 1165,
+    "endMs": 4183,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " chooses Expense review and enters 1,250 dirhams.",
+    "startMs": 4233,
+    "endMs": 8986,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " He selects cost center OPS-42.",
+    "startMs": 9205,
+    "endMs": 12635,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Then he adds the summary:",
+    "startMs": 12685,
+    "endMs": 14511,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Dubai client workshop airfare \u2014 September 2026",
+    "startMs": 14688,
+    "endMs": 19014,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Before he sends it, the review page shows who will approve the request",
+    "startMs": 19233,
+    "endMs": 23870,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and what happens next.",
+    "startMs": 23920,
+    "endMs": 25420,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Omar submits, and QueueForge marks it Waiting for approval",
+    "startMs": 25639,
+    "endMs": 29808,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " with the next person named.",
+    "startMs": 29858,
+    "endMs": 31415,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

@@ -1,0 +1,27 @@
+1
+00:00:00,114 --> 00:00:02,835
+Omar receives a completion notification.
+
+2
+00:00:03,040 --> 00:00:07,423
+In Activity log, the administrator searches Request completed
+
+3
+00:00:07,486 --> 00:00:10,690
+and finds the matching 12:42 entry.
+
+4
+00:00:10,881 --> 00:00:14,440
+Opening that row reveals who changed the request,
+
+5
+00:00:14,645 --> 00:00:17,351
+when it happened, and the saved evidence needed
+
+6
+00:00:17,401 --> 00:00:20,378
+to understand the retry and final outcome.
+
+7
+00:00:20,611 --> 00:00:24,597
+One request now reads as one clear story.

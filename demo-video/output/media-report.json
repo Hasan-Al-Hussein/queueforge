@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-09-01T00:08:09.212Z",
+  "pass": true,
+  "expected": {
+    "durationSeconds": 276,
+    "frames": 8280,
+    "fps": 30,
+    "width": 1920,
+    "height": 1080
+  },
+  "observed": {
+    "videoDurationSeconds": 276,
+    "containerDurationSeconds": 276.1,
+    "frames": 8280,
+    "fps": "30/1",
+    "width": 1920,
+    "height": 1080,
+    "videoCodec": "h264",
+    "pixelFormat": "yuv420p",
+    "audioCodec": "aac",
+    "audioSampleRate": 48000,
+    "audioChannels": 1,
+    "audioBitRate": 163937,
+    "integratedLoudnessLufs": -16.87,
+    "truePeakDbtp": -2.14,
+    "bytes": 30791597,
+    "captionCues": 78,
+    "lastCaptionEndSeconds": 274.165
+  },
+  "checks": {
+    "durationMatchesComposition": true,
+    "containerPaddingIsBounded": true,
+    "dimensionsAreCorrect": true,
+    "frameRateIsCorrect": true,
+    "frameCountMatchesComposition": true,
+    "videoIsH264Yuv420p": true,
+    "audioIsAac48Khz": true,
+    "audioIsMono": true,
+    "loudnessMatchesLocalGuardTreatment": true,
+    "captionsArePresent": true,
+    "captionsEndInsideVideo": true
+  }
+}

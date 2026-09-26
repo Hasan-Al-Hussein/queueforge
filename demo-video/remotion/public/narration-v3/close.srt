@@ -1,0 +1,11 @@
+1
+00:00:00,142 --> 00:00:05,334
+From the request, to the independent decision, retry, delivery,
+
+2
+00:00:05,384 --> 00:00:10,220
+and final record, QueueForge keeps every handoff understandable
+
+3
+00:00:10,270 --> 00:00:11,898
+and leaves proof behind.

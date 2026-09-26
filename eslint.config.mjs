@@ -17,6 +17,9 @@ export default tseslint.config(
       '**/playwright-report/**',
       '**/test-results/**',
       '**/artifacts/**',
+      // Optional historical media workspace: dependencies are archived separately,
+      // not installed by the application's workspace/CI. See demo-video/README.md.
+      'demo-video/**',
       'pnpm-lock.yaml',
     ],
   },

@@ -1,0 +1,44 @@
+[
+  {
+    "text": " An expense request passes through several hands.",
+    "startMs": 85,
+    "endMs": 4185,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " Omar submits it, Amina makes the decision,",
+    "startMs": 4389,
+    "endMs": 7764,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " background processing prepares the outcome,",
+    "startMs": 7841,
+    "endMs": 10619,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " and another system receives it.",
+    "startMs": 10909,
+    "endMs": 12764,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " If those handoffs live in separate tools,",
+    "startMs": 12983,
+    "endMs": 16172,
+    "timestampMs": null,
+    "confidence": null
+  },
+  {
+    "text": " a delay or failure becomes difficult to trace and explain.",
+    "startMs": 16222,
+    "endMs": 21102,
+    "timestampMs": null,
+    "confidence": null
+  }
+]

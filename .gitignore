@@ -35,3 +35,17 @@ artifacts/screenshots/mobile-workflows-390x844.png
 *.tsbuildinfo
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
+
+# Reviewed source and evidence are public; raw captures and generated voice/video outputs stay private.
+demo-video/recording/takes/
+demo-video/**/metadata.private.json
+demo-video/remotion/public/narration-v3/*.mp3
+demo-video/remotion/dist/
+demo-video/remotion/out/
+!demo-video/output/
+demo-video/output/*
+!demo-video/output/product-demo.srt
+!demo-video/output/media-report.json
+!demo-video/output/audio-loudness-report.json

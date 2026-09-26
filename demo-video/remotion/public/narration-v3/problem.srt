@@ -1,0 +1,23 @@
+1
+00:00:00,085 --> 00:00:04,185
+An expense request passes through several hands.
+
+2
+00:00:04,389 --> 00:00:07,764
+Omar submits it, Amina makes the decision,
+
+3
+00:00:07,841 --> 00:00:10,619
+background processing prepares the outcome,
+
+4
+00:00:10,909 --> 00:00:12,764
+and another system receives it.
+
+5
+00:00:12,983 --> 00:00:16,172
+If those handoffs live in separate tools,
+
+6
+00:00:16,222 --> 00:00:21,102
+a delay or failure becomes difficult to trace and explain.

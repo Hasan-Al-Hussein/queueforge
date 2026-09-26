@@ -1,0 +1,39 @@
+1
+00:00:00,114 --> 00:00:01,187
+Step three.
+
+2
+00:00:01,392 --> 00:00:03,943
+QueueForge starts the background work.
+
+3
+00:00:04,148 --> 00:00:07,864
+The first attempt fails, but it remains visible.
+
+4
+00:00:08,082 --> 00:00:12,565
+QueueForge tries again, and the second attempt succeeds.
+
+5
+00:00:12,770 --> 00:00:17,253
+It creates a signed receipt so the completed result can be verified,
+
+6
+00:00:17,457 --> 00:00:18,574
+then delivers it.
+
+7
+00:00:18,778 --> 00:00:23,203
+In Delivery connections, the administrator searches Expense review
+
+8
+00:00:23,253 --> 00:00:25,449
+and finds the matching send.
+
+9
+00:00:25,668 --> 00:00:28,986
+The delivery record confirms it was accepted,
+
+10
+00:00:29,176 --> 00:00:32,821
+and Omar's request now reads Completed.
