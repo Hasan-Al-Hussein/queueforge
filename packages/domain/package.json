@@ -19,6 +19,6 @@
   "dependencies": {
     "@queueforge/contracts": "workspace:*",
     "ajv": "8.20.0",
-    "json-canonicalize": "3.0.0"
+    "json-canonicalize": "3.0.1"
   }
 }
